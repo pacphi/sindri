@@ -342,7 +342,7 @@ make v3-cycle-fast CONFIG=sindri.yaml
 
 The base image (`sindri:base-X.Y.Z`) contains:
 
-- Rust 1.94 toolchain (246MB)
+- Rust 1.95 toolchain (246MB)
 - cargo-chef (for dependency caching)
 - System packages (Ubuntu 24.04)
 - GitHub CLI v2.88.1
@@ -412,12 +412,12 @@ docker push ghcr.io/pacphi/sindri:base-latest
 
 Rebuild the base image when:
 
-- **Rust version changes** (e.g., 1.94 → 1.95)
+- **Rust version changes** (e.g., 1.95 → 1.96)
 
   ```bash
   # Edit v3/Dockerfile.base
-  # Change: ARG RUST_VERSION=1.94
-  # To:     ARG RUST_VERSION=1.95
+  # Change: ARG RUST_VERSION=1.95
+  # To:     ARG RUST_VERSION=1.96
   make v3-docker-build-base
   ```
 
@@ -710,7 +710,7 @@ docker build -f v3/Dockerfile.dev -t sindri:latest .
 head -n 50 v3/Dockerfile.dev | grep FROM
 
 # Should see: FROM sindri:base-latest
-# If you see: FROM ubuntu:24.04 or FROM rust:1.94
+# If you see: FROM ubuntu:24.04 or FROM rust:1.95
 # Then you're not using base!
 ```
 

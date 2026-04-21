@@ -7,7 +7,7 @@ use flate2::write::GzEncoder;
 use flate2::Compression;
 use sha2::{Digest, Sha256};
 use std::fs::File;
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::path::Path;
 
 /// Default compression level (6 = balanced speed/ratio).
@@ -117,11 +117,19 @@ pub fn calculate_checksum(path: &Path) -> anyhow::Result<String> {
         File::open(path).map_err(|e| anyhow::anyhow!("Failed to open file for checksum: {}", e))?;
 
     let mut hasher = Sha256::new();
-    io::copy(&mut file, &mut hasher)
-        .map_err(|e| anyhow::anyhow!("Failed to calculate checksum: {}", e))?;
+    let mut buf = vec![0u8; 65536];
+    loop {
+        let n = file
+            .read(&mut buf)
+            .map_err(|e| anyhow::anyhow!("Failed to calculate checksum: {}", e))?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buf[..n]);
+    }
 
     let hash = hasher.finalize();
-    Ok(format!("{:x}", hash))
+    Ok(hash.iter().map(|b| format!("{:02x}", b)).collect())
 }
 
 /// Writer that calculates SHA256 checksum while writing.
@@ -147,7 +155,7 @@ impl<W: Write> ChecksumWriter<W> {
 
     fn checksum(&self) -> String {
         let hash = self.hasher.clone().finalize();
-        format!("{:x}", hash)
+        hash.iter().map(|b| format!("{:02x}", b)).collect()
     }
 }
 

@@ -326,7 +326,7 @@ find docs -name "*.md" | xargs -n1 markdown-link-check -q
 
 ### Prerequisites
 
-- Rust 1.94+ (install via [rustup](https://rustup.rs/))
+- Rust 1.95+ (install via [rustup](https://rustup.rs/))
 - cargo (comes with Rust)
 - Optional: [cargo-llvm-cov](https://github.com/taiki-e/cargo-llvm-cov) for code coverage (`rustup component add llvm-tools-preview && cargo install cargo-llvm-cov`)
 

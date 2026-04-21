@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Installation
 
 #### Docker Image
+
 ```bash
 # Pull the Docker image
 docker pull ghcr.io/pacphi/sindri:3.1.3
@@ -33,6 +34,7 @@ docker run -d --name sindri \
 ```
 
 #### CLI Binary
+
 ```bash
 # Download and install from release assets
 # Linux (x86_64)
@@ -48,17 +50,16 @@ sudo mv sindri /usr/local/bin/
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v3.1.2...v3.1.3
 
-
-
 ## [3.1.2] - 2026-03-21
 
 ### Fixed
 
-- fix(release): change npm scope from @sindri to @pacphi/sindri-* (81a369d)
+- fix(release): change npm scope from @sindri to @pacphi/sindri-\* (81a369d)
 
 ### Installation
 
 #### Docker Image
+
 ```bash
 # Pull the Docker image
 docker pull ghcr.io/pacphi/sindri:3.1.2
@@ -71,6 +72,7 @@ docker run -d --name sindri \
 ```
 
 #### CLI Binary
+
 ```bash
 # Download and install from release assets
 # Linux (x86_64)
@@ -85,8 +87,6 @@ sudo mv sindri /usr/local/bin/
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v3.1.1...v3.1.2
-
-
 
 ## [3.1.1] - 2026-03-21
 
@@ -108,6 +108,7 @@ sudo mv sindri /usr/local/bin/
 ### Installation
 
 #### Docker Image
+
 ```bash
 # Pull the Docker image
 docker pull ghcr.io/pacphi/sindri:3.1.1
@@ -120,6 +121,7 @@ docker run -d --name sindri \
 ```
 
 #### CLI Binary
+
 ```bash
 # Download and install from release assets
 # Linux (x86_64)
@@ -134,8 +136,6 @@ sudo mv sindri /usr/local/bin/
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v3.1.0...v3.1.1
-
-
 
 ## [3.1.0] - 2026-02-25
 

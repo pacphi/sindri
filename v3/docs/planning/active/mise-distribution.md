@@ -120,7 +120,7 @@ After mise registry PR is merged:
 # Global installation
 mise use -g sindri
 sindri --version
-# Sindri 3.0.0 (rustc 1.94.0)
+# Sindri 3.0.0 (rustc 1.95.0)
 
 # Project-specific version
 cd my-project

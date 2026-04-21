@@ -79,7 +79,7 @@ chrono = { version = "0.4", features = ["serde"] }
 regex = "1.12"
 
 # TOML parsing (for mise.toml)
-toml = "1.0"
+toml = "1.1"
 
 # URL handling
 url = "2.5"
@@ -88,7 +88,7 @@ url = "2.5"
 petgraph = "0.8"
 
 # UUID for unique identifiers
-uuid = { version = "1.22", features = ["v4", "serde"] }
+uuid = { version = "1.23", features = ["v4", "serde"] }
 
 # File locking for concurrent access
 fs4 = "0.13"

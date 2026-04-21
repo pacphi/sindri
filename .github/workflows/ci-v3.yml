@@ -104,7 +104,7 @@ jobs:
           workspaces: v3 -> target
 
       - name: Install cargo-binstall
-        uses: cargo-bins/cargo-binstall@v1.17.8
+        uses: cargo-bins/cargo-binstall@v1.18.0
 
       - name: Install cargo-machete
         run: cargo binstall cargo-machete --no-confirm
@@ -229,7 +229,7 @@ jobs:
           workspaces: v3 -> target
 
       - name: Install cargo-binstall
-        uses: cargo-bins/cargo-binstall@v1.17.8
+        uses: cargo-bins/cargo-binstall@v1.18.0
 
       - name: Install cargo-llvm-cov
         run: cargo binstall cargo-llvm-cov --no-confirm --force
@@ -287,7 +287,7 @@ jobs:
           fi
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           files: v3/coverage/lcov.info
           flags: workspace
@@ -295,7 +295,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: Upload providers coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           files: v3/coverage/providers-lcov.info
           flags: providers
@@ -393,7 +393,7 @@ jobs:
             github_token=${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v4.1.0
+        uses: sigstore/cosign-installer@v4.1.1
 
       - name: Sign image by digest
         if: steps.build.outputs.digest != ''
@@ -524,7 +524,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install cargo-binstall
-        uses: cargo-bins/cargo-binstall@v1.17.8
+        uses: cargo-bins/cargo-binstall@v1.18.0
 
       - name: Install cargo-audit
         run: cargo binstall cargo-audit --no-confirm

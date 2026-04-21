@@ -191,7 +191,11 @@ pub fn verify_content_integrity(
 ) -> Result<()> {
     let mut hasher = Sha256::new();
     hasher.update(content);
-    let actual_hash = format!("{:x}", hasher.finalize());
+    let actual_hash: String = hasher
+        .finalize()
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect();
 
     match expected_hash {
         Some(expected) => {

@@ -419,7 +419,7 @@ impl BinaryDownloader {
         }
 
         let result = hasher.finalize();
-        Ok(format!("{:x}", result))
+        Ok(result.iter().map(|b| format!("{:02x}", b)).collect())
     }
 
     /// Verify checksum of a downloaded file

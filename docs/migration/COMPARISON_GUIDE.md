@@ -657,7 +657,7 @@ v3/
 
 | Aspect            | V2                 | V3                     |
 | ----------------- | ------------------ | ---------------------- |
-| Language          | Bash 5.x           | Rust 1.94.0            |
+| Language          | Bash 5.x           | Rust 1.95.0            |
 | YAML parsing      | yq (subprocess)    | serde_yaml_ng (native) |
 | JSON parsing      | jq (subprocess)    | serde_json (native)    |
 | Schema validation | python3-jsonschema | jsonschema crate       |

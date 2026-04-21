@@ -132,10 +132,10 @@ See [Version Comparison](docs/migration/COMPARISON_GUIDE.md) for detailed differ
 
 Sindri is part of a three-project ecosystem:
 
-| Repository | Description |
-|---|---|
-| **sindri** (this repo) | CLI tool and extension ecosystem — provisions and configures instances |
-| [mimir](https://github.com/pacphi/mimir) | Fleet management control plane — orchestrates, observes, and administers instances at scale |
+| Repository                                     | Description                                                                                     |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **sindri** (this repo)                         | CLI tool and extension ecosystem — provisions and configures instances                          |
+| [mimir](https://github.com/pacphi/mimir)       | Fleet management control plane — orchestrates, observes, and administers instances at scale     |
 | [draupnir](https://github.com/pacphi/draupnir) | Lightweight per-instance agent — bridges each instance to the mimir control plane via WebSocket |
 
 ## License
