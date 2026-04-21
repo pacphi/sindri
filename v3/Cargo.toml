@@ -42,8 +42,8 @@ serde_yaml_ng = "0.10"
 # JSON Schema validation
 jsonschema = "0.46"
 
-# Template rendering
-tera = "1.20"
+# Template rendering — disable builtins to drop chrono-tz -> phf_generator -> rand 0.8 chain
+tera = { version = "1.20", default-features = false }
 
 # HTTP client & self-update
 reqwest = { version = "0.13", features = ["json", "rustls", "stream"], default-features = false }
