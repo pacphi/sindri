@@ -345,7 +345,7 @@ The base image (`sindri:base-X.Y.Z`) contains:
 - Rust 1.95 toolchain (246MB)
 - cargo-chef (for dependency caching)
 - System packages (Ubuntu 24.04)
-- GitHub CLI v2.88.1
+- GitHub CLI v2.90.0
 - Developer user setup
 
 **Size:** ~1.2GB
@@ -439,7 +439,7 @@ Rebuild the base image when:
 - **GitHub CLI version changes** (optional)
   ```bash
   # Edit v3/Dockerfile.base
-  # Change: ARG GH_VERSION=2.88.1
+  # Change: ARG GH_VERSION=2.90.0
   make v3-docker-build-base
   ```
 

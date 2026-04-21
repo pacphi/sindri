@@ -135,7 +135,7 @@ The 3.1.0 release upgraded 11 extensions covering ~25 software components.
 | infra-tools  | Helm             | 4.1     | mise   |
 | infra-tools  | k9s              | 0.50    | mise   |
 | infra-tools  | kustomize        | 5.8     | mise   |
-| infra-tools  | yq               | 4.52    | mise   |
+| infra-tools  | yq               | 4.53    | mise   |
 | infra-tools  | Ansible          | 13.3.0  | apt    |
 | infra-tools  | Pulumi           | 3.223.0 | script |
 | infra-tools  | Crossplane       | 2.2.0   | script |
@@ -268,7 +268,7 @@ The 3.1.0 release upgraded 11 extensions covering ~25 software components.
 | infra-tools  | Helm             | 4.1     | mise   |
 | infra-tools  | k9s              | 0.50    | mise   |
 | infra-tools  | kustomize        | 5.8     | mise   |
-| infra-tools  | yq               | 4.52    | mise   |
+| infra-tools  | yq               | 4.53    | mise   |
 | infra-tools  | Ansible          | 13.3.0  | apt    |
 | infra-tools  | Pulumi           | 3.220.0 | script |
 | infra-tools  | Crossplane       | 2.1.4   | script |
