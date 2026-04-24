@@ -142,11 +142,12 @@ deterministically by backend-name alphabetical.
 
 3. **Sindri built-in defaults.** Ship a sensible order per OS that matches what most
    users would pick. Suggested:
-   | OS | Default order |
-   |---|---|
-   | macOS | `brew > mise > pipx/npm/cargo/go-install > binary > script` |
-   | Linux | `mise > apt/dnf/zypper/pacman/apk (by distro) > pipx/npm/cargo/go-install > binary > script` |
-   | Windows | `winget > scoop > mise > pipx/npm/cargo/go-install > binary > script (ps1)` |
+
+   | OS      | Default order                                                                                |
+   | ------- | -------------------------------------------------------------------------------------------- |
+   | macOS   | `brew > mise > pipx/npm/cargo/go-install > binary > script`                                  |
+   | Linux   | `mise > apt/dnf/zypper/pacman/apk (by distro) > pipx/npm/cargo/go-install > binary > script` |
+   | Windows | `winget > scoop > mise > pipx/npm/cargo/go-install > binary > script (ps1)`                  |
 
    Rationale: native PMs give best integration (uninstall, upgrade, GUI visibility);
    `mise` is preferred for language runtimes where version-switching matters; the

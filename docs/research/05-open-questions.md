@@ -145,19 +145,67 @@ version: "22.11"`) are uglier but survive order-sensitive scenarios better.
     re-fetching. Default 24h proposed; may need per-registry overrides (private
     registries change more often than `sindri/core`). See `06-discoverability.md`.
 
-26. **Ambiguous short names across registries.**
+26. **Target-infra field updatability.**
+    Some fields update in place (replica count); others require destroy+recreate
+    (region change, volume shrink). `target update` must classify per-kind the
+    way `terraform plan` does, and either do the right thing or fail loudly.
+    Needs an implementation-time classification table. See `12-provider-targets.md` §16.
+
+27. **Target-infra boundary — where does Sindri stop and Terraform start?**
+    Sindri owns the dev-environment surface (one Fly app, one RunPod pod, one K8s
+    namespace scope). It does not own the surrounding graph (VPCs, IAM, DNS beyond
+    what the target itself creates). The line needs to be spelled out so users
+    know when to reach for Terraform. Leaning: own only what the target's provider
+    API can atomically create/destroy. See `12-provider-targets.md` §16.
+
+28. **Virtual / aggregate targets (`devpod` today).**
+    v3 treats `devpod` as one provider with a nested `type:` selector for its
+    sub-backends. Collapse to `type: devpod-aws` (etc.) in v4, or keep nested?
+    See `12-provider-targets.md` §14.
+
+29. **Auth backward-compatibility shorthand.**
+    v3 accepts provider-specific env vars (`E2B_API_KEY`, `FLY_API_TOKEN`) directly.
+    Does v4 preserve these as implicit `env:` prefixes, or force every auth through
+    explicit `auth:` blocks? Leaning: support both. See `12-provider-targets.md` §14.
+
+30. **Default target when none declared in `sindri.yaml`.**
+    Implicit `local`? Error prompting user to pick? Affects the happy-path user who
+    never opens YAML. See `12-provider-targets.md` §14.
+
+31. **Target plugin extensibility — subprocess or WASM?**
+    Subprocess-JSON (v3 pattern for `terraform-provider-*`) for v4.0, WASM later?
+    Or compile-time only? Affects how fast Modal, Replit, Lambda, Azure Container
+    Apps can appear as community targets. See `12-provider-targets.md` §14.
+
+32. **Per-target lockfiles vs one lockfile with target sections.**
+    Proposed: `sindri.<target>.lock` per target. Alternative: one `sindri.lock` with
+    per-target sections. Affects git hygiene, merge conflicts, mental model.
+    See `12-provider-targets.md` §14.
+
+33. **Scope of the v4 CLI — does `k8s` / `vm` / `image` stay?**
+    Real features today. Keeping them expands v4 scope and dilutes the
+    "one-page cheat sheet" goal. Product decision. See `11-command-comparison.md` §2.10.
+
+34. **Registry-tag cadence vs rolling additions.**
+    When a new component version lands between monthly `:YYYY.MM` registry tags,
+    does it go into the existing tag, a `:YYYY.MM.N` patch tag, or wait for the
+    next major? Leaning: patch tags, so the majors stay immutable while rolling
+    pointers (`:latest`, `:stable`) carry rolling additions.
+    See `11-command-comparison.md` §5.2.
+
+35. **Ambiguous short names across registries.**
     If `sindri/core` and `acme/internal` both publish `aws-cli`, what does
     `sindri show aws-cli` do? Proposed: error with a disambiguation list, user types
     the fully-qualified `registry/name`, with a configurable "primary registry" that
     can be referenced unqualified. Needs a spec. See `06-discoverability.md`.
 
-27. **Collection-vs-explicit version conflicts.**
+36. **Collection-vs-explicit version conflicts.**
     When `sindri.yaml` depends on `collection:anthropic-dev` (which pins `mise:nodejs: "22.11.0"`)
     _and_ explicitly pins `mise:nodejs: "20.x"`, which wins? Two defensible policies: (a)
     explicit manifest entry overrides collection transitive pin, (b) conflict is a hard
     error that the user must resolve with an explicit `override:` block. Tentative lean:
     (a) for ergonomics, with a `sindri resolve --strict` mode that enforces (b) for CI.
 
-28. **Per-machine manifest overlays** ("my laptop wants `gui-tools`, CI doesn't").
+37. **Per-machine manifest overlays** ("my laptop wants `gui-tools`, CI doesn't").
     Devbox solves this with includes. Suggest: `sindri.yaml` supports `include:` + `override:`
     (standard YAML merge semantics). Not blocking for v4.0.

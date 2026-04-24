@@ -217,8 +217,8 @@ search over cached indices.
 
 ### Step 5 — drill deeper (optional)
 
-```
-$ sindri show sindri/core/kubectl
+```bash
+sindri show sindri/core/kubectl
 ```
 
 Now Sindri needs the `component.yaml` for a specific version (the latest by default).

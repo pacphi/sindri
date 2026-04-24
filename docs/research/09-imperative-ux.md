@@ -25,15 +25,15 @@ derived or observed.**
 
 A new user wants an Anthropic-focused dev environment on macOS Apple Silicon.
 
-```
-$ sindri init
+```bash
+sindri init
 ```
 
 Opens an interactive wizard (TTY) or runs non-interactively with flags (CI).
 Non-interactive form:
 
-```
-$ sindri init --template anthropic-dev --name my-project --non-interactive
+```bash
+sindri init --template anthropic-dev --name my-project --non-interactive
 ```
 
 The wizard asks ~5 questions:
@@ -342,8 +342,8 @@ breakage, but the documentation leads with `apply`.
 A user wants `mise:python@3.14.0` but with a custom option not exposed in
 `sindri add`:
 
-```
-$ sindri edit
+```bash
+sindri edit
 ```
 
 User edits:
