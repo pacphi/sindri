@@ -1,0 +1,25 @@
+metadata:
+  name: ibmcloud
+  version: "2.42.0"
+  description: "IBM Cloud CLI"
+  license: Apache-2.0
+  homepage: "https://cloud.ibm.com/docs/cli"
+  tags:
+    - cloud
+    - ibm
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+
+install:
+  binary:
+    url_template: "https://download.clis.cloud.ibm.com/ibm-cloud-cli/{version}/binaries/IBM_Cloud_CLI_{version}_{os}_{arch}.tgz"
+    install_path: "~/.local/bin/ibmcloud"
+    checksums:
+      linux-x86_64: "sha256:c28b3aa6ed219d8bdda1eb87162c6cb80a92e9d74d56e0717b31790d7943d56d"
+      linux-aarch64: "sha256:14784db2fc0338b2876f454098b92a65606c9204be24fa1d610bcd6046f66c81"
+
+depends_on: []

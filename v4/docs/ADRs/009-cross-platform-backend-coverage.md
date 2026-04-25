@@ -37,20 +37,50 @@ Intel Mac should use the Docker image or remain on v3.
 
 The following backends are **new to v4** (not present in v3):
 
-| Backend      | Platform        | Rationale                                               |
-| ------------ | --------------- | ------------------------------------------------------- |
-| `brew`       | macOS (primary) | The native macOS story; no brew = no macOS parity       |
-| `winget`     | Windows         | Primary Windows PM; necessary for Tier 1 parity         |
-| `scoop`      | Windows         | Dev-tool-focused; complements winget                    |
-| `pacman`     | Linux (Arch)    | Arch is a major distro; v3 treated as Ubuntu-fallback   |
-| `apk`        | Linux (Alpine)  | Alpine is dominant in CI/container contexts             |
-| `pipx`       | All             | First-class Python CLI tools (hidden inside mise in v3) |
-| `cargo`      | All             | Rust-published CLIs (e.g., `ripgrep`, `fd`, `bat`)      |
-| `go-install` | All             | Go-published CLIs (e.g., `golangci-lint`)               |
+| Backend      | Platform        | Rationale                                                                                        |
+| ------------ | --------------- | ------------------------------------------------------------------------------------------------ |
+| `brew`       | macOS (primary) | The native macOS story; no brew = no macOS parity                                                |
+| `winget`     | Windows         | Primary Windows PM; necessary for Tier 1 parity                                                  |
+| `scoop`      | Windows         | Dev-tool-focused; complements winget                                                             |
+| `pacman`     | Linux (Arch)    | Arch is a major distro; v3 treated as Ubuntu-fallback                                            |
+| `apk`        | Linux (Alpine)  | Alpine is dominant in CI/container contexts                                                      |
+| `pipx`       | All             | First-class Python CLI tools (hidden inside mise in v3)                                          |
+| `cargo`      | All             | Rust-published CLIs (e.g., `ripgrep`, `fd`, `bat`)                                               |
+| `go-install` | All             | Go-published CLIs (e.g., `golangci-lint`)                                                        |
+| `sdkman`     | Linux + macOS   | JVM ecosystem (Java, Kotlin, Scala, Gradle, Maven, Groovy) — `sdk install <candidate> <version>` |
 
 Existing backends (`mise`, `apt`, `dnf`, `zypper`, `binary`, `npm`, `script`) are
 retained; `apt`/`dnf`/`zypper` are made explicit siblings rather than a single `Linux PM`
 arm.
+
+### SDKMAN backend — JVM ecosystem decomposition
+
+`sdkman` is the canonical backend for the JVM ecosystem. SDKMAN is Unix-only (Linux and
+macOS) — Windows users of JVM tools should use the `scoop` or `winget` overrides in the
+per-component `install.overrides` block (deferred to component authoring).
+
+The v3 `jvm` bundle extension is replaced in v4 by:
+
+1. **`script:sdkman`** — installs SDKMAN itself via its install script (prerequisite)
+2. **Seven atomic `sdkman:` components** — each installs one candidate:
+   `sdkman:java`, `sdkman:maven`, `sdkman:gradle`, `sdkman:kotlin`, `sdkman:scala`,
+   `sdkman:groovy`, `sdkman:springboot`
+3. **`collection:jvm`** — meta-component that depends on `script:sdkman` + all seven atoms,
+   preserving the "install everything JVM" UX of the v3 bundle
+
+Component manifest shape:
+
+```yaml
+install:
+  sdkman:
+    candidate: java # SDKMAN candidate name (sdk install <candidate> <version>)
+    version: "21.0.5-tem" # Exact SDKMAN version identifier
+depends_on:
+  - "script:sdkman" # SDKMAN must be bootstrapped first
+```
+
+Install is delegated to `bash -c 'source "$SDKMAN_DIR/bin/sdkman-init.sh" && sdk install ...'`
+because `sdk` is a shell function, not a standalone binary.
 
 ### Central platform-matrix resolver for binary assets
 

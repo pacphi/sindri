@@ -27,7 +27,7 @@ a package whose only content is a list of dependencies. One abstraction, not two
 is a `dependsOn` list. The component and collection concepts unify.
 
 ```yaml
-# components/anthropic-dev/component.yaml
+# collections/anthropic-dev/component.yaml
 apiVersion: sindri.dev/v4
 kind: Component
 metadata:
@@ -45,6 +45,11 @@ dependsOn:
   - binary:fabric
   - collection:base-mcp # collections can depend on other collections
 ```
+
+Collections live in `collections/{name}/component.yaml`, a directory **sibling to**
+`components/`. Atomic components live in `components/{name}/component.yaml` with no
+backend prefix in the directory name — the backend is declared in the `install.*` block
+and derived by the local registry loader and the OCI `index.yaml`.
 
 A user adds a collection the same way they add any component:
 
@@ -69,7 +74,7 @@ and reference them in `sindri.yaml`. Team-wide "opinionated stacks" are first-cl
 
 ```yaml
 # In acme's private registry:
-# components/acme-platform/component.yaml
+# collections/acme-platform/component.yaml
 dependsOn:
   - collection:anthropic-dev
   - binary:acme-cli

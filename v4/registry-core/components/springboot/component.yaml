@@ -1,0 +1,28 @@
+metadata:
+  name: springboot
+  version: "3.5.0"
+  description: "Spring Boot CLI via SDKMAN"
+  license: Apache-2.0
+  homepage: "https://spring.io/projects/spring-boot"
+  tags:
+    - framework
+    - java
+    - spring
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  sdkman:
+    candidate: "springboot"
+    version: "3.5.0"
+
+depends_on:
+  - "script:sdkman"

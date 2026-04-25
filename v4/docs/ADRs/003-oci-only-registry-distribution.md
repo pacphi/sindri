@@ -42,17 +42,34 @@ oci://ghcr.io/sindri-dev/registry-core:2026.04
 ├── manifest.json            (OCI artifact manifest)
 ├── signatures/              (cosign signatures)
 └── layers/ (tarball):
-    ├── index.yaml           (lightweight catalog; one entry per component)
-    ├── components/
+    ├── index.yaml           (lightweight catalog; one entry per component/collection)
+    ├── components/          (atomic components — one dir per tool, no backend prefix)
     │   ├── nodejs/
     │   │   └── component.yaml
-    │   ├── python/
-    │   │   └── component.yaml
-    │   └── anthropic-dev/   (a collection / meta-component)
+    │   └── python/
+    │       └── component.yaml
+    ├── collections/         (meta-components — sibling of components/)
+    │   └── anthropic-dev/
     │       └── component.yaml
     └── checksums/
         └── sha256sums
 ```
+
+### Directory naming conventions
+
+Component directories use the **simple name** from `metadata.name` — no backend prefix.
+The backend is already encoded in the `install.*` block of `component.yaml` and in the
+`backend` field of `index.yaml`. Duplicating it in the directory name is noisy and was
+eliminated in the initial implementation sprint.
+
+Collections live in a top-level `collections/` directory **sibling to** `components/`.
+This makes `ls registry-core/collections/` a zero-ambiguity discovery path and avoids
+polluting the atomic-component namespace with `collection-*` dirs.
+
+OCI image references follow the same convention:
+
+- Atomic: `ghcr.io/sindri-dev/registry-core/{name}:{version}` (e.g., `…/nodejs:22.0.0`)
+- Collection: `ghcr.io/sindri-dev/registry-core/collections/{name}:{version}` (e.g., `…/collections/anthropic-dev:2026.04`)
 
 ### Tag semantics (decided per ADR-016)
 

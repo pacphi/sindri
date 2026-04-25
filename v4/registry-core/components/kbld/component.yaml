@@ -1,0 +1,31 @@
+metadata:
+  name: kbld
+  version: "0.47.3"
+  description: "Carvel kbld image resolver"
+  license: Apache-2.0
+  homepage: "https://carvel.dev/kbld"
+  tags:
+    - k8s
+    - carvel
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  binary:
+    url_template: "https://github.com/carvel-dev/kbld/releases/download/v{version}/kbld-{os}-{arch}"
+    install_path: "~/.local/bin/kbld"
+    checksums:
+      linux-x86_64: "sha256:26be68f9ec354a2753f102707f4389e28111d36c2a318b72cd1bcff719fabb6c"
+      linux-aarch64: "sha256:e985d62a8539ca2386c0e3db0e2c357adf55a4fdd0fa0e4ad7ab48a852c11ab1"
+      macos-x86_64: "sha256:224eae07777ac6180a9911fa5be1d1e5fb2f1d053faa39b55c8e79092bde3795"
+      macos-aarch64: "sha256:c856f5ccfbc362e96bf3fcffc2e2070f74aef067479981a40aeffd4924506702"
+
+depends_on: []

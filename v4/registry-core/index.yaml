@@ -1,0 +1,868 @@
+version: 1
+registry: sindri/core
+generated_at: "2026-04-24"
+components:
+  - name: nodejs
+    backend: mise
+    latest: "22.0.0"
+    description: "Node.js JavaScript runtime via mise"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/nodejs:22.0.0"
+  - name: python
+    backend: mise
+    latest: "3.12.0"
+    description: "Python language runtime via mise"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/python:3.12.0"
+  - name: golang
+    backend: mise
+    latest: "1.22.0"
+    description: "Go programming language via mise"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/golang:1.22.0"
+  - name: gh
+    backend: binary
+    latest: "2.45.0"
+    description: "GitHub CLI"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/gh:2.45.0"
+  - name: claude-code
+    backend: npm
+    latest: "1.0.0"
+    description: "Claude Code — Anthropic's official CLI"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/claude-code:1.0.0"
+    depends_on:
+      - "mise:nodejs"
+  - name: rust
+    backend: mise
+    latest: "1.83.0"
+    description: "Rust toolchain via mise"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/rust:1.83.0"
+  - name: ruby
+    backend: mise
+    latest: "3.3.0"
+    description: "Ruby language runtime via mise"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/ruby:3.3.0"
+  - name: swift
+    backend: mise
+    latest: "5.10"
+    description: "Swift language toolchain via mise"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/swift:5.10"
+  - name: haskell
+    backend: mise
+    latest: "9.8.2"
+    description: "Haskell (GHC) via mise"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/haskell:9.8.2"
+  - name: dotnet
+    backend: script
+    latest: "9.0"
+    description: ".NET SDK via Microsoft install script"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/dotnet:9.0"
+  - name: php
+    backend: script
+    latest: "8.3"
+    description: "PHP language and Composer"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/php:8.3"
+  - name: sdkman
+    backend: script
+    latest: "5.19"
+    description: "SDKMAN! — the software development kit manager"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/sdkman:5.19"
+  - name: java
+    backend: sdkman
+    latest: "21.0.5-tem"
+    description: "OpenJDK (Temurin) LTS via SDKMAN"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/java:21.0.5-tem"
+    depends_on:
+      - "script:sdkman"
+  - name: maven
+    backend: sdkman
+    latest: "3.9.15"
+    description: "Apache Maven build tool via SDKMAN"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/maven:3.9.15"
+    depends_on:
+      - "script:sdkman"
+  - name: gradle
+    backend: sdkman
+    latest: "8.14"
+    description: "Gradle build tool via SDKMAN"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/gradle:8.14"
+    depends_on:
+      - "script:sdkman"
+  - name: kotlin
+    backend: sdkman
+    latest: "2.1.20"
+    description: "Kotlin language compiler via SDKMAN"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/kotlin:2.1.20"
+    depends_on:
+      - "script:sdkman"
+  - name: scala
+    backend: sdkman
+    latest: "3.7.0"
+    description: "Scala language compiler via SDKMAN"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/scala:3.7.0"
+    depends_on:
+      - "script:sdkman"
+  - name: groovy
+    backend: sdkman
+    latest: "4.0.27"
+    description: "Apache Groovy language via SDKMAN"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/groovy:4.0.27"
+    depends_on:
+      - "script:sdkman"
+  - name: springboot
+    backend: sdkman
+    latest: "3.5.0"
+    description: "Spring Boot CLI via SDKMAN"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/springboot:3.5.0"
+    depends_on:
+      - "script:sdkman"
+  - name: docker
+    backend: script
+    latest: "27.3.0"
+    description: "Docker Engine (apt/dnf + post-install config)"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/docker:27.3.0"
+  - name: fabric
+    backend: binary
+    latest: "1.4.451"
+    description: "Fabric — modular AI prompt framework"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/fabric:1.4.451"
+  - name: codex
+    backend: npm
+    latest: "0.122.0"
+    description: "OpenAI Codex CLI"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/codex:0.122.0"
+    depends_on:
+      - "mise:nodejs"
+  - name: gemini-cli
+    backend: npm
+    latest: "0.38.2"
+    description: "Google Gemini CLI"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/gemini-cli:0.38.2"
+    depends_on:
+      - "mise:nodejs"
+  - name: grok
+    backend: npm
+    latest: "1.1.5"
+    description: "Open-source AI coding agent powered by Grok"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/grok:1.1.5"
+    depends_on:
+      - "mise:nodejs"
+  - name: droid
+    backend: npm
+    latest: "0.109.1"
+    description: "Factory Droid CLI — AI-powered software engineering agent"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/droid:0.109.1"
+    depends_on:
+      - "mise:nodejs"
+  - name: aws-cli
+    backend: binary
+    latest: "2.34.33"
+    description: "AWS CLI v2"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/aws-cli:2.34.33"
+  - name: azure-cli
+    backend: pipx
+    latest: "2.85.0"
+    description: "Azure CLI"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/azure-cli:2.85.0"
+    depends_on:
+      - "mise:python"
+  - name: gcloud
+    backend: script
+    latest: "565.0.0"
+    description: "Google Cloud SDK"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/gcloud:565.0.0"
+  - name: flyctl
+    backend: binary
+    latest: "0.4.37"
+    description: "Fly.io CLI"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/flyctl:0.4.37"
+  - name: aliyun
+    backend: binary
+    latest: "3.3.10"
+    description: "Alibaba Cloud CLI"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/aliyun:3.3.10"
+  - name: doctl
+    backend: binary
+    latest: "1.155.0"
+    description: "DigitalOcean CLI"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/doctl:1.155.0"
+  - name: ibmcloud
+    backend: binary
+    latest: "2.42.0"
+    description: "IBM Cloud CLI"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/ibmcloud:2.42.0"
+  - name: terraform
+    backend: mise
+    latest: "1.14.9"
+    description: "HashiCorp Terraform"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/terraform:1.14.9"
+  - name: kubectl
+    backend: mise
+    latest: "1.35.4"
+    description: "Kubernetes CLI"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/kubectl:1.35.4"
+  - name: helm
+    backend: mise
+    latest: "4.1.3"
+    description: "Kubernetes package manager"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/helm:4.1.3"
+  - name: packer
+    backend: mise
+    latest: "1.15.1"
+    description: "HashiCorp Packer"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/packer:1.15.1"
+  - name: k9s
+    backend: mise
+    latest: "0.50.18"
+    description: "Kubernetes TUI (via asdf plugin)"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/k9s:0.50.18"
+  - name: kustomize
+    backend: mise
+    latest: "5.4.3"
+    description: "Kustomize for Kubernetes"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/kustomize:5.4.3"
+  - name: yq
+    backend: mise
+    latest: "4.44.3"
+    description: "YAML processor"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/yq:4.44.3"
+  - name: ansible
+    backend: apt
+    latest: "13.5.0"
+    description: "Ansible configuration management"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/ansible:13.5.0"
+  - name: pulumi
+    backend: script
+    latest: "3.231.0"
+    description: "Pulumi IaC"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/pulumi:3.231.0"
+  - name: crossplane
+    backend: script
+    latest: "2.2.1"
+    description: "Crossplane CLI"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/crossplane:2.2.1"
+  - name: kubectx
+    backend: binary
+    latest: "0.10.2"
+    description: "Kubernetes context switcher"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/kubectx:0.10.2"
+  - name: kubens
+    backend: binary
+    latest: "0.10.2"
+    description: "Kubernetes namespace switcher"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/kubens:0.10.2"
+  - name: kapp
+    backend: binary
+    latest: "0.65.1"
+    description: "Carvel kapp deployment tool"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/kapp:0.65.1"
+  - name: ytt
+    backend: binary
+    latest: "0.53.2"
+    description: "Carvel ytt YAML templating"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/ytt:0.53.2"
+  - name: kbld
+    backend: binary
+    latest: "0.47.3"
+    description: "Carvel kbld image resolver"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/kbld:0.47.3"
+  - name: vendir
+    backend: binary
+    latest: "0.45.3"
+    description: "Carvel vendir sync"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/vendir:0.45.3"
+  - name: imgpkg
+    backend: binary
+    latest: "0.47.2"
+    description: "Carvel imgpkg bundle tool"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/imgpkg:0.47.2"
+  - name: monitoring
+    backend: script
+    latest: "1.0.0"
+    description: "Prometheus/Grafana local observability stack"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/monitoring:1.0.0"
+    depends_on:
+      - "mise:python"
+  - name: claudeup
+    backend: npm
+    latest: "1.0.0"
+    description: "claudeup — Claude toolchain updater"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/claudeup:1.0.0"
+    depends_on:
+      - "mise:nodejs"
+  - name: claudish
+    backend: npm
+    latest: "1.0.0"
+    description: "claudish — terminal companion for Claude"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/claudish:1.0.0"
+    depends_on:
+      - "mise:nodejs"
+  - name: claude-marketplace
+    backend: script
+    latest: "1.0.0"
+    description: "Claude Marketplace skill/plugin resolver"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/claude-marketplace:1.0.0"
+    depends_on:
+      - "npm:claude-code"
+  - name: claude-codepro
+    backend: script
+    latest: "1.0.0"
+    description: "Claude CodePro workflow bundle"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/claude-codepro:1.0.0"
+    depends_on:
+      - "mise:nodejs"
+      - "mise:python"
+      - "binary:gh"
+  - name: claude-code-mux
+    backend: script
+    latest: "1.0.0"
+    description: "Multiplexer for multiple Claude Code sessions"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/claude-code-mux:1.0.0"
+  - name: agent-manager
+    backend: npm
+    latest: "1.0.0"
+    description: "Agent lifecycle manager"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/agent-manager:1.0.0"
+    depends_on:
+      - "mise:nodejs"
+  - name: agent-skills-cli
+    backend: npm
+    latest: "1.0.0"
+    description: "CLI for managing agent skills"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/agent-skills-cli:1.0.0"
+    depends_on:
+      - "mise:nodejs"
+  - name: agentic-flow
+    backend: npm
+    latest: "1.0.0"
+    description: "agentic-flow orchestration CLI"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/agentic-flow:1.0.0"
+    depends_on:
+      - "npm:claude-code"
+      - "mise:nodejs"
+  - name: agentic-qe
+    backend: npm
+    latest: "1.0.0"
+    description: "Agentic quality-engineering harness"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/agentic-qe:1.0.0"
+    depends_on:
+      - "npm:claude-code"
+      - "mise:nodejs"
+      - "mise:python"
+  - name: ruflo
+    backend: npm
+    latest: "1.0.0"
+    description: "ruflo hooks/routing integration"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/ruflo:1.0.0"
+    depends_on:
+      - "npm:claude-code"
+      - "mise:nodejs"
+  - name: kilo
+    backend: npm
+    latest: "1.0.0"
+    description: "Kilo AI CLI"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/kilo:1.0.0"
+    depends_on:
+      - "mise:nodejs"
+  - name: compahook
+    backend: npm
+    latest: "1.0.0"
+    description: "compahook — compaction hooks for Claude"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/compahook:1.0.0"
+    depends_on:
+      - "mise:nodejs"
+  - name: openskills
+    backend: npm
+    latest: "1.0.0"
+    description: "OpenSkills catalog CLI"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/openskills:1.0.0"
+    depends_on:
+      - "mise:nodejs"
+  - name: openclaw
+    backend: npm
+    latest: "1.0.0"
+    description: "OpenClaw agent CLI"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/openclaw:1.0.0"
+    depends_on:
+      - "mise:nodejs"
+  - name: opencode
+    backend: npm
+    latest: "1.2.14"
+    description: "OpenCode terminal AI coding assistant"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/opencode:1.2.14"
+    depends_on:
+      - "mise:nodejs"
+  - name: gitnexus
+    backend: npm
+    latest: "1.0.0"
+    description: "GitNexus code-intelligence CLI"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/gitnexus:1.0.0"
+    depends_on:
+      - "npm:claude-code"
+      - "mise:nodejs"
+  - name: mdflow
+    backend: npm
+    latest: "1.0.0"
+    description: "mdflow markdown workflow CLI"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/mdflow:1.0.0"
+    depends_on:
+      - "mise:nodejs"
+  - name: loki-mode
+    backend: npm
+    latest: "1.0.0"
+    description: "Loki mode — Claude stateful explorer"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/loki-mode:1.0.0"
+    depends_on:
+      - "mise:nodejs"
+  - name: p-replicator
+    backend: npm
+    latest: "1.0.0"
+    description: "Pattern replicator CLI"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/p-replicator:1.0.0"
+    depends_on:
+      - "mise:nodejs"
+  - name: paperclip
+    backend: npm
+    latest: "1.0.0"
+    description: "paperclip — context bundler"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/paperclip:1.0.0"
+    depends_on:
+      - "mise:nodejs"
+  - name: agent-browser
+    backend: npm
+    latest: "1.0.0"
+    description: "Agent-driven browser automation wrapper"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/agent-browser:1.0.0"
+    depends_on:
+      - "mise:nodejs"
+      - "script:playwright"
+  - name: nodejs-devtools
+    backend: npm
+    latest: "1.0.0"
+    description: "Curated Node.js dev tooling (tsx, vitest, etc.)"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/nodejs-devtools:1.0.0"
+    depends_on:
+      - "mise:nodejs"
+  - name: ruvnet-research
+    backend: npm
+    latest: "1.0.0"
+    description: "Research assistant CLI (Perplexity-backed)"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/ruvnet-research:1.0.0"
+    depends_on:
+      - "mise:nodejs"
+  - name: glab
+    backend: mise
+    latest: "1.44.0"
+    description: "GitLab CLI via mise"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/glab:1.44.0"
+  - name: context7-mcp
+    backend: script
+    latest: "1.0.0"
+    description: "Context7 MCP server registration"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/context7-mcp:1.0.0"
+    depends_on:
+      - "npm:claude-code"
+  - name: jira-mcp
+    backend: script
+    latest: "1.0.0"
+    description: "Atlassian Jira MCP server"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/jira-mcp:1.0.0"
+    depends_on:
+      - "npm:claude-code"
+  - name: linear-mcp
+    backend: script
+    latest: "1.0.0"
+    description: "Linear MCP server"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/linear-mcp:1.0.0"
+    depends_on:
+      - "npm:claude-code"
+  - name: excalidraw-mcp
+    backend: script
+    latest: "1.0.0"
+    description: "Excalidraw MCP server"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/excalidraw-mcp:1.0.0"
+  - name: notebooklm-mcp-cli
+    backend: script
+    latest: "1.0.0"
+    description: "NotebookLM MCP bridge"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/notebooklm-mcp-cli:1.0.0"
+    depends_on:
+      - "mise:python"
+  - name: pal-mcp-server
+    backend: script
+    latest: "1.0.0"
+    description: "PAL MCP server"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/pal-mcp-server:1.0.0"
+    depends_on:
+      - "mise:python"
+  - name: goose
+    backend: script
+    latest: "1.0.0"
+    description: "Block's Goose agent"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/goose:1.0.0"
+  - name: ollama
+    backend: script
+    latest: "0.5.0"
+    description: "Ollama local LLM runtime"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/ollama:0.5.0"
+  - name: spec-kit
+    backend: script
+    latest: "1.0.0"
+    description: "GitHub Spec Kit — spec-driven development"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/spec-kit:1.0.0"
+    depends_on:
+      - "mise:python"
+  - name: clarity
+    backend: script
+    latest: "1.0.0"
+    description: "Clarity spec generator CLI"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/clarity:1.0.0"
+    depends_on:
+      - "mise:python"
+  - name: rtk
+    backend: script
+    latest: "1.0.0"
+    description: "Reasoning Toolkit (rtk)"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/rtk:1.0.0"
+  - name: ralph
+    backend: script
+    latest: "1.0.0"
+    description: "Ralph — personal coding agent"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/ralph:1.0.0"
+    depends_on:
+      - "npm:claude-code"
+      - "mise:nodejs"
+  - name: github-cli
+    backend: script
+    latest: "2.45.0"
+    description: "GitHub CLI install via distro script (alias of binary:gh)"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/github-cli:2.45.0"
+    depends_on:
+      - "binary:gh"
+  - name: guacamole
+    backend: script
+    latest: "1.5.5"
+    description: "Apache Guacamole local stack"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/guacamole:1.5.5"
+  - name: xfce-ubuntu
+    backend: script
+    latest: "1.0.0"
+    description: "XFCE desktop for Ubuntu containers"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/xfce-ubuntu:1.0.0"
+  - name: draupnir
+    backend: script
+    latest: "1.0.0"
+    description: "draupnir — infra forge"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/draupnir:1.0.0"
+  - name: openfang
+    backend: script
+    latest: "1.0.0"
+    description: "openfang — offensive-sec learning harness"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/openfang:1.0.0"
+  - name: shannon
+    backend: script
+    latest: "1.0.0"
+    description: "Shannon — signal processing playground"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/shannon:1.0.0"
+  - name: tmux-workspace
+    backend: script
+    latest: "1.0.0"
+    description: "tmux workspace layouts + key bindings"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/tmux-workspace:1.0.0"
+  - name: ruvector-cli
+    backend: cargo
+    latest: "0.1.0"
+    description: "RuVector CLI (vector DB)"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/ruvector-cli:0.1.0"
+    depends_on:
+      - "mise:rust"
+  - name: rvf-cli
+    backend: cargo
+    latest: "0.1.0"
+    description: "RVF CLI"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/rvf-cli:0.1.0"
+    depends_on:
+      - "mise:rust"
+  - name: supabase-cli
+    backend: script
+    latest: "1.200.0"
+    description: "Supabase CLI (docker-backed local dev)"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/supabase-cli:1.200.0"
+    depends_on:
+      - "script:docker"
+  - name: playwright
+    backend: script
+    latest: "1.48.0"
+    description: "Playwright browsers + system deps"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/playwright:1.48.0"
+    depends_on:
+      - "mise:nodejs"
+  - name: ai-toolkit
+    backend: collection
+    latest: "2026.04"
+    description: "AI CLI toolkit (Fabric, Codex, Gemini, Grok, Droid)"
+    kind: collection
+    oci_ref: "ghcr.io/sindri-dev/registry-core/collections/ai-toolkit:2026.04"
+    depends_on:
+      - "binary:fabric"
+      - "npm:codex"
+      - "npm:gemini-cli"
+      - "npm:grok"
+      - "npm:droid"
+  - name: cloud-tools
+    backend: collection
+    latest: "2026.04"
+    description: "Cloud provider CLIs (AWS, Azure, GCP, Fly.io, Alibaba, DO, IBM)"
+    kind: collection
+    oci_ref: "ghcr.io/sindri-dev/registry-core/collections/cloud-tools:2026.04"
+    depends_on:
+      - "binary:aws-cli"
+      - "pipx:azure-cli"
+      - "script:gcloud"
+      - "binary:flyctl"
+      - "binary:aliyun"
+      - "binary:doctl"
+      - "binary:ibmcloud"
+  - name: infra-tools
+    backend: collection
+    latest: "2026.04"
+    description: "Infrastructure & K8s tooling (Terraform, K8s, Carvel, Pulumi, Ansible)"
+    kind: collection
+    oci_ref: "ghcr.io/sindri-dev/registry-core/collections/infra-tools:2026.04"
+    depends_on:
+      - "mise:terraform"
+      - "mise:kubectl"
+      - "mise:helm"
+      - "mise:packer"
+      - "mise:k9s"
+      - "mise:kustomize"
+      - "mise:yq"
+      - "apt:ansible"
+      - "script:pulumi"
+      - "script:crossplane"
+      - "binary:kubectx"
+      - "binary:kubens"
+      - "binary:kapp"
+      - "binary:ytt"
+      - "binary:kbld"
+      - "binary:vendir"
+      - "binary:imgpkg"
+  - name: jvm
+    backend: collection
+    latest: "2026.04"
+    description: "JVM toolchain (Java, Kotlin, Scala, Gradle, Maven, Groovy) via SDKMAN"
+    kind: collection
+    oci_ref: "ghcr.io/sindri-dev/registry-core/collections/jvm:2026.04"
+    depends_on:
+      - "script:sdkman"
+      - "sdkman:java"
+      - "sdkman:maven"
+      - "sdkman:gradle"
+      - "sdkman:kotlin"
+      - "sdkman:scala"
+      - "sdkman:groovy"
+  - name: minimal
+    backend: collection
+    latest: "2026.04"
+    description: "Minimal development setup"
+    kind: collection
+    oci_ref: "ghcr.io/sindri-dev/registry-core/collections/minimal:2026.04"
+    depends_on:
+      - "mise:nodejs"
+      - "mise:python"
+  - name: fullstack
+    backend: collection
+    latest: "2026.04"
+    description: "Full-stack web development"
+    kind: collection
+    oci_ref: "ghcr.io/sindri-dev/registry-core/collections/fullstack:2026.04"
+    depends_on:
+      - "mise:nodejs"
+      - "mise:python"
+      - "script:docker"
+      - "npm:nodejs-devtools"
+  - name: anthropic-dev
+    backend: collection
+    latest: "2026.04"
+    description: "Anthropic developer stack (v3 default)"
+    kind: collection
+    oci_ref: "ghcr.io/sindri-dev/registry-core/collections/anthropic-dev:2026.04"
+    depends_on:
+      - "npm:claude-code"
+      - "npm:agent-manager"
+      - "npm:ruflo"
+      - "npm:agentic-qe"
+      - "npm:kilo"
+      - "script:ralph"
+      - "mise:golang"
+      - "script:ollama"
+      - "collection:ai-toolkit"
+      - "npm:claudish"
+      - "script:claude-marketplace"
+      - "npm:agent-skills-cli"
+      - "npm:compahook"
+      - "collection:infra-tools"
+      - "collection:jvm"
+      - "npm:mdflow"
+      - "npm:openskills"
+      - "script:pal-mcp-server"
+      - "npm:nodejs-devtools"
+      - "script:playwright"
+      - "npm:agent-browser"
+      - "mise:rust"
+      - "npm:ruvnet-research"
+      - "script:linear-mcp"
+      - "script:supabase-cli"
+      - "script:tmux-workspace"
+      - "collection:cloud-tools"
+      - "script:notebooklm-mcp-cli"
+      - "script:rtk"
+      - "cargo:ruvector-cli"
+      - "cargo:rvf-cli"
+  - name: systems
+    backend: collection
+    latest: "2026.04"
+    description: "Systems programming"
+    kind: collection
+    oci_ref: "ghcr.io/sindri-dev/registry-core/collections/systems:2026.04"
+    depends_on:
+      - "mise:rust"
+      - "mise:golang"
+      - "mise:haskell"
+      - "script:docker"
+      - "collection:infra-tools"
+  - name: enterprise
+    backend: collection
+    latest: "2026.04"
+    description: "Enterprise development (all major languages)"
+    kind: collection
+    oci_ref: "ghcr.io/sindri-dev/registry-core/collections/enterprise:2026.04"
+    depends_on:
+      - "npm:claude-code"
+      - "npm:kilo"
+      - "mise:nodejs"
+      - "mise:python"
+      - "mise:golang"
+      - "mise:rust"
+      - "mise:ruby"
+      - "collection:jvm"
+      - "script:dotnet"
+      - "script:docker"
+      - "script:jira-mcp"
+      - "collection:cloud-tools"
+  - name: devops
+    backend: collection
+    latest: "2026.04"
+    description: "DevOps and infrastructure"
+    kind: collection
+    oci_ref: "ghcr.io/sindri-dev/registry-core/collections/devops:2026.04"
+    depends_on:
+      - "script:docker"
+      - "collection:infra-tools"
+      - "script:monitoring"
+      - "collection:cloud-tools"
+  - name: mobile
+    backend: collection
+    latest: "2026.04"
+    description: "Mobile development"
+    kind: collection
+    oci_ref: "ghcr.io/sindri-dev/registry-core/collections/mobile:2026.04"
+    depends_on:
+      - "mise:nodejs"
+      - "mise:swift"
+      - "script:linear-mcp"
+      - "script:supabase-cli"

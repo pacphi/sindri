@@ -1,0 +1,27 @@
+metadata:
+  name: claudeup
+  version: "1.0.0"
+  description: "claudeup — Claude toolchain updater"
+  license: MIT
+  homepage: "https://github.com/sindri-dev/claudeup"
+  tags:
+    - ai
+    - claude
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  npm:
+    package: "claudeup"
+    global: true
+
+depends_on:
+  - "mise:nodejs"

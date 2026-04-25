@@ -1,0 +1,27 @@
+metadata:
+  name: maven
+  version: "3.9.15"
+  description: "Apache Maven build tool via SDKMAN"
+  license: Apache-2.0
+  homepage: "https://maven.apache.org"
+  tags:
+    - build-tool
+    - java
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  sdkman:
+    candidate: "maven"
+    version: "3.9.15"
+
+depends_on:
+  - "script:sdkman"

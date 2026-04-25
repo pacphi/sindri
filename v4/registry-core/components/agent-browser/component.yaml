@@ -1,0 +1,28 @@
+metadata:
+  name: agent-browser
+  version: "1.0.0"
+  description: "Agent-driven browser automation wrapper"
+  license: MIT
+  homepage: "https://github.com/sindri-dev/agent-browser"
+  tags:
+    - ai
+    - browser
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  npm:
+    package: "agent-browser"
+    global: true
+
+depends_on:
+  - "mise:nodejs"
+  - "script:playwright"

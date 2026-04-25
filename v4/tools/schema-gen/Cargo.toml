@@ -1,0 +1,14 @@
+[package]
+name = "schema-gen"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "schema-gen"
+path = "src/main.rs"
+
+[dependencies]
+sindri-core = { path = "../../crates/sindri-core" }
+schemars = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }

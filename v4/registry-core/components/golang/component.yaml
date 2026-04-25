@@ -1,0 +1,26 @@
+metadata:
+  name: golang
+  version: "1.22.0"
+  description: "Go programming language via mise"
+  license: BSD-3-Clause
+  homepage: "https://go.dev"
+  tags:
+    - language
+    - go
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  mise:
+    tools:
+      go: "1.22.0"
+
+depends_on: []

@@ -1,0 +1,26 @@
+metadata:
+  name: openclaw
+  version: "1.0.0"
+  description: "OpenClaw agent CLI"
+  license: MIT
+  homepage: "https://github.com/ruvnet/openclaw"
+  tags:
+    - ai
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  npm:
+    package: "@openclaw/cli"
+    global: true
+
+depends_on:
+  - "mise:nodejs"

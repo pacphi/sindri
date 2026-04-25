@@ -1,0 +1,28 @@
+metadata:
+  name: groovy
+  version: "4.0.27"
+  description: "Apache Groovy language via SDKMAN"
+  license: Apache-2.0
+  homepage: "https://groovy-lang.org"
+  tags:
+    - language
+    - groovy
+    - jvm
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  sdkman:
+    candidate: "groovy"
+    version: "4.0.27"
+
+depends_on:
+  - "script:sdkman"

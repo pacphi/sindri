@@ -1,0 +1,26 @@
+metadata:
+  name: azure-cli
+  version: "2.85.0"
+  description: "Azure CLI"
+  license: MIT
+  homepage: "https://docs.microsoft.com/cli/azure"
+  tags:
+    - cloud
+    - azure
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  pipx:
+    package: "azure-cli"
+
+depends_on:
+  - "mise:python"

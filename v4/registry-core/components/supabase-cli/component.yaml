@@ -1,0 +1,27 @@
+metadata:
+  name: supabase-cli
+  version: "1.200.0"
+  description: "Supabase CLI (docker-backed local dev)"
+  license: Apache-2.0
+  homepage: "https://supabase.com"
+  tags:
+    - database
+    - supabase
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  script:
+    install: "install.sh"
+    timeout: "600"
+
+depends_on:
+  - "script:docker"

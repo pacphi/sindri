@@ -1,0 +1,26 @@
+metadata:
+  name: yq
+  version: "4.44.3"
+  description: "YAML processor"
+  license: MIT
+  homepage: "https://github.com/mikefarah/yq"
+  tags:
+    - yaml
+    - cli
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  mise:
+    tools:
+      yq: "4.44.3"
+
+depends_on: []

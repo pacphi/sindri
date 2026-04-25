@@ -1,0 +1,28 @@
+metadata:
+  name: cloud-tools
+  version: "2026.04"
+  description: "Cloud provider CLIs (AWS, Azure, GCP, Fly.io, Alibaba, DO, IBM)"
+  type: meta
+  license: MIT
+  homepage: "https://github.com/sindri-dev/registry-core"
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install: {}
+
+depends_on:
+  - "binary:aws-cli"
+  - "pipx:azure-cli"
+  - "script:gcloud"
+  - "binary:flyctl"
+  - "binary:aliyun"
+  - "binary:doctl"
+  - "binary:ibmcloud"

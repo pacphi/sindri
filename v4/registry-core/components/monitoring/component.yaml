@@ -1,0 +1,26 @@
+metadata:
+  name: monitoring
+  version: "1.0.0"
+  description: "Prometheus/Grafana local observability stack"
+  license: Apache-2.0
+  homepage: "https://prometheus.io"
+  tags:
+    - observability
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  script:
+    install: "install.sh"
+    timeout: "600"
+
+depends_on:
+  - "mise:python"

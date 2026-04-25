@@ -1,0 +1,31 @@
+metadata:
+  name: ytt
+  version: "0.53.2"
+  description: "Carvel ytt YAML templating"
+  license: Apache-2.0
+  homepage: "https://carvel.dev/ytt"
+  tags:
+    - k8s
+    - carvel
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  binary:
+    url_template: "https://github.com/carvel-dev/ytt/releases/download/v{version}/ytt-{os}-{arch}"
+    install_path: "~/.local/bin/ytt"
+    checksums:
+      linux-x86_64: "sha256:18fe794d01c2539db39acb90994db0d8e51faa7892d0e749d74c29818017247a"
+      linux-aarch64: "sha256:0e9e75b7a5f59161d2413e9d6163a1a13218f270daa1c525656195d1fcef28f6"
+      macos-x86_64: "sha256:cc51c3040b91bb0871967f9960cd9286bafd334ffd153a86914b883f3adad9ef"
+      macos-aarch64: "sha256:4cc85a5e954d651d547cdef1e673742d995a38b0840273a5897e5318185b4e18"
+
+depends_on: []

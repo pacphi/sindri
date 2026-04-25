@@ -1,0 +1,28 @@
+metadata:
+  name: ralph
+  version: "1.0.0"
+  description: "Ralph — personal coding agent"
+  license: MIT
+  homepage: "https://github.com/sindri-dev/ralph"
+  tags:
+    - ai
+    - agents
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  script:
+    install: "install.sh"
+    timeout: "600"
+
+depends_on:
+  - "npm:claude-code"
+  - "mise:nodejs"

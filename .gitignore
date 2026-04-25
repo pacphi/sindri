@@ -250,3 +250,4 @@ packages/@pacphi/sindri-cli/bin/
 
 # Generated FAQ site (rebuild with: pnpm build:faq)
 docs/faq/index.html
+.gitnexus

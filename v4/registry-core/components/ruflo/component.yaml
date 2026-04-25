@@ -1,0 +1,28 @@
+metadata:
+  name: ruflo
+  version: "1.0.0"
+  description: "ruflo hooks/routing integration"
+  license: MIT
+  homepage: "https://github.com/ruvnet/ruflo"
+  tags:
+    - ai
+    - hooks
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  npm:
+    package: "@ruvnet/ruflo"
+    global: true
+
+depends_on:
+  - "npm:claude-code"
+  - "mise:nodejs"
