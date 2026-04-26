@@ -191,7 +191,7 @@ build_branch() {
 
   if [[ $count -gt 0 ]]; then
     if [[ $DRY_RUN -eq 0 ]]; then
-      tr '\n' '\0' < "$del_list" | xargs -0 git rm -r --quiet --
+      tr '\n' '\0' < "$del_list" | xargs -0 git rm -rf --quiet --
     else
       head -20 "$del_list" | sed 's/^/    rm /'
       [[ $count -gt 20 ]] && echo "    ... and $((count - 20)) more"
