@@ -11,13 +11,22 @@ on:
     branches: [v4]
   workflow_dispatch:
 
+# Permissions must be a SUPERSET of every nested permission the called
+# workflow (and its callees) requires. Reusable workflows cannot exceed
+# the caller's grant. Keep this list up to date when ci-v4.yml gains new
+# permissions.
 permissions:
-  contents: read
+  contents: write
   packages: write
   id-token: write
   attestations: write
   pull-requests: write
   issues: write
+  security-events: write
+  actions: read
+  checks: write
+  deployments: write
+  statuses: write
 
 jobs:
   ci:
