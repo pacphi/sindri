@@ -10,6 +10,7 @@ on:
   pull_request:
     branches: [v1]
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
