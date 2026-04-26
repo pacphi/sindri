@@ -7,8 +7,15 @@ name: "v1: CI (shim)"
 on:
   push:
     branches: [v1]
+    paths:
+      - 'v1/**'
+      - '.github/workflows/ci.yml'
+      - '**.md'
   pull_request:
     branches: [v1]
+    paths-ignore:
+      - 'CHANGELOG.md'
+      - 'RELEASE_NOTES*.md'
   workflow_dispatch:
 
 # Permissions must be a SUPERSET of every nested permission the called
