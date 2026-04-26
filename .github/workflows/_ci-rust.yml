@@ -2,7 +2,7 @@ name: _ci-rust
 
 # Reusable callable for Rust workspace CI.
 # Inputs let callers point at v3/ or v4/ (or a future vN/) workspace.
-# Used by ci-v3.yml (gradually) and ci-v4.yml.
+# Used by ci-v3.yml and ci-v4.yml.
 
 on:
   workflow_call:
@@ -17,10 +17,25 @@ on:
         default: stable
         type: string
       features:
-        description: Cargo features (space-separated)
+        description: Cargo features (space-separated). Ignored when all_features=true.
         required: false
-        default: ''
+        default: ""
         type: string
+      all_features:
+        description: Pass --all-features to clippy/test/build instead of --features.
+        required: false
+        default: false
+        type: boolean
+      target:
+        description: Target triple for the release build (e.g. x86_64-unknown-linux-musl). Empty = host target.
+        required: false
+        default: ""
+        type: string
+      install_musl_tools:
+        description: apt-get install musl-tools before the release build (needed when target ends in -musl).
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -41,7 +56,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
-        with: { toolchain: "${{ inputs.toolchain }}", components: rustfmt }
+        with:
+          toolchain: ${{ inputs.toolchain }}
+          components: rustfmt
       - run: cargo fmt --all --check
         working-directory: ${{ inputs.workspace_dir }}
 
@@ -52,24 +69,22 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
-        with: { toolchain: "${{ inputs.toolchain }}", components: clippy }
+        with:
+          toolchain: ${{ inputs.toolchain }}
+          components: clippy
       - uses: Swatinem/rust-cache@v2
-        with: { workspaces: "${{ inputs.workspace_dir }}" }
-      - run: cargo clippy --workspace --all-targets ${{ inputs.features && format('--features {0}', inputs.features) || '' }} -- -D warnings
+        with:
+          workspaces: ${{ inputs.workspace_dir }} -> target
+      - name: Run Clippy
         working-directory: ${{ inputs.workspace_dir }}
-
-  build:
-    needs: guard
-    name: cargo build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@stable
-        with: { toolchain: "${{ inputs.toolchain }}" }
-      - uses: Swatinem/rust-cache@v2
-        with: { workspaces: "${{ inputs.workspace_dir }}" }
-      - run: cargo build --workspace ${{ inputs.features && format('--features {0}', inputs.features) || '' }}
-        working-directory: ${{ inputs.workspace_dir }}
+        run: |
+          if [[ "${{ inputs.all_features }}" == "true" ]]; then
+            cargo clippy --workspace --all-targets --all-features -- -D warnings
+          elif [[ -n "${{ inputs.features }}" ]]; then
+            cargo clippy --workspace --all-targets --features "${{ inputs.features }}" -- -D warnings
+          else
+            cargo clippy --workspace --all-targets -- -D warnings
+          fi
 
   test:
     needs: guard
@@ -78,8 +93,59 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
-        with: { toolchain: "${{ inputs.toolchain }}" }
+        with:
+          toolchain: ${{ inputs.toolchain }}
       - uses: Swatinem/rust-cache@v2
-        with: { workspaces: "${{ inputs.workspace_dir }}" }
-      - run: cargo test --workspace ${{ inputs.features && format('--features {0}', inputs.features) || '' }}
+        with:
+          workspaces: ${{ inputs.workspace_dir }} -> target
+      - name: Run tests
         working-directory: ${{ inputs.workspace_dir }}
+        run: |
+          if [[ "${{ inputs.all_features }}" == "true" ]]; then
+            cargo test --workspace --all-features
+          elif [[ -n "${{ inputs.features }}" ]]; then
+            cargo test --workspace --features "${{ inputs.features }}"
+          else
+            cargo test --workspace
+          fi
+
+  build:
+    needs: guard
+    name: cargo build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install musl tools (if requested)
+        if: ${{ inputs.install_musl_tools }}
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ inputs.toolchain }}
+          targets: ${{ inputs.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ inputs.workspace_dir }} -> target
+      - name: Build release
+        working-directory: ${{ inputs.workspace_dir }}
+        env:
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
+        run: |
+          target_arg=""
+          if [[ -n "${{ inputs.target }}" ]]; then
+            target_arg="--target ${{ inputs.target }}"
+          fi
+          features_arg=""
+          if [[ "${{ inputs.all_features }}" == "true" ]]; then
+            features_arg="--all-features"
+          elif [[ -n "${{ inputs.features }}" ]]; then
+            features_arg="--features ${{ inputs.features }}"
+          fi
+          cargo build --release --workspace $target_arg $features_arg
+      - name: Upload release binary
+        if: ${{ inputs.target == 'x86_64-unknown-linux-musl' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: sindri-${{ inputs.workspace_dir }}-binaries-${{ github.sha }}
+          path: ${{ inputs.workspace_dir }}/target/${{ inputs.target }}/release/sindri
+          retention-days: 1
+          if-no-files-found: warn

@@ -41,69 +41,38 @@ jobs:
   # Rust Validation Jobs
   # ============================================
 
-  rust-format:
-    name: Rust Format Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
+  # ============================================
+  # Rust workspace CI — delegated to the reusable callable
+  # ============================================
+  rust:
+    name: Rust workspace
+    uses: ./.github/workflows/_ci-rust.yml
+    with:
+      workspace_dir: v3
+      toolchain: stable
+      all_features: true
+      target: x86_64-unknown-linux-musl
+      install_musl_tools: true
 
-      - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt
-
-      - name: Check Rust formatting
-        run: |
-          cd v3
-          cargo fmt --all -- --check
-
-  rust-clippy:
-    name: Rust Clippy Lints
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
-
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: v3 -> target
-
-      - name: Run Clippy
-        run: |
-          cd v3
-          cargo clippy --workspace --all-targets --all-features -- -D warnings
-
+  # cargo-machete (dead code scan) — kept inline; advisory only.
   rust-deadcode:
     name: Dead Code Scan
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
       - uses: actions/checkout@v6
-
-      - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
         with:
           workspaces: v3 -> target
-
       - name: Install cargo-binstall
         uses: cargo-bins/cargo-binstall@v1.18.1
-
       - name: Install cargo-machete
         run: cargo binstall cargo-machete --no-confirm
-
       - name: Scan for unused dependencies
         run: |
           cd v3
           cargo machete 2>&1 | tee /tmp/machete-output.txt || true
-
       - name: Report unused dependencies
         run: |
           if grep -q "is defined" /tmp/machete-output.txt 2>/dev/null; then
@@ -115,85 +84,6 @@ jobs:
             echo "No unused dependencies found."
           fi
 
-  rust-test:
-    name: Rust Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: v3 -> target
-
-      - name: Run tests
-        run: |
-          cd v3
-          cargo test --workspace --all-features
-
-      - name: Generate test report
-        if: always()
-        run: |
-          cd v3
-          cargo test --workspace --all-features -- --nocapture > test-results.txt 2>&1 || true
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: test-results-v3
-          path: v3/test-results.txt
-          retention-days: 7
-
-  rust-build:
-    name: Rust Build (Release)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Install musl tools
-        run: sudo apt-get update && sudo apt-get install -y musl-tools
-
-      - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-unknown-linux-musl
-
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: v3 -> target
-
-      - name: Build release binaries (static musl)
-        env:
-          CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
-        run: |
-          cd v3
-          cargo build --release --workspace --target x86_64-unknown-linux-musl
-
-      - name: Check binary size
-        run: |
-          echo "## Binary Sizes" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Binary | Size |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|------|" >> $GITHUB_STEP_SUMMARY
-
-          if [[ -f v3/target/x86_64-unknown-linux-musl/release/sindri ]]; then
-            SIZE=$(du -h v3/target/x86_64-unknown-linux-musl/release/sindri | cut -f1)
-            echo "| sindri | $SIZE |" >> $GITHUB_STEP_SUMMARY
-          fi
-
-      - name: Upload binaries
-        uses: actions/upload-artifact@v7
-        with:
-          name: sindri-v3-binaries-${{ github.sha }}
-          path: |
-            v3/target/x86_64-unknown-linux-musl/release/sindri
-          retention-days: 1
-
   # NOTE: YAML/schema validation is handled by the dedicated validate-yaml.yml workflow
 
   # ============================================
@@ -204,7 +94,7 @@ jobs:
   coverage:
     name: Code Coverage
     runs-on: ubuntu-latest
-    needs: [rust-test]
+    needs: [rust]
     steps:
       - uses: actions/checkout@v6
 
@@ -308,7 +198,7 @@ jobs:
   build-image:
     name: Build CI Image — ${{ matrix.distro }}
     runs-on: ubuntu-latest
-    needs: rust-build
+    needs: rust
     strategy:
       fail-fast: false
       matrix:
@@ -600,7 +490,7 @@ jobs:
   k8s-integration-kind:
     name: K8s Integration (Kind)
     runs-on: ubuntu-latest
-    needs: [rust-build]
+    needs: [rust]
     continue-on-error: true  # Don't fail CI if k8s tests fail
     steps:
       - uses: actions/checkout@v6
@@ -645,7 +535,7 @@ jobs:
   k8s-integration-k3d:
     name: K8s Integration (K3d)
     runs-on: ubuntu-latest
-    needs: [rust-build]
+    needs: [rust]
     continue-on-error: true  # Don't fail CI if k8s tests fail
     steps:
       - uses: actions/checkout@v6
@@ -695,7 +585,7 @@ jobs:
   k8s-cluster-lifecycle:
     name: K8s Cluster Lifecycle (${{ matrix.provider }})
     runs-on: ubuntu-latest
-    needs: [rust-build]
+    needs: [rust]
     continue-on-error: true  # Don't fail CI if k8s tests fail
     strategy:
       fail-fast: false
@@ -773,7 +663,7 @@ jobs:
   test-providers:
     name: Provider Tests (${{ matrix.provider }})
     runs-on: ubuntu-latest
-    needs: [rust-test]
+    needs: [rust]
     continue-on-error: true  # Provider tests are informational, don't block PRs
     strategy:
       fail-fast: false
@@ -815,7 +705,7 @@ jobs:
   test-doctor:
     name: Doctor Tests
     runs-on: ubuntu-latest
-    needs: [rust-build]
+    needs: [rust]
     steps:
       - uses: actions/checkout@v6
 
@@ -839,7 +729,7 @@ jobs:
   validate-provider-configs:
     name: Validate Provider Configs
     runs-on: ubuntu-latest
-    needs: [rust-build]
+    needs: [rust]
     continue-on-error: true  # Config validation is informational, don't block PRs
     steps:
       - uses: actions/checkout@v6
@@ -1144,7 +1034,7 @@ jobs:
 
   cloud-provider-runpod:
     name: Cloud Integration - RunPod
-    needs: [rust-test, test-providers]
+    needs: [rust, test-providers]
     if: >-
       github.event_name == 'workflow_dispatch' && github.event.inputs.test-cloud-providers == 'true'
     uses: ./.github/workflows/v3-provider-runpod.yml
@@ -1156,7 +1046,7 @@ jobs:
 
   cloud-provider-northflank:
     name: Cloud Integration - Northflank
-    needs: [rust-test, test-providers]
+    needs: [rust, test-providers]
     if: >-
       github.event_name == 'workflow_dispatch' && github.event.inputs.test-cloud-providers == 'true'
     uses: ./.github/workflows/v3-provider-northflank.yml
@@ -1174,10 +1064,7 @@ jobs:
     name: CI v3 Required Checks
     runs-on: ubuntu-latest
     needs:
-      - rust-format
-      - rust-clippy
-      - rust-test
-      - rust-build
+      - rust
       - build-image
       - security-scan
     if: ${{ always() }}
@@ -1186,24 +1073,17 @@ jobs:
         run: |
           # Check if any required job failed
           # NOTE: YAML/schema validation is handled by the dedicated validate-yaml.yml workflow
-          FORMAT="${{ needs.rust-format.result }}"
-          CLIPPY="${{ needs.rust-clippy.result }}"
-          TEST="${{ needs.rust-test.result }}"
-          BUILD="${{ needs.rust-build.result }}"
+          # The 'rust' job aggregates fmt + clippy + test + build via the
+          # _ci-rust.yml reusable callable; its result reflects all four.
+          RUST="${{ needs.rust.result }}"
           IMAGE="${{ needs.build-image.result }}"
           SECURITY="${{ needs.security-scan.result }}"
 
-          if [[ "$FORMAT" != "success" ]] || \
-             [[ "$CLIPPY" != "success" ]] || \
-             [[ "$TEST" != "success" ]] || \
-             [[ "$BUILD" != "success" ]] || \
+          if [[ "$RUST" != "success" ]] || \
              [[ "$IMAGE" != "success" ]]; then
             echo "❌ Required CI v3 checks failed"
             echo "Results:"
-            echo "  rust-format: $FORMAT"
-            echo "  rust-clippy: $CLIPPY"
-            echo "  rust-test: $TEST"
-            echo "  rust-build: $BUILD"
+            echo "  rust (fmt+clippy+test+build): $RUST"
             echo "  build-image: $IMAGE"
             echo "  security-scan: $SECURITY"
             exit 1

@@ -1,51 +1,103 @@
 name: _release-cargo-dist
 
-# Reusable callable: build cross-platform Rust binaries via cargo-dist.
-# Used by release-v3.yml (gradually) and release-v4.yml.
+# Reusable callable: build cross-platform release binaries and upload as
+# platform-named tar.gz/zip artifacts. Matrix mirrors release-v3.yml so v3
+# can adopt this callable later without behavior change.
+#
+# Caller is responsible for:
+#   - validating the tag / version (validate-tag job upstream)
+#   - publishing the GitHub Release (downstream consumes the artifacts via
+#     actions/download-artifact, name: binary-${platform})
 
 on:
   workflow_call:
     inputs:
       workspace_dir:
-        description: Path to the Cargo workspace
+        description: Path to the Cargo workspace root (e.g. v4)
         required: true
         type: string
       version:
         description: Semantic version (without 'v' prefix), e.g. 4.0.0
         required: true
         type: string
+      binary_name:
+        description: Name of the binary to package
+        required: false
+        default: sindri
+        type: string
 
 permissions:
-  contents: write
-  id-token: write
-  attestations: write
+  contents: read
 
 jobs:
-  matrix:
-    name: Build ${{ matrix.target }}
+  build:
+    name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-latest,  target: x86_64-unknown-linux-gnu }
-          - { os: ubuntu-latest,  target: aarch64-unknown-linux-gnu }
-          - { os: macos-latest,   target: x86_64-apple-darwin }
-          - { os: macos-latest,   target: aarch64-apple-darwin }
-          - { os: windows-latest, target: x86_64-pc-windows-msvc }
+          - { os: ubuntu-latest,  target: x86_64-unknown-linux-gnu,  platform: linux-x86_64 }
+          - { os: ubuntu-latest,  target: aarch64-unknown-linux-gnu, platform: linux-aarch64, cross: true }
+          - { os: macos-latest,   target: aarch64-apple-darwin,      platform: macos-aarch64 }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc,    platform: windows-x86_64 }
     steps:
       - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@stable
-        with: { targets: "${{ matrix.target }}" }
-      - uses: Swatinem/rust-cache@v2
-        with: { workspaces: "${{ inputs.workspace_dir }}" }
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cross (aarch64-linux only)
+        if: matrix.cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Cache cargo registry + target
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ${{ inputs.workspace_dir }}/target/
+          key: ${{ runner.os }}-cargo-release-${{ matrix.target }}-${{ hashFiles(format('{0}/**/Cargo.lock', inputs.workspace_dir)) }}
+
       - name: Build release binary
+        shell: bash
         working-directory: ${{ inputs.workspace_dir }}
-        run: cargo build --release --target ${{ matrix.target }}
+        run: |
+          if [[ "${{ matrix.cross }}" == "true" ]]; then
+            cross build --release --target ${{ matrix.target }}
+          else
+            cargo build --release --target ${{ matrix.target }}
+          fi
+
+      - name: Package binary (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          src="${{ inputs.workspace_dir }}/target/${{ matrix.target }}/release/${{ inputs.binary_name }}"
+          if [[ -f "$src" ]]; then
+            (cd "$(dirname "$src")" && tar -czf "$GITHUB_WORKSPACE/${{ inputs.binary_name }}-v${{ inputs.version }}-${{ matrix.platform }}.tar.gz" "${{ inputs.binary_name }}")
+          fi
+
+      - name: Package binary (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $src = "${{ inputs.workspace_dir }}/target/${{ matrix.target }}/release/${{ inputs.binary_name }}.exe"
+          if (Test-Path $src) {
+            Compress-Archive -Path $src -DestinationPath "${env:GITHUB_WORKSPACE}/${{ inputs.binary_name }}-v${{ inputs.version }}-${{ matrix.platform }}.zip"
+          }
+
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: sindri-${{ inputs.version }}-${{ matrix.target }}
+          name: binary-${{ matrix.platform }}
           path: |
-            ${{ inputs.workspace_dir }}/target/${{ matrix.target }}/release/sindri*
+            ${{ inputs.binary_name }}-v${{ inputs.version }}-${{ matrix.platform }}.tar.gz
+            ${{ inputs.binary_name }}-v${{ inputs.version }}-${{ matrix.platform }}.zip
           if-no-files-found: error
+          retention-days: 7
