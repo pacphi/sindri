@@ -1,80 +1,65 @@
 version: 2
+# Post-reorg: each ecosystem update PR is routed to the appropriate v* branch
+# via `target-branch:`. `main` itself receives only github-actions updates,
+# since main no longer carries product source.
+
 updates:
-  # GitHub Actions dependencies
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "06:00"
+  # ─── main: GitHub Actions only ─────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: main
+    schedule: { interval: weekly, day: monday, time: "06:00" }
     open-pull-requests-limit: 5
-    commit-message:
-      prefix: "ci"
-      prefix-development: "ci"
-      include: "scope"
+    commit-message: { prefix: "ci", include: scope }
 
-  # v2 Docker dependencies
-  - package-ecosystem: "docker"
-    directory: "/v2"
-    schedule:
-      interval: "weekly"
-      day: "tuesday"
-      time: "06:00"
+  # ─── v2: Docker base image + bash deps ─────────────────────────────────
+  - package-ecosystem: docker
+    directory: /v2
+    target-branch: v2
+    schedule: { interval: weekly, day: tuesday, time: "06:00" }
     open-pull-requests-limit: 3
-    commit-message:
-      prefix: "deps(v2)"
-      prefix-development: "deps(v2)"
-      include: "scope"
+    commit-message: { prefix: "deps(v2)", include: scope }
 
-  # v2 Docker dependencies
-  - package-ecosystem: "docker"
-    directory: "/v3"
-    schedule:
-      interval: "weekly"
-      day: "tuesday"
-      time: "06:00"
-    open-pull-requests-limit: 3
-    commit-message:
-      prefix: "deps(v3)"
-      prefix-development: "deps(v3)"
-      include: "scope"
-
-  # v2 npm dependencies
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "wednesday"
-      time: "06:00"
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: "deps(v2)"
-      prefix-development: "deps(v2)"
-      include: "scope"
-
-  # v3 Rust/Cargo dependencies
-  - package-ecosystem: "cargo"
-    directory: "/v3"
-    schedule:
-      interval: "weekly"
-      day: "thursday"
-      time: "06:00"
+  # ─── v3: Cargo workspace ───────────────────────────────────────────────
+  - package-ecosystem: cargo
+    directory: /v3
+    target-branch: v3
+    schedule: { interval: weekly, day: thursday, time: "06:00" }
     open-pull-requests-limit: 10
-    commit-message:
-      prefix: "deps(v3)"
-      prefix-development: "deps(v3)"
-      include: "scope"
+    commit-message: { prefix: "deps(v3)", include: scope }
     groups:
       tokio-ecosystem:
-        patterns:
-          - "tokio*"
+        patterns: ["tokio*"]
       serde-ecosystem:
-        patterns:
-          - "serde*"
+        patterns: ["serde*"]
       cli-ecosystem:
-        patterns:
-          - "clap"
-          - "dialoguer"
-          - "indicatif"
-          - "owo-colors"
-          - "console"
+        patterns: ["clap", "dialoguer", "indicatif", "owo-colors", "console"]
+
+  # ─── v3: Docker images ─────────────────────────────────────────────────
+  - package-ecosystem: docker
+    directory: /v3
+    target-branch: v3
+    schedule: { interval: weekly, day: tuesday, time: "06:00" }
+    open-pull-requests-limit: 3
+    commit-message: { prefix: "deps(v3)", include: scope }
+
+  # ─── v3: npm wrapper packages ─────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: /
+    target-branch: v3
+    schedule: { interval: weekly, day: wednesday, time: "06:00" }
+    open-pull-requests-limit: 5
+    commit-message: { prefix: "deps(v3)", include: scope }
+
+  # ─── v4: Cargo workspace ───────────────────────────────────────────────
+  - package-ecosystem: cargo
+    directory: /v4
+    target-branch: v4
+    schedule: { interval: weekly, day: thursday, time: "06:00" }
+    open-pull-requests-limit: 10
+    commit-message: { prefix: "deps(v4)", include: scope }
+    groups:
+      tokio-ecosystem:
+        patterns: ["tokio*"]
+      serde-ecosystem:
+        patterns: ["serde*"]

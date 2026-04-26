@@ -1,0 +1,41 @@
+name: _ci-npm
+
+# Reusable callable for npm/pnpm package CI (used by ci-v3.yml for @pacphi/sindri-cli).
+
+on:
+  workflow_call:
+    inputs:
+      package_dir:
+        description: Path to the npm package (relative to repo root)
+        required: true
+        type: string
+      node_version:
+        description: Node version
+        required: false
+        default: '20'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  install-and-test:
+    name: pnpm install + test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ inputs.node_version }}" }
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - name: Install dependencies
+        working-directory: ${{ inputs.package_dir }}
+        run: pnpm install --frozen-lockfile=false
+      - name: Run tests if defined
+        working-directory: ${{ inputs.package_dir }}
+        run: |
+          if jq -e '.scripts.test' package.json >/dev/null 2>&1; then
+            pnpm test
+          else
+            echo "No test script defined; skipping"
+          fi

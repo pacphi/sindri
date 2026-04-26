@@ -1,34 +1,40 @@
 # Sindri CODEOWNERS
 # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Per-branch ownership: this file lives on `main` and applies to PRs targeting
+# any branch. After the April 2026 reorg, product source lives only on v1/v2/v3/v4.
 
-# Default owner for everything
+# Default owner
 * @pacphi
 
-# V2 Bash/Docker Implementation
+# Per-version source (lives on each v* branch under v*/)
+/v1/ @pacphi
 /v2/ @pacphi
-
-# V3 Rust Implementation
 /v3/ @pacphi
+/v4/ @pacphi
 
-# CI/CD Workflows
+# Centralized CI/CD on main
 /.github/workflows/ @pacphi
 /.github/actions/ @pacphi
+/.github/scripts/ @pacphi
 
-# Documentation
+# Repo-wide governance
+/SECURITY.md @pacphi
+/CONTRIBUTING.md @pacphi
+/CHANGELOG.md @pacphi
+/README.md @pacphi
 /docs/ @pacphi
-/v2/docs/ @pacphi
-/v3/docs/ @pacphi
-*.md @pacphi
 
-# Extension Registry and Schemas
-/v2/docker/lib/extensions/ @pacphi
-/v3/extensions/ @pacphi
+# Schemas (in each v* branch)
 *.schema.json @pacphi
 
-# Examples (test fixtures)
-/examples/ @pacphi
-
-# Configuration
-/package.json @pacphi
+# Cargo workspaces
 /v3/Cargo.toml @pacphi
 /v3/Cargo.lock @pacphi
+/v4/Cargo.toml @pacphi
+/v4/Cargo.lock @pacphi
+
+# npm wrapper (lives on v3)
+/package.json @pacphi
+/pnpm-workspace.yaml @pacphi
+/packages/ @pacphi

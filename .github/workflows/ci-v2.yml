@@ -4,20 +4,12 @@ name: "v2: CI"
 # Triggers on changes to v2 directory and related configurations
 
 on:
+  # Workflow lives on `main` but triggers only on push/PR to the `v2` branch.
+  # All v2 source resides at branch root after the April 2026 reorg.
   push:
-    branches: [main, develop]
-    paths:
-      - 'v2/**'
-      - '.github/workflows/ci-v2.yml'
-      - '.github/actions/shared/**'
-      - 'package.json'
+    branches: [v2]
   pull_request:
-    branches: [main, develop]
-    paths:
-      - 'v2/**'
-      - '.github/workflows/ci-v2.yml'
-      - '.github/actions/shared/**'
-      - 'package.json'
+    branches: [v2]
   workflow_dispatch:
     inputs:
       providers:

@@ -4,22 +4,12 @@ name: "v3: CI"
 # Triggers on changes to v3 directory and related configurations
 
 on:
+  # Workflow lives on `main` but triggers only on push/PR to the `v3` branch.
+  # All v3 source resides at branch root after the April 2026 reorg.
   push:
-    branches: [main, develop, feature/v3]
-    paths:
-      - 'v3/**'
-      - '.github/workflows/ci-v3.yml'
-      - '.github/workflows/v3-*.yml'
-      - '.github/actions/v3/**'
-      - '.github/scripts/v3/**'
+    branches: [v3]
   pull_request:
-    branches: [main, develop, feature/v3]
-    paths:
-      - 'v3/**'
-      - '.github/workflows/ci-v3.yml'
-      - '.github/workflows/v3-*.yml'
-      - '.github/actions/v3/**'
-      - '.github/scripts/v3/**'
+    branches: [v3]
   workflow_dispatch:
     inputs:
       test-extensions:

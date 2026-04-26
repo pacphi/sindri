@@ -1,0 +1,33 @@
+name: "v1: CI (EOL — markdown lint only)"
+
+# v1 is end-of-life; security-only backports.
+# This workflow lives on `main` and triggers on push/PR to the `v1` branch.
+# It does no build — only verifies the changelog renders.
+
+on:
+  push:
+    branches: [v1]
+  pull_request:
+    branches: [v1]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  markdown-lint:
+    name: Markdown lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Lint v1/CHANGELOG.md and root markdown
+        uses: DavidAnson/markdownlint-cli2-action@v17
+        with:
+          globs: |
+            v1/**/*.md
+            README.md
+            CHANGELOG.md
