@@ -190,11 +190,10 @@ fn lint_dir(dir: &std::path::Path, json: bool) -> i32 {
 
     for entry in entries.flatten() {
         let path = entry.path();
-        if path.extension().map(|e| e == "yaml").unwrap_or(false) {
-            if lint_file(&path, json) != EXIT_SUCCESS {
+        if path.extension().map(|e| e == "yaml").unwrap_or(false)
+            && lint_file(&path, json) != EXIT_SUCCESS {
                 any_failed = true;
             }
-        }
     }
 
     if any_failed { EXIT_SCHEMA_OR_RESOLVE_ERROR } else { EXIT_SUCCESS }

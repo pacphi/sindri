@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use sindri_core::exit_codes::{EXIT_POLICY_DENIED, EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_STALE_LOCKFILE, EXIT_SUCCESS};
+use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
 use sindri_core::platform::Platform;
 use sindri_core::policy::InstallPolicy;
 use sindri_core::registry::ComponentEntry;
@@ -37,12 +37,11 @@ pub fn run(args: ResolveArgs) -> i32 {
 
     // Load registry from cache
     let registry = load_registry_from_cache();
-    if registry.is_empty() && !args.offline {
-        if !args.json {
+    if registry.is_empty() && !args.offline
+        && !args.json {
             eprintln!("Warning: no registry index found. Run `sindri registry refresh` first.");
             eprintln!("Proceeding with empty registry (no components will resolve).");
         }
-    }
 
     // Load policy (defaults for now; Sprint 6 adds full policy loading)
     let mut policy = InstallPolicy {

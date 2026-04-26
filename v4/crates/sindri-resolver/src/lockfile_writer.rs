@@ -38,7 +38,7 @@ pub fn read_lockfile(path: &Path) -> Result<Lockfile, ResolverError> {
 pub fn resolved_from_entry(
     entry: &ComponentEntry,
     chosen_backend: Backend,
-    bom_address: &str,
+    _bom_address: &str,
 ) -> ResolvedComponent {
     let id = ComponentId {
         backend: chosen_backend.clone(),

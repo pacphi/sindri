@@ -40,7 +40,7 @@ fn render_node(
 
     if let Some(entry) = registry.get(addr) {
         let deps = &entry.depends_on;
-        for (i, dep) in deps.iter().enumerate() {
+        for dep in deps.iter() {
             render_node(dep, registry, depth + 1, visited, out);
         }
     }
@@ -90,8 +90,8 @@ fn render_mermaid_node(
 
     if let Some(entry) = registry.get(addr) {
         for dep in &entry.depends_on {
-            let safe_addr = addr.replace(':', "_").replace('-', "_");
-            let safe_dep = dep.replace(':', "_").replace('-', "_");
+            let safe_addr = addr.replace([':', '-'], "_");
+            let safe_dep = dep.replace([':', '-'], "_");
             lines.push(format!("    {} --> {}", safe_addr, safe_dep));
             render_mermaid_node(dep, registry, visited, lines);
         }

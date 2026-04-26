@@ -59,11 +59,10 @@ preferences:
     append_gitignore();
 
     // Write sindri.policy.yaml if non-default
-    if policy_preset != "default" {
-        if sindri_policy::write_global_preset(&parse_preset(policy_preset)).is_ok() {
+    if policy_preset != "default"
+        && sindri_policy::write_global_preset(&parse_preset(policy_preset)).is_ok() {
             println!("Policy set to '{}'", policy_preset);
         }
-    }
 
     println!("Created sindri.yaml for project '{}'", name);
     println!("Next steps:");

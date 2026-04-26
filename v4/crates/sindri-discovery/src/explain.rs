@@ -49,7 +49,7 @@ pub fn render_explain(path: &[String]) -> String {
     let mut lines = Vec::new();
     for (i, node) in path.iter().enumerate() {
         if i == 0 {
-            lines.push(format!("{}", node));
+            lines.push(node.to_string());
         } else {
             lines.push(format!("{}└─ depends on: {}", "  ".repeat(i - 1), node));
         }
