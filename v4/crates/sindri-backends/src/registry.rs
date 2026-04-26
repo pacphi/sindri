@@ -14,7 +14,7 @@ use crate::universal::{CargoBackend, GoInstallBackend, PipxBackend};
 use crate::winget::{ScoopBackend, WingetBackend};
 
 /// Look up the right backend implementation for a component
-pub fn backend_for(backend: &Backend, platform: &Platform) -> Option<Box<dyn InstallBackend>> {
+pub fn backend_for(backend: &Backend, _platform: &Platform) -> Option<Box<dyn InstallBackend>> {
     match backend {
         Backend::Mise => Some(Box::new(MiseBackend)),
         Backend::Apt => Some(Box::new(AptBackend)),

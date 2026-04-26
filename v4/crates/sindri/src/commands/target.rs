@@ -1,5 +1,5 @@
 use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
-use sindri_targets::{LocalTarget, DockerTarget, SshTarget, Target};
+use sindri_targets::{LocalTarget, DockerTarget, Target};
 
 pub enum TargetCmd {
     Add { name: String, kind: String, opts: Vec<(String, String)> },
@@ -32,9 +32,9 @@ fn add_target(name: &str, kind: &str, _opts: &[(String, String)]) -> i32 {
 
 fn list_targets() -> i32 {
     // Sprint 9: show local as the always-present default (ADR-023)
-    println!("{:<20} {:<10} {}", "NAME", "KIND", "STATUS");
+    println!("{:<20} {:<10} STATUS", "NAME", "KIND");
     println!("{}", "-".repeat(50));
-    println!("{:<20} {:<10} {}", "local", "local", "ready");
+    println!("{:<20} {:<10} ready", "local", "local");
     EXIT_SUCCESS
 }
 

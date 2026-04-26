@@ -1,4 +1,3 @@
-use std::fs;
 use std::path::PathBuf;
 use sindri_core::component::Backend;
 use sindri_core::lockfile::ResolvedComponent;

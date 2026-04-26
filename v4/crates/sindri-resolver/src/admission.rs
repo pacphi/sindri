@@ -1,6 +1,5 @@
-use sindri_core::component::Backend;
 use sindri_core::platform::TargetProfile;
-use sindri_core::policy::{InstallPolicy, PolicyAction, PolicyPreset};
+use sindri_core::policy::{InstallPolicy, PolicyPreset};
 use sindri_core::registry::ComponentEntry;
 use crate::error::ResolverError;
 
@@ -44,7 +43,7 @@ impl<'a> AdmissionChecker<'a> {
     }
 
     /// Gate 1: Does the component support this platform?
-    pub fn check_platform(&self, entry: &ComponentEntry) -> AdmissionResult {
+    pub fn check_platform(&self, _entry: &ComponentEntry) -> AdmissionResult {
         // For Sprint 3, all components with a non-empty depends_on set pass.
         // Full platform matrix check in Sprint 4 when ComponentManifest is fetched.
         AdmissionResult::ok()
@@ -56,8 +55,8 @@ impl<'a> AdmissionChecker<'a> {
         let license = &entry.license;
         if !license.is_empty() {
             // Strict preset: deny GPL unless explicitly allowed
-            if matches!(self.policy.preset, PolicyPreset::Strict) {
-                if (license.contains("GPL") || license.contains("AGPL"))
+            if matches!(self.policy.preset, PolicyPreset::Strict)
+                && (license.contains("GPL") || license.contains("AGPL"))
                     && !self.policy.allowed_licenses.iter().any(|l| l == license)
                 {
                     return AdmissionResult::deny(
@@ -66,7 +65,6 @@ impl<'a> AdmissionChecker<'a> {
                         Some("Use `sindri policy allow-license` or switch to default preset"),
                     );
                 }
-            }
             // Explicit denial list
             if self.policy.denied_licenses.iter().any(|l| l == license) {
                 return AdmissionResult::deny(
