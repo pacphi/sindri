@@ -1,5 +1,0 @@
-# Ruflo - AI Agent Orchestration Platform (successor to Claude Flow)
-# Rebranded from @claude-flow/cli with identical functionality
-
-[tools]
-"npm:ruflo" = "3.5.80"

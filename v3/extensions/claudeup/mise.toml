@@ -1,4 +1,0 @@
-# claudeup - TUI tool for managing Claude Code plugins and MCPs
-
-[tools]
-"npm:claudeup" = "4.14.0"

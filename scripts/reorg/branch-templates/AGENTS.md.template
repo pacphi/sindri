@@ -1,8 +1,0 @@
-# Agents
-
-This file is a sibling to `CLAUDE.md` and applies the same per-branch guidance
-to any AI tool that reads `AGENTS.md` (Codex, Cursor, etc.). The authoritative
-content for this branch lives in `CLAUDE.md` — read it first.
-
-build-branches.sh copies `CLAUDE.md.<branch>` to both `CLAUDE.md` and
-`AGENTS.md` on each branch, so the two stay in sync.
