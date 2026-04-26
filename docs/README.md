@@ -8,7 +8,7 @@ Pick the version you're using, or read the [Migration Hub](migration/) if you're
 
 | Branch | Status | Stack | Start here |
 | --- | --- | --- | --- |
-| [`v1`](https://github.com/pacphi/sindri/tree/v1) | End-of-life — security backports only | Legacy bash | [v1 README](https://github.com/pacphi/sindri/blob/v1/README.md) |
+| [`v1`](https://github.com/pacphi/sindri-legacy) | Archived — see [pacphi/sindri-legacy](https://github.com/pacphi/sindri-legacy) | Legacy bash | [Legacy releases](https://github.com/pacphi/sindri-legacy/releases) |
 | [`v2`](https://github.com/pacphi/sindri/tree/v2) | Maintenance | Bash + Docker | [v2 Quickstart](https://github.com/pacphi/sindri/blob/v2/v2/docs/QUICKSTART.md) |
 | [`v3`](https://github.com/pacphi/sindri/tree/v3) | **Active** — recommended for new projects | Rust workspace + npm wrapper | [v3 Getting Started](https://github.com/pacphi/sindri/blob/v3/v3/docs/GETTING_STARTED.md) |
 | [`v4`](https://github.com/pacphi/sindri/tree/v4) | Pre-release | Rust, redesigned | [v4 ADRs](https://github.com/pacphi/sindri/tree/v4/v4/docs/ADRs) |
@@ -60,7 +60,7 @@ A from-scratch redesign around BOM/manifest as source of truth, OCI-only registr
 - **New project, want the modern CLI?** → v3.
 - **Existing v2 deployment, no time to migrate?** → stay on v2 (maintenance), read the [Migration Guide](migration/MIGRATION_GUIDE.md) when you're ready.
 - **Want to follow / contribute to the next architecture?** → v4 (read the ADRs first).
-- **Stuck on v1?** → upgrade. v1 is end-of-life; see [v1 README](https://github.com/pacphi/sindri/blob/v1/README.md) for context.
+- **Stuck on v1?** → upgrade. v1 is archived in a separate repo: [pacphi/sindri-legacy](https://github.com/pacphi/sindri-legacy) (source + tagged releases).
 
 ## Contributing
 

@@ -30,7 +30,7 @@ This directory holds umbrella resources for **comparing Sindri versions and migr
 
 ### Skip v1:
 
-- v1 is **end-of-life**. Security backports only. Plan an upgrade path to v2 or v3.
+- v1 is **archived in a separate repository**: [pacphi/sindri-legacy](https://github.com/pacphi/sindri-legacy). Source and tagged releases (`v1.0.0-alpha.1` through `v1.0.0-rc.5`) live there. Plan an upgrade path to v2 or v3.
 
 ---
 
@@ -97,7 +97,7 @@ These live alongside the code on each version branch — not on `main`.
 
 | Version | Source tree | Top-level docs |
 | --- | --- | --- |
-| v1 | [`v1` branch](https://github.com/pacphi/sindri/tree/v1) | [v1 README](https://github.com/pacphi/sindri/blob/v1/README.md) |
+| v1 | [`pacphi/sindri-legacy`](https://github.com/pacphi/sindri-legacy) (separate repo) | [Legacy releases](https://github.com/pacphi/sindri-legacy/releases) |
 | v2 | [`v2` branch](https://github.com/pacphi/sindri/tree/v2/v2) | [v2 docs](https://github.com/pacphi/sindri/tree/v2/v2/docs) |
 | v3 | [`v3` branch](https://github.com/pacphi/sindri/tree/v3/v3) | [v3 docs](https://github.com/pacphi/sindri/tree/v3/v3/docs) |
 | v4 | [`v4` branch](https://github.com/pacphi/sindri/tree/v4/v4) | [v4 ADRs / DDDs](https://github.com/pacphi/sindri/tree/v4/v4/docs) |
@@ -114,7 +114,7 @@ These live alongside the code on each version branch — not on `main`.
 
 | Version | Status | Recommendation |
 | --- | --- | --- |
-| **v1** | End-of-life | Security backports only; plan an upgrade |
+| **v1** | Archived in [pacphi/sindri-legacy](https://github.com/pacphi/sindri-legacy) | Plan an upgrade |
 | **v2** | Maintenance | Bug/security fixes; no new features |
 | **v3** | Active development | Recommended for new projects |
 | **v4** | Pre-release | New architecture (ADRs/DDDs published); not yet GA |
