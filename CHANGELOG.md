@@ -33,8 +33,12 @@ Sections used: `Added`, `Fixed`, `Changed`, `Documentation`, `Dependencies`,
 ## Reorganization (April 2026)
 
 This repository was reorganized into dedicated `v1`/`v2`/`v3`/`v4` maintenance
-branches. See [`docs/REPO_REORG_PLAN.md`](docs/REPO_REORG_PLAN.md) and the
-`pre-reorg-2026-04-25` tag for the prior layout.
+branches. The full operational record — plan, manifests, audit, and one-time
+build scripts — is preserved on the
+[`archive/repo-reorg`](https://github.com/pacphi/sindri/tree/archive/repo-reorg)
+branch (frozen reference, not maintained). For the prior monorepo layout see
+the `pre-reorg-2026-04-25` tag; for the v4-source snapshot see the
+`research-v4-final` tag.
 
 ## Quick links
 
