@@ -1146,7 +1146,7 @@ dependencies = [
  "sha2",
  "sindri-core",
  "sindri-targets",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tokio",
  "tracing",
 ]
@@ -1158,7 +1158,7 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
@@ -1190,7 +1190,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sindri-core",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
@@ -1206,7 +1206,7 @@ dependencies = [
  "serde_yaml",
  "sha2",
  "sindri-core",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tokio",
  "tracing",
 ]
@@ -1224,7 +1224,7 @@ dependencies = [
  "sindri-core",
  "sindri-policy",
  "sindri-registry",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tracing",
 ]
 
@@ -1237,7 +1237,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sindri-core",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tokio",
  "tracing",
 ]
