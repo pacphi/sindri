@@ -1,0 +1,26 @@
+metadata:
+  name: gcloud
+  version: "565.0.0"
+  description: "Google Cloud SDK"
+  license: Apache-2.0
+  homepage: "https://cloud.google.com/sdk"
+  tags:
+    - cloud
+    - gcp
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  script:
+    install: "install.sh"
+    timeout: "600"
+
+depends_on: []

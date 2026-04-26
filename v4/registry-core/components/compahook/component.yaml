@@ -1,0 +1,27 @@
+metadata:
+  name: compahook
+  version: "1.0.0"
+  description: "compahook — compaction hooks for Claude"
+  license: MIT
+  homepage: "https://github.com/ruvnet/compahook"
+  tags:
+    - ai
+    - hooks
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  npm:
+    package: "compahook"
+    global: true
+
+depends_on:
+  - "mise:nodejs"

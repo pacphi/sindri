@@ -1,0 +1,233 @@
+// ADR-002: Atomic Component replaces Extension
+// ADR-004: Backend-addressed manifest syntax
+use serde::{Deserialize, Serialize};
+use schemars::JsonSchema;
+use crate::version::VersionSpec;
+use crate::platform::Platform;
+use std::collections::HashMap;
+
+/// ADR-002: The atomic unit of v4.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ComponentId {
+    pub backend: Backend,
+    pub name: String,
+}
+
+impl ComponentId {
+    /// Parse `backend:name[@version]` syntax (ADR-004)
+    pub fn parse(s: &str) -> Option<Self> {
+        let (backend_str, rest) = s.split_once(':')?;
+        let name = rest.split('@').next()?.to_string();
+        let backend = Backend::from_str(backend_str)?;
+        Some(ComponentId { backend, name })
+    }
+
+    pub fn to_address(&self) -> String {
+        format!("{}:{}", self.backend.as_str(), self.name)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+pub enum Backend {
+    // Version managers
+    Mise,
+    // System package managers
+    Apt,
+    Dnf,
+    Zypper,
+    Pacman,
+    Apk,
+    Brew,
+    Winget,
+    Scoop,
+    // Universal
+    Npm,
+    Pipx,
+    Cargo,
+    GoInstall,
+    // Download
+    Binary,
+    // Script
+    Script,
+    // SDK managers
+    Sdkman,
+    // Meta
+    Collection,
+}
+
+impl Backend {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Backend::Mise => "mise",
+            Backend::Apt => "apt",
+            Backend::Dnf => "dnf",
+            Backend::Zypper => "zypper",
+            Backend::Pacman => "pacman",
+            Backend::Apk => "apk",
+            Backend::Brew => "brew",
+            Backend::Winget => "winget",
+            Backend::Scoop => "scoop",
+            Backend::Npm => "npm",
+            Backend::Pipx => "pipx",
+            Backend::Cargo => "cargo",
+            Backend::GoInstall => "go-install",
+            Backend::Binary => "binary",
+            Backend::Script => "script",
+            Backend::Sdkman => "sdkman",
+            Backend::Collection => "collection",
+        }
+    }
+
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "mise" => Some(Backend::Mise),
+            "apt" => Some(Backend::Apt),
+            "dnf" => Some(Backend::Dnf),
+            "zypper" => Some(Backend::Zypper),
+            "pacman" => Some(Backend::Pacman),
+            "apk" => Some(Backend::Apk),
+            "brew" => Some(Backend::Brew),
+            "winget" => Some(Backend::Winget),
+            "scoop" => Some(Backend::Scoop),
+            "npm" => Some(Backend::Npm),
+            "pipx" => Some(Backend::Pipx),
+            "cargo" => Some(Backend::Cargo),
+            "go-install" => Some(Backend::GoInstall),
+            "binary" => Some(Backend::Binary),
+            "script" => Some(Backend::Script),
+            "sdkman" => Some(Backend::Sdkman),
+            "collection" => Some(Backend::Collection),
+            _ => None,
+        }
+    }
+}
+
+/// The v4 component manifest shape (component.yaml)
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ComponentManifest {
+    pub metadata: ComponentMetadata,
+    pub platforms: Vec<Platform>,
+    pub install: InstallConfig,
+    #[serde(default)]
+    pub depends_on: Vec<String>,
+    #[serde(default)]
+    pub capabilities: ComponentCapabilities,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ComponentMetadata {
+    pub name: String,
+    pub version: String,
+    pub description: String,
+    pub license: String,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    pub homepage: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
+pub struct InstallConfig {
+    pub mise: Option<MiseInstallConfig>,
+    pub apt: Option<PackageInstallConfig>,
+    pub dnf: Option<PackageInstallConfig>,
+    pub zypper: Option<PackageInstallConfig>,
+    pub pacman: Option<PackageInstallConfig>,
+    pub apk: Option<PackageInstallConfig>,
+    pub brew: Option<BrewInstallConfig>,
+    pub winget: Option<WingetInstallConfig>,
+    pub scoop: Option<ScoopInstallConfig>,
+    pub npm: Option<NpmInstallConfig>,
+    pub binary: Option<BinaryInstallConfig>,
+    pub script: Option<ScriptInstallConfig>,
+    pub sdkman: Option<SdkmanInstallConfig>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct MiseInstallConfig {
+    pub tools: HashMap<String, String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct PackageInstallConfig {
+    pub packages: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct BrewInstallConfig {
+    pub package: String,
+    pub tap: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct WingetInstallConfig {
+    pub id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ScoopInstallConfig {
+    pub package: String,
+    pub bucket: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct NpmInstallConfig {
+    pub package: String,
+    pub global: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct BinaryInstallConfig {
+    pub url_template: String,
+    pub checksums: HashMap<String, String>,
+    pub install_path: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ScriptInstallConfig {
+    pub sh: Option<String>,
+    pub ps1: Option<String>,
+}
+
+/// Install a candidate via SDKMAN: `sdk install <candidate> <version>`
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct SdkmanInstallConfig {
+    /// SDKMAN candidate name (e.g. "java", "kotlin", "gradle")
+    pub candidate: String,
+    /// Specific version identifier (e.g. "21.0.5-tem", "2.1.0", "8.11")
+    pub version: String,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
+pub struct ComponentCapabilities {
+    pub collision_handling: Option<CollisionHandlingConfig>,
+    pub hooks: Option<HooksConfig>,
+    pub project_init: Option<Vec<ProjectInitStep>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct CollisionHandlingConfig {
+    pub path_prefix: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct HooksConfig {
+    pub pre_install: Option<String>,
+    pub post_install: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ProjectInitStep {
+    pub command: String,
+    pub priority: u32,
+}
+
+/// An entry in the BOM manifest referencing a component
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct BomEntry {
+    /// `backend:name[@version]` address
+    pub address: String,
+    pub version: Option<VersionSpec>,
+    #[serde(default)]
+    pub options: HashMap<String, serde_json::Value>,
+}

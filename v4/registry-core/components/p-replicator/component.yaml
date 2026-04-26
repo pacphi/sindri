@@ -1,0 +1,26 @@
+metadata:
+  name: p-replicator
+  version: "1.0.0"
+  description: "Pattern replicator CLI"
+  license: MIT
+  homepage: "https://github.com/ruvnet/p-replicator"
+  tags:
+    - ai
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  npm:
+    package: "p-replicator"
+    global: true
+
+depends_on:
+  - "mise:nodejs"

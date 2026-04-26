@@ -1,0 +1,26 @@
+metadata:
+  name: php
+  version: "8.3"
+  description: "PHP language and Composer"
+  license: PHP-3.01
+  homepage: "https://php.net"
+  tags:
+    - language
+    - php
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  script:
+    install: "install.sh"
+    timeout: "600"
+
+depends_on: []

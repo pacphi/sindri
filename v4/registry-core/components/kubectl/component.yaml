@@ -1,0 +1,26 @@
+metadata:
+  name: kubectl
+  version: "1.35.4"
+  description: "Kubernetes CLI"
+  license: Apache-2.0
+  homepage: "https://kubernetes.io"
+  tags:
+    - k8s
+    - kubectl
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  mise:
+    tools:
+      kubectl: "1.35.4"
+
+depends_on: []

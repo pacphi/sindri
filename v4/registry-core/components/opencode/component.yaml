@@ -1,0 +1,27 @@
+metadata:
+  name: opencode
+  version: "1.2.14"
+  description: "OpenCode terminal AI coding assistant"
+  license: MIT
+  homepage: "https://opencode.ai"
+  tags:
+    - ai
+    - coding
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  npm:
+    package: "opencode-ai"
+    global: true
+
+depends_on:
+  - "mise:nodejs"

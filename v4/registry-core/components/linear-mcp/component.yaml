@@ -1,0 +1,27 @@
+metadata:
+  name: linear-mcp
+  version: "1.0.0"
+  description: "Linear MCP server"
+  license: MIT
+  homepage: "https://linear.app"
+  tags:
+    - mcp
+    - linear
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  script:
+    install: "install.sh"
+    timeout: "600"
+
+depends_on:
+  - "npm:claude-code"

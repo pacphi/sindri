@@ -1,0 +1,28 @@
+metadata:
+  name: java
+  version: "21.0.5-tem"
+  description: "OpenJDK (Temurin) LTS via SDKMAN"
+  license: GPL-2.0-with-classpath-exception
+  homepage: "https://adoptium.net"
+  tags:
+    - language
+    - java
+    - jvm
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  sdkman:
+    candidate: "java"
+    version: "21.0.5-tem"
+
+depends_on:
+  - "script:sdkman"

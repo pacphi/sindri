@@ -1,0 +1,28 @@
+metadata:
+  name: droid
+  version: "0.109.1"
+  description: "Factory Droid CLI — AI-powered software engineering agent"
+  license: UNLICENSED
+  homepage: "https://factory.ai"
+  tags:
+    - ai
+    - cli
+    - factory
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  npm:
+    package: "droid"
+    global: true
+
+depends_on:
+  - "mise:nodejs"

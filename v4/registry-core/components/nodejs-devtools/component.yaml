@@ -1,0 +1,27 @@
+metadata:
+  name: nodejs-devtools
+  version: "1.0.0"
+  description: "Curated Node.js dev tooling (tsx, vitest, etc.)"
+  license: MIT
+  homepage: "https://github.com/sindri-dev/nodejs-devtools"
+  tags:
+    - nodejs
+    - tooling
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  npm:
+    package: "nodejs-devtools"
+    global: true
+
+depends_on:
+  - "mise:nodejs"

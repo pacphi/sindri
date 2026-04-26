@@ -1,0 +1,12 @@
+[package]
+name = "sindri-extensions"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "sindri_extensions"
+path = "src/lib.rs"
+
+[dependencies]
+sindri-core = { path = "../sindri-core" }
+anyhow = { workspace = true }

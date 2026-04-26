@@ -1,0 +1,26 @@
+metadata:
+  name: packer
+  version: "1.15.1"
+  description: "HashiCorp Packer"
+  license: BUSL-1.1
+  homepage: "https://packer.io"
+  tags:
+    - iac
+    - packer
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  mise:
+    tools:
+      packer: "1.15.1"
+
+depends_on: []

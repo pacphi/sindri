@@ -1,0 +1,52 @@
+metadata:
+  name: anthropic-dev
+  version: "2026.04"
+  description: "Anthropic developer stack (v3 default)"
+  type: meta
+  license: MIT
+  homepage: "https://github.com/sindri-dev/registry-core"
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install: {}
+
+depends_on:
+  - "npm:claude-code"
+  - "npm:agent-manager"
+  - "npm:ruflo"
+  - "npm:agentic-qe"
+  - "npm:kilo"
+  - "script:ralph"
+  - "mise:golang"
+  - "script:ollama"
+  - "collection:ai-toolkit"
+  - "npm:claudish"
+  - "script:claude-marketplace"
+  - "npm:agent-skills-cli"
+  - "npm:compahook"
+  - "collection:infra-tools"
+  - "collection:jvm"
+  - "npm:mdflow"
+  - "npm:openskills"
+  - "script:pal-mcp-server"
+  - "npm:nodejs-devtools"
+  - "script:playwright"
+  - "npm:agent-browser"
+  - "mise:rust"
+  - "npm:ruvnet-research"
+  - "script:linear-mcp"
+  - "script:supabase-cli"
+  - "script:tmux-workspace"
+  - "collection:cloud-tools"
+  - "script:notebooklm-mcp-cli"
+  - "script:rtk"
+  - "cargo:ruvector-cli"
+  - "cargo:rvf-cli"

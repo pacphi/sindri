@@ -1,0 +1,26 @@
+metadata:
+  name: claude-code-mux
+  version: "1.0.0"
+  description: "Multiplexer for multiple Claude Code sessions"
+  license: MIT
+  homepage: "https://github.com/sindri-dev/claude-code-mux"
+  tags:
+    - ai
+    - terminal
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  script:
+    install: "install.sh"
+    timeout: "600"
+
+depends_on: []

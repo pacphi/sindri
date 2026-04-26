@@ -1,0 +1,27 @@
+metadata:
+  name: openskills
+  version: "1.0.0"
+  description: "OpenSkills catalog CLI"
+  license: MIT
+  homepage: "https://github.com/ruvnet/openskills"
+  tags:
+    - ai
+    - skills
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  npm:
+    package: "openskills"
+    global: true
+
+depends_on:
+  - "mise:nodejs"

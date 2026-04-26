@@ -1,0 +1,26 @@
+metadata:
+  name: k9s
+  version: "0.50.18"
+  description: "Kubernetes TUI (via asdf plugin)"
+  license: Apache-2.0
+  homepage: "https://k9scli.io"
+  tags:
+    - k8s
+    - tui
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  mise:
+    tools:
+      k9s: "0.50.18"
+
+depends_on: []
