@@ -230,7 +230,7 @@ paths_to_delete_for "$SCRIPT_DIR/manifest-main.txt" > "$del_list"
 count=$(wc -l < "$del_list" | tr -d ' ')
 echo "  deletions: $count paths"
 if [[ $count -gt 0 && $DRY_RUN -eq 0 ]]; then
-  tr '\n' '\0' < "$del_list" | xargs -0 git rm -r --quiet --
+  tr '\n' '\0' < "$del_list" | xargs -0 git rm -rf --quiet --
   git commit --quiet --no-verify -m "chore(main): remove product source after sibling-branch creation
 
 After v1/v2/v3/v4 branches were created (see chore/repo-reorg history),
