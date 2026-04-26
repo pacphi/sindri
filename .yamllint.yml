@@ -12,6 +12,15 @@ rules:
   comments:
     min-spaces-from-content: 1
 
+  # Allow inline-flow style with one space inside braces and after commas
+  # for compact matrix declarations like:
+  #   { os: ubuntu-latest, target: x86_64-unknown-linux-gnu }
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+  commas:
+    max-spaces-after: -1 # allow column-aligned matrix entries
+
   document-start: disable
 
   truthy:

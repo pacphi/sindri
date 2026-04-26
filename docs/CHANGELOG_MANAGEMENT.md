@@ -448,7 +448,7 @@ Found 0 breaking change(s)
 - [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [Release Process](RELEASE.md)
-- [Contributing Guide](CONTRIBUTING.md)
+- [Contributing Guide](../CONTRIBUTING.md)
 
 ---
 

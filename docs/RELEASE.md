@@ -5,7 +5,7 @@ This guide explains how to create and publish new releases for Sindri.
 > **📚 Related Documentation**:
 >
 > - [Changelog Management Guide](CHANGELOG_MANAGEMENT.md) - Detailed changelog structure and automation
-> - [Contributing Guide](CONTRIBUTING.md) - Development workflow and conventions
+> - [Contributing Guide](../CONTRIBUTING.md) - Development workflow and conventions
 > - [Version-Specific Changelogs](../CHANGELOG.md) - Navigate to v1, v2, or v3 changelogs
 
 ## Overview
@@ -542,7 +542,7 @@ There is no fixed schedule. Releases happen when:
 
 ## Questions?
 
-- Review [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow
+- Review [CONTRIBUTING.md](../CONTRIBUTING.md) for development workflow
 - Check [GitHub Issues](https://github.com/pacphi/sindri/issues) for known problems
 - Start a [Discussion](https://github.com/pacphi/sindri/discussions) for questions
 - Contact maintainers for release-specific questions
