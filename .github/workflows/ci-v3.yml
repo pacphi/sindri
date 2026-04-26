@@ -410,8 +410,37 @@ jobs:
       - name: Install cargo-audit
         run: cargo binstall cargo-audit --no-confirm
 
-      - name: Run cargo audit
-        run: .github/scripts/v3/cargo-audit.sh
+      - name: Run cargo audit (inlined; v3 branch checkout doesn't have main's .github/scripts/)
+        shell: bash
+        run: |
+          set -euo pipefail
+          IGNORE_FILE="v3/audit-ignore"
+          if [[ ! -f "$IGNORE_FILE" ]]; then
+            echo "No audit-ignore file found at $IGNORE_FILE"
+            echo "Running cargo audit without exceptions..."
+            cd v3
+            exec cargo audit --deny warnings
+          fi
+
+          IGNORE_FLAGS=()
+          ADVISORY_IDS=()
+          while IFS= read -r line; do
+            line="${line%%#*}"
+            line="$(echo "$line" | xargs)"
+            [[ -z "$line" ]] && continue
+            IGNORE_FLAGS+=(--ignore "$line")
+            ADVISORY_IDS+=("$line")
+          done < "$IGNORE_FILE"
+
+          if [[ ${#ADVISORY_IDS[@]} -gt 0 ]]; then
+            echo "Ignoring ${#ADVISORY_IDS[@]} advisory exception(s):"
+            for id in "${ADVISORY_IDS[@]}"; do
+              echo "  - $id"
+            done
+          fi
+
+          cd v3
+          exec cargo audit --deny warnings "${IGNORE_FLAGS[@]}"
 
   # ============================================
   # Documentation Build
