@@ -24,6 +24,12 @@ v2/
 .yamllint.yml
 .husky/
 
+# Shared dev tooling (Claude agents + extension-guide skills used on this branch)
+.claude/agents/
+.claude/skills/extension-guide/
+.claude/skills/extension-guide-v2/
+.claude/skills/sindri-extension-guide/
+
 # AI tooling (authored fresh per branch during cutover)
 # CLAUDE.md
 # AGENTS.md

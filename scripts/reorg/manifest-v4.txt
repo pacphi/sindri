@@ -21,6 +21,10 @@ v4/
 .yamllint.yml
 .husky/
 
+# Shared dev tooling
+.claude/agents/
+.claude/commands/
+
 # AI tooling
 # CLAUDE.md
 # AGENTS.md

@@ -32,5 +32,12 @@ pnpm-workspace.yaml
 .yamllint.yml
 .husky/
 
+# Shared dev tooling (Claude agents + extension-guide skills + git/github commands)
+.claude/agents/
+.claude/commands/
+.claude/skills/extension-guide/
+.claude/skills/extension-guide-v3/
+.claude/skills/sindri-extension-guide/
+
 # AI tooling (CLAUDE.md authored per branch)
 # .gitnexus/ — NEVER committed (gitignored)
