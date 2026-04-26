@@ -1,4 +1,9 @@
-pnpm lint-staged
+# lint-staged only runs when a root package.json exists (e.g. on
+# version branches that ship a JS/TS toolchain). After the v1..v4
+# reorg, main has no root package.json, so we skip the JS lint pass.
+if [ -f package.json ] && command -v pnpm >/dev/null 2>&1; then
+  pnpm lint-staged
+fi
 
 # Rust checks (only if v3/ files are staged)
 if git diff --cached --name-only | grep -q '^v3/'; then
