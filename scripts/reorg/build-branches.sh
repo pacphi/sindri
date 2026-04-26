@@ -33,8 +33,11 @@ if ! git rev-parse pre-reorg-2026-04-25 >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! git status --porcelain | grep -q .; then : ; else
-  echo "FATAL: working tree dirty. Commit or stash before running." >&2
+# Only block on tracked-but-uncommitted changes. Untracked files (like a
+# local CLAUDE.md that the developer regenerates locally) are fine.
+if git status --porcelain | grep -vE '^\?\?' | grep -q .; then
+  echo "FATAL: working tree has uncommitted tracked changes. Commit or stash before running." >&2
+  git status --short
   exit 1
 fi
 
