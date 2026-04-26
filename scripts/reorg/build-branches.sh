@@ -109,6 +109,10 @@ README_EOF
       [[ -f v2/README.md    ]] && cp v2/README.md    README.md
       [[ -f v2/CHANGELOG.md ]] && cp v2/CHANGELOG.md CHANGELOG.md
       [[ -f RELEASE_NOTES.v2.md ]] && git mv RELEASE_NOTES.v2.md RELEASE_NOTES.md
+      # Relocate root examples/v2/ → v2/examples/ so they survive the manifest sweep.
+      if [[ -d examples/v2 ]]; then
+        git mv examples/v2 v2/examples 2>&1 | head -3
+      fi
       git add README.md CHANGELOG.md RELEASE_NOTES.md 2>/dev/null || true
       ;;
     v3)
@@ -116,6 +120,16 @@ README_EOF
       [[ -f v3/CHANGELOG.md ]] && cp v3/CHANGELOG.md CHANGELOG.md
       [[ -f RELEASE_NOTES.v3.md   ]] && git mv RELEASE_NOTES.v3.md   RELEASE_NOTES.md
       [[ -f RELEASE_NOTES.v3.1.md ]] && git mv RELEASE_NOTES.v3.1.md RELEASE_NOTES.3.1.md
+      # Relocate root examples/v3/ → v3/examples/ (v3 already has v3/examples/
+      # for crate-level examples; merge into a v3/examples/integration/ subdir
+      # if a collision exists, otherwise straight rename).
+      if [[ -d examples/v3 ]]; then
+        if [[ -d v3/examples ]]; then
+          git mv examples/v3 v3/examples-integration 2>&1 | head -3
+        else
+          git mv examples/v3 v3/examples 2>&1 | head -3
+        fi
+      fi
       git add README.md CHANGELOG.md RELEASE_NOTES.md RELEASE_NOTES.3.1.md 2>/dev/null || true
       ;;
     v4)
