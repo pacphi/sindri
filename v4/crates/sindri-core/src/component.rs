@@ -5,6 +5,7 @@ use schemars::JsonSchema;
 use crate::version::VersionSpec;
 use crate::platform::Platform;
 use std::collections::HashMap;
+use std::str::FromStr;
 
 /// ADR-002: The atomic unit of v4.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -18,7 +19,7 @@ impl ComponentId {
     pub fn parse(s: &str) -> Option<Self> {
         let (backend_str, rest) = s.split_once(':')?;
         let name = rest.split('@').next()?.to_string();
-        let backend = Backend::from_str(backend_str)?;
+        let backend = Backend::from_str(backend_str).ok()?;
         Some(ComponentId { backend, name })
     }
 
@@ -79,26 +80,31 @@ impl Backend {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<Self> {
+}
+
+impl FromStr for Backend {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "mise" => Some(Backend::Mise),
-            "apt" => Some(Backend::Apt),
-            "dnf" => Some(Backend::Dnf),
-            "zypper" => Some(Backend::Zypper),
-            "pacman" => Some(Backend::Pacman),
-            "apk" => Some(Backend::Apk),
-            "brew" => Some(Backend::Brew),
-            "winget" => Some(Backend::Winget),
-            "scoop" => Some(Backend::Scoop),
-            "npm" => Some(Backend::Npm),
-            "pipx" => Some(Backend::Pipx),
-            "cargo" => Some(Backend::Cargo),
-            "go-install" => Some(Backend::GoInstall),
-            "binary" => Some(Backend::Binary),
-            "script" => Some(Backend::Script),
-            "sdkman" => Some(Backend::Sdkman),
-            "collection" => Some(Backend::Collection),
-            _ => None,
+            "mise" => Ok(Backend::Mise),
+            "apt" => Ok(Backend::Apt),
+            "dnf" => Ok(Backend::Dnf),
+            "zypper" => Ok(Backend::Zypper),
+            "pacman" => Ok(Backend::Pacman),
+            "apk" => Ok(Backend::Apk),
+            "brew" => Ok(Backend::Brew),
+            "winget" => Ok(Backend::Winget),
+            "scoop" => Ok(Backend::Scoop),
+            "npm" => Ok(Backend::Npm),
+            "pipx" => Ok(Backend::Pipx),
+            "cargo" => Ok(Backend::Cargo),
+            "go-install" => Ok(Backend::GoInstall),
+            "binary" => Ok(Backend::Binary),
+            "script" => Ok(Backend::Script),
+            "sdkman" => Ok(Backend::Sdkman),
+            "collection" => Ok(Backend::Collection),
+            _ => Err(()),
         }
     }
 }

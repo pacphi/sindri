@@ -5,7 +5,6 @@
 /// are Sprint 10 hardening work.
 use std::path::Path;
 use sindri_core::platform::{Arch, Capabilities, Os, Platform, TargetProfile};
-use crate::auth::AuthValue;
 use crate::error::TargetError;
 use crate::traits::{PrereqCheck, Target};
 

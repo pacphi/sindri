@@ -37,16 +37,15 @@ pub fn check_license(license: &str, policy: &InstallPolicy) -> PolicyCheckResult
     }
 
     // Strict preset: only allow-listed licenses pass
-    if matches!(policy.preset, PolicyPreset::Strict) {
-        if !policy.allowed_licenses.is_empty()
-            && !policy.allowed_licenses.iter().any(|a| a == license)
-        {
-            return PolicyCheckResult::deny(
-                "ADM_LICENSE_DENIED",
-                &format!("License `{}` not in strict-mode allow list", license),
-                Some("Run `sindri policy allow-license <spdx>` to add it"),
-            );
-        }
+    if matches!(policy.preset, PolicyPreset::Strict)
+        && !policy.allowed_licenses.is_empty()
+        && !policy.allowed_licenses.iter().any(|a| a == license)
+    {
+        return PolicyCheckResult::deny(
+            "ADM_LICENSE_DENIED",
+            &format!("License `{}` not in strict-mode allow list", license),
+            Some("Run `sindri policy allow-license <spdx>` to add it"),
+        );
     }
 
     // Unknown license handling

@@ -1,6 +1,7 @@
 use sindri_core::component::Backend;
 use sindri_core::platform::{Os, Platform};
 use sindri_core::registry::ComponentEntry;
+use std::str::FromStr;
 
 /// Built-in backend preference chains per OS (ADR-009, ADR-010, Sprint 3)
 ///
@@ -95,7 +96,7 @@ impl BackendStr {
 impl std::str::FromStr for BackendStr {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if sindri_core::component::Backend::from_str(s).is_some() {
+        if sindri_core::component::Backend::from_str(s).is_ok() {
             Ok(BackendStr(s.to_string()))
         } else {
             Err(())

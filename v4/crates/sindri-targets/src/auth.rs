@@ -5,7 +5,6 @@
 ///   `file:~/.token`      → read from file
 ///   `cli:gh`             → delegate to gh CLI
 ///   `plain:secret`       → inline string (warned on validate)
-use std::path::Path;
 use crate::error::TargetError;
 
 #[derive(Debug, Clone)]
