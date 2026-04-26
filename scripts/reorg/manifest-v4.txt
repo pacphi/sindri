@@ -29,3 +29,7 @@ v4/
 # CLAUDE.md
 # AGENTS.md
 # .gitnexus/ — NEVER committed (gitignored)
+
+# AI tooling instructions (per-branch, populated by build-branches.sh)
+CLAUDE.md
+AGENTS.md

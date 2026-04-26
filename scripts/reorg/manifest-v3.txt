@@ -41,3 +41,7 @@ pnpm-workspace.yaml
 
 # AI tooling (CLAUDE.md authored per branch)
 # .gitnexus/ — NEVER committed (gitignored)
+
+# AI tooling instructions (per-branch, populated by build-branches.sh)
+CLAUDE.md
+AGENTS.md

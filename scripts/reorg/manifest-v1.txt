@@ -14,3 +14,7 @@ v1/
 # Optional minimal AI tooling (created during cutover)
 # CLAUDE.md
 # AGENTS.md
+
+# AI tooling instructions (per-branch, populated by build-branches.sh)
+CLAUDE.md
+AGENTS.md

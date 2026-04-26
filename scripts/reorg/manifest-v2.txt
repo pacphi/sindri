@@ -33,3 +33,7 @@ v2/
 # AI tooling (authored fresh per branch during cutover)
 # CLAUDE.md
 # AGENTS.md
+
+# AI tooling instructions (per-branch, populated by build-branches.sh)
+CLAUDE.md
+AGENTS.md
