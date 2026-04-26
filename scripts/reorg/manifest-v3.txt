@@ -1,0 +1,36 @@
+# manifest-v3.txt — paths kept on `v3` after cutover.
+# v3 stack: Rust workspace + npm wrapper packages. Active development lane.
+
+LICENSE
+README.md                  # = current v3/README.md
+CHANGELOG.md               # = v3/CHANGELOG.md
+RELEASE_NOTES.md           # = RELEASE_NOTES.v3.md (renamed)
+RELEASE_NOTES.3.1.md       # = RELEASE_NOTES.v3.1.md (renamed)
+
+# All v3 source
+v3/
+
+# npm wrapper packages (cargo-dist + platform binaries) live at branch root
+packages/
+package.json
+pnpm-workspace.yaml
+.npmrc
+
+# Research notes (v3-era)
+.research/
+
+# Examples (relocated from root examples/v3/ → v3/examples/ during cutover)
+
+# Hygiene configs
+.dockerignore
+.gitignore                 # MUST include .gitnexus/ entry
+.markdownlint.json
+.markdownlintignore
+.prettierignore
+.prettierrc
+.shellcheckrc
+.yamllint.yml
+.husky/
+
+# AI tooling (CLAUDE.md authored per branch)
+# .gitnexus/ — NEVER committed (gitignored)

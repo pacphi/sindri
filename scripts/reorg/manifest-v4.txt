@@ -1,0 +1,27 @@
+# manifest-v4.txt — paths kept on `v4` after cutover.
+# Sourced from research/v4 branch's v4/ directory.
+# v4 stack: Rust workspace, redesigned (registry-core, renovate-plugin, tools).
+
+LICENSE
+README.md                  # = v4/README.md if present, else generated stub
+CHANGELOG.md               # new; first entry = "promoted from research/v4"
+
+# All v4 source (sourced from research/v4:v4/)
+# Exception: v4/.github/workflows/ci.yml is promoted to main during cutover
+v4/
+
+# Hygiene configs
+.dockerignore
+.gitignore                 # MUST include .gitnexus/ entry
+.markdownlint.json
+.markdownlintignore
+.prettierignore
+.prettierrc
+.shellcheckrc
+.yamllint.yml
+.husky/
+
+# AI tooling
+# CLAUDE.md
+# AGENTS.md
+# .gitnexus/ — NEVER committed (gitignored)

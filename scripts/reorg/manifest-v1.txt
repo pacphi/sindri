@@ -1,0 +1,16 @@
+# manifest-v1.txt — paths kept on `v1` after cutover.
+# v1 is end-of-life; security backports only; no CI on this branch.
+
+LICENSE
+README.md                # composed: "v1 is EOL; security-only patches"
+CHANGELOG.md             # = current v1/CHANGELOG.md content
+v1/
+
+# Hygiene configs needed for any future security-backport PRs to lint cleanly
+.gitignore
+.markdownlint.json
+.markdownlintignore
+
+# Optional minimal AI tooling (created during cutover)
+# CLAUDE.md
+# AGENTS.md

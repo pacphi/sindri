@@ -1,0 +1,26 @@
+# Sindri — `main` branch
+
+`main` carries no product source. It hosts:
+
+- Umbrella `README.md` (version router) and `CHANGELOG.md` (umbrella).
+- Repo-wide governance: `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, `CODEOWNERS`, `dependabot.yml`.
+- Centralized `.github/workflows/` that triggers on push/PR to `v1`/`v2`/`v3`/`v4`.
+- Governance docs in `docs/` (`RELEASE.md`, `CHANGELOG_MANAGEMENT.md`, `COMPARISON_GUIDE.md`).
+
+## Where work happens
+
+| Branch | Stack | Status |
+|---|---|---|
+| `v1` | legacy bash | EOL — security-only |
+| `v2` | Bash + Docker | Maintenance |
+| `v3` | Rust workspace | Active |
+| `v4` | Rust, redesigned | Pre-release |
+
+For stack-specific guidance, switch to the relevant branch and read its `CLAUDE.md`.
+
+## Working on `main`
+
+- Do not add product code here.
+- Workflow files live under `.github/workflows/`. Each `ci-vN.yml` triggers only on its own `v*` branch.
+- Reusable callables are prefixed with `_` (e.g. `_ci-rust.yml`, `_ci-bash.yml`).
+- See `.github/WORKFLOW_ARCHITECTURE.md` for the routing model.
