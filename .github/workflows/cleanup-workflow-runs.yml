@@ -3,13 +3,18 @@ name: Cleanup Workflow Runs
 # Branch-aware cleanup applied uniformly to every branch.
 #
 # Deletion rules (same rule across all branches):
-#   1. Orphan-workflow runs (workflow YAML no longer present in the default
-#      branch's .github/workflows) are deleted past the orphan grace period.
-#   2. Orphan-branch runs (head branch no longer exists on the remote) are
-#      deleted past the orphan grace period.
-#   3. Live runs older than RETENTION_DAYS are deleted, EXCEPT we always keep
-#      the most recent KEEP_LAST_N successful runs per (workflow, branch).
+#   1. Orphan-workflow runs (workflow YAML deleted) -> delete past grace.
+#   2. Orphan-branch runs (head branch deleted)     -> delete past grace.
+#   3. For every (workflow, branch, success-class) bucket:
+#        a. Always keep the most recent KEEP_LAST_SUCCESS successful runs
+#           and the most recent KEEP_LAST_FAILURE non-success runs.
+#        b. Anything beyond rank-N in its bucket is "superseded" and
+#           deleted regardless of age (when SUPERSEDE=true).
+#        c. Anything older than RETENTION_DAYS_SUCCESS / _FAILURE is
+#           deleted (the keep-last-N floor still wins).
 #
+# Non-success conclusions (failure, cancelled, startup_failure, timed_out,
+# action_required, neutral) all expire on the failure schedule.
 # In-progress / queued runs are never touched.
 
 on:
@@ -19,16 +24,31 @@ on:
 
   workflow_dispatch:
     inputs:
-      days:
-        description: Delete completed runs older than N days
+      retention-days-success:
+        description: Delete successful runs older than N days
         required: true
         default: "7"
         type: string
-      keep-last:
-        description: Always keep the last N successful runs per workflow per branch
+      retention-days-failure:
+        description: Delete non-success runs older than N days
+        required: true
+        default: "1"
+        type: string
+      keep-last-success:
+        description: Always keep the last N successful runs per (workflow, branch)
         required: true
         default: "3"
         type: string
+      keep-last-failure:
+        description: Always keep the last N non-success runs per (workflow, branch)
+        required: true
+        default: "1"
+        type: string
+      supersede:
+        description: Delete superseded runs (rank > keep-last) regardless of age
+        required: true
+        default: true
+        type: boolean
       orphan-grace-days:
         description: Grace period (days) before deleting runs from deleted branches/workflows
         required: true
@@ -41,8 +61,11 @@ on:
         type: boolean
 
 env:
-  RETENTION_DAYS: ${{ inputs.days || '7' }}
-  KEEP_LAST_N: ${{ inputs.keep-last || '3' }}
+  RETENTION_DAYS_SUCCESS: ${{ inputs.retention-days-success || '7' }}
+  RETENTION_DAYS_FAILURE: ${{ inputs.retention-days-failure || '1' }}
+  KEEP_LAST_SUCCESS: ${{ inputs.keep-last-success || '3' }}
+  KEEP_LAST_FAILURE: ${{ inputs.keep-last-failure || '1' }}
+  SUPERSEDE: ${{ inputs.supersede || 'true' }}
   ORPHAN_GRACE_DAYS: ${{ inputs.orphan-grace-days || '1' }}
   DRY_RUN: ${{ inputs.dry-run || 'false' }}
 
@@ -61,29 +84,27 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           python3 - <<'PY'
-          import json, os, subprocess, sys
+          import json, os, subprocess
           from collections import defaultdict
           from datetime import datetime, timedelta, timezone
 
           repo = os.environ["REPO"]
-          retention = int(os.environ["RETENTION_DAYS"])
-          keep_n = int(os.environ["KEEP_LAST_N"])
+          ret_succ = int(os.environ["RETENTION_DAYS_SUCCESS"])
+          ret_fail = int(os.environ["RETENTION_DAYS_FAILURE"])
+          keep_succ = int(os.environ["KEEP_LAST_SUCCESS"])
+          keep_fail = int(os.environ["KEEP_LAST_FAILURE"])
+          supersede = os.environ["SUPERSEDE"].lower() == "true"
           grace = int(os.environ["ORPHAN_GRACE_DAYS"])
           now = datetime.now(timezone.utc)
-          age_cutoff = now - timedelta(days=retention)
           orphan_cutoff = now - timedelta(days=grace)
+          succ_cutoff = now - timedelta(days=ret_succ)
+          fail_cutoff = now - timedelta(days=ret_fail)
 
           def gh(*args):
-              out = subprocess.check_output(["gh", "api", "--paginate", *args], text=True)
-              # --paginate concatenates JSON arrays; for object-returning endpoints
-              # we have to handle list-of-objects separately. Callers pass --jq.
-              return out
+              return subprocess.check_output(["gh", "api", "--paginate", *args], text=True)
 
-          # Live branches
-          branches_raw = gh(f"repos/{repo}/branches", "--jq", ".[].name")
-          live_branches = {b for b in branches_raw.splitlines() if b}
+          live_branches = {b for b in gh(f"repos/{repo}/branches", "--jq", ".[].name").splitlines() if b}
 
-          # Active workflow file paths (basename only, e.g. "ci-v3.yml")
           wf_raw = gh(f"repos/{repo}/actions/workflows", "--jq", ".workflows[] | {id, path, state}")
           active_wf_ids = set()
           wf_name_by_id = {}
@@ -95,7 +116,6 @@ jobs:
               if wf["state"] == "active":
                   active_wf_ids.add(wf["id"])
 
-          # All completed runs
           runs_raw = gh(
               f"repos/{repo}/actions/runs",
               "--jq",
@@ -104,71 +124,74 @@ jobs:
           )
           runs = [json.loads(l) for l in runs_raw.splitlines() if l.strip()]
 
-          # Group successful runs per (workflow_id, branch) sorted newest-first
-          # so we can protect the last N.
-          successes = defaultdict(list)
-          for r in runs:
-              if r["conclusion"] == "success":
-                  successes[(r["workflow_id"], r["head_branch"])].append(r)
-          for k in successes:
-              successes[k].sort(key=lambda x: x["updated_at"], reverse=True)
-          protected_ids = set()
-          for k, lst in successes.items():
-              for r in lst[:keep_n]:
-                  protected_ids.add(r["id"])
+          def is_success(r):
+              return r["conclusion"] == "success"
 
-          to_delete = []  # list of (run, reason)
-          kept = []
+          # Rank within (workflow, branch, class). 0 = newest.
+          buckets = defaultdict(list)
+          for r in runs:
+              cls = "success" if is_success(r) else "failed"
+              buckets[(r["workflow_id"], r["head_branch"], cls)].append(r)
+          rank = {}
+          for key, lst in buckets.items():
+              lst.sort(key=lambda x: x["updated_at"], reverse=True)
+              for i, r in enumerate(lst):
+                  rank[r["id"]] = i
+
+          to_delete, kept = [], []
           for r in runs:
               updated = datetime.fromisoformat(r["updated_at"].replace("Z", "+00:00"))
               wf_active = r["workflow_id"] in active_wf_ids
               branch_live = r["head_branch"] in live_branches if r["head_branch"] else False
+              succ = is_success(r)
+              keep_n = keep_succ if succ else keep_fail
+              age_cutoff = succ_cutoff if succ else fail_cutoff
+              r_rank = rank[r["id"]]
+              protected = r_rank < keep_n
 
-              if not wf_active and updated < orphan_cutoff:
+              if not wf_active and updated < orphan_cutoff and not protected:
                   to_delete.append((r, "orphan-workflow"))
-              elif not branch_live and updated < orphan_cutoff:
+              elif not branch_live and updated < orphan_cutoff and not protected:
                   to_delete.append((r, "orphan-branch"))
+              elif protected:
+                  kept.append((r, "keep-last-N"))
+              elif supersede:
+                  to_delete.append((r, "superseded"))
               elif updated < age_cutoff:
-                  if r["id"] in protected_ids:
-                      kept.append((r, "keep-last-N"))
-                  else:
-                      to_delete.append((r, "age"))
+                  to_delete.append((r, "age-success" if succ else "age-failure"))
               else:
                   kept.append((r, "fresh"))
 
-          # Persist plan
           with open("plan.json", "w") as f:
-              json.dump(
-                  {
-                      "delete": [{"id": r["id"], "reason": why, "branch": r["head_branch"],
-                                  "workflow": wf_name_by_id.get(r["workflow_id"], r["name"]),
-                                  "conclusion": r["conclusion"], "updated_at": r["updated_at"]}
-                                 for r, why in to_delete],
-                      "kept_count": len(kept),
-                  },
-                  f,
-              )
+              json.dump({
+                  "delete": [{"id": r["id"], "reason": why, "branch": r["head_branch"],
+                              "workflow": wf_name_by_id.get(r["workflow_id"], r["name"]),
+                              "conclusion": r["conclusion"], "updated_at": r["updated_at"]}
+                             for r, why in to_delete],
+                  "kept_count": len(kept),
+              }, f)
 
-          # Summaries
           by_branch = defaultdict(int)
           by_workflow = defaultdict(int)
           by_reason = defaultdict(int)
+          by_class = defaultdict(int)
           for r, why in to_delete:
               by_branch[r["head_branch"] or "(none)"] += 1
               by_workflow[wf_name_by_id.get(r["workflow_id"], r["name"])] += 1
               by_reason[why] += 1
+              by_class["success" if is_success(r) else "failed"] += 1
 
           summary = os.environ["GITHUB_STEP_SUMMARY"]
           with open(summary, "a") as s:
               s.write("# Workflow Run Cleanup Plan\n\n")
-              s.write(f"- Retention: **{retention} days**\n")
-              s.write(f"- Keep-last-N successful per (workflow, branch): **{keep_n}**\n")
-              s.write(f"- Orphan grace: **{grace} days**\n")
+              s.write(f"- Retention (success / failure): **{ret_succ}d / {ret_fail}d**\n")
+              s.write(f"- Keep last (success / failure): **{keep_succ} / {keep_fail}** per (workflow, branch)\n")
+              s.write(f"- Supersede beyond keep-last: **{supersede}**\n")
+              s.write(f"- Orphan grace: **{grace}d**\n")
               s.write(f"- Dry run: **{os.environ['DRY_RUN']}**\n")
-              s.write(f"- Live branches: **{len(live_branches)}**\n")
-              s.write(f"- Active workflows: **{len(active_wf_ids)}**\n")
+              s.write(f"- Live branches: **{len(live_branches)}**, active workflows: **{len(active_wf_ids)}**\n")
               s.write(f"- Total completed runs scanned: **{len(runs)}**\n")
-              s.write(f"- Runs to delete: **{len(to_delete)}**\n")
+              s.write(f"- Runs to delete: **{len(to_delete)}** (success: {by_class['success']}, failed: {by_class['failed']})\n")
               s.write(f"- Runs kept: **{len(kept)}**\n\n")
 
               s.write("## Deletions by reason\n\n| Reason | Count |\n|---|---:|\n")
@@ -183,7 +206,8 @@ jobs:
               for k, v in sorted(by_workflow.items(), key=lambda x: -x[1])[:25]:
                   s.write(f"| `{k}` | {v} |\n")
 
-          print(f"::notice::Planned {len(to_delete)} deletions across {len(by_branch)} branches")
+          print(f"::notice::Planned {len(to_delete)} deletions across {len(by_branch)} branches "
+                f"(success: {by_class['success']}, failed: {by_class['failed']})")
 
           with open(os.environ["GITHUB_OUTPUT"], "a") as o:
               o.write(f"count={len(to_delete)}\n")
@@ -193,7 +217,7 @@ jobs:
         if: env.DRY_RUN == 'true' && steps.plan.outputs.count != '0'
         run: |
           echo "DRY RUN — first 30 planned deletions:"
-          jq -r '.delete[] | "\(.reason)\t\(.branch)\t\(.workflow)\t\(.id)\t\(.updated_at)"' plan.json | head -30
+          jq -r '.delete[] | "\(.reason)\t\(.conclusion)\t\(.branch)\t\(.workflow)\t\(.id)\t\(.updated_at)"' plan.json | head -30
           echo "..."
           echo "(see step summary for full breakdown)"
 
