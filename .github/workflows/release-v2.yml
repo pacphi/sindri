@@ -671,7 +671,7 @@ jobs:
 
       - name: Create failure issue
         if: failure()
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const version = '${{ needs.validate-tag.outputs.version }}';
