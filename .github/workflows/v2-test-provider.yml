@@ -98,6 +98,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      # Workflows live on main but the runner checks out the v2 branch (where
+      # this workflow's caller lives). v2 doesn't have .github/actions/ or
+      # .github/scripts/ — those are centralized on main only. Side-checkout
+      # main's .github/ into _ci-shared/ so the local-action and helper-script
+      # references below can resolve.
+      - name: Side-checkout main's .github/ for shared actions/scripts
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          sparse-checkout: |
+            .github/actions
+            .github/scripts
+          sparse-checkout-cone-mode: false
+          path: _ci-shared
+
       - name: Validate profile for CI runner
         if: inputs.provider == 'docker'
         run: |
@@ -128,8 +143,8 @@ jobs:
 
       - name: Setup credentials
         run: |
-          chmod +x .github/scripts/providers/setup-credentials.sh
-          source .github/scripts/providers/setup-credentials.sh "${{ inputs.provider }}"
+          chmod +x _ci-shared/.github/scripts/providers/setup-credentials.sh
+          source _ci-shared/.github/scripts/providers/setup-credentials.sh "${{ inputs.provider }}"
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
@@ -145,7 +160,7 @@ jobs:
 
       - name: Deploy to provider
         id: deploy
-        uses: ./.github/actions/shared/deploy-provider
+        uses: ./_ci-shared/.github/actions/shared/deploy-provider
         with:
           provider: ${{ inputs.provider }}
           image: ${{ inputs.image }}
@@ -194,10 +209,10 @@ jobs:
           echo "────────────────────────────────────────────────────────────────"
 
           # Single remote call executes entire test suite
-          chmod +x .github/scripts/providers/run-on-provider.sh
+          chmod +x _ci-shared/.github/scripts/providers/run-on-provider.sh
 
           set +e
-          OUTPUT=$(.github/scripts/providers/run-on-provider.sh \
+          OUTPUT=$(_ci-shared/.github/scripts/providers/run-on-provider.sh \
             "${{ inputs.provider }}" \
             "$TARGET_ID" \
             "/docker/scripts/sindri-test.sh --level ${{ inputs.test-level }} --profile ${{ inputs.extension-profile }} --extension ${{ inputs.extension }}")
@@ -258,7 +273,7 @@ jobs:
 
       - name: Cleanup
         if: always() && inputs.skip-cleanup != true
-        uses: ./.github/actions/shared/cleanup-provider
+        uses: ./_ci-shared/.github/actions/shared/cleanup-provider
         with:
           provider: ${{ inputs.provider }}
           target-id: ${{ steps.deploy.outputs.target-id }}
