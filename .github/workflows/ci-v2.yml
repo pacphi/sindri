@@ -57,6 +57,7 @@ on:
         required: false
         default: false
         type: boolean
+  workflow_call:
 
 concurrency:
   group: ci-v2-${{ github.ref }}
