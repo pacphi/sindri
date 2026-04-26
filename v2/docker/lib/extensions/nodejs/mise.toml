@@ -1,7 +1,0 @@
-[tools]
-node = "lts"
-
-[env]
-NODE_ENV = "development"
-NPM_CONFIG_PREFIX = "~/.npm-global"
-_.path = ["~/.npm-global/bin"]
