@@ -30,7 +30,7 @@ pub fn run(args: AddArgs) -> i32 {
 
     // Check for duplicate
     let clean_addr = crate::commands::manifest::address_without_version(&args.address);
-    if let Some(_) = find_entry_index(&manifest, &clean_addr) {
+    if find_entry_index(&manifest, &clean_addr).is_some() {
         eprintln!(
             "Component '{}' is already in sindri.yaml",
             clean_addr

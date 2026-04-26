@@ -95,7 +95,7 @@ impl InstallBackend for GoInstallBackend {
 
     fn remove(&self, comp: &ResolvedComponent) -> Result<(), BackendError> {
         // go doesn't have a formal uninstall; remove from GOPATH/bin
-        let bin_name = comp.id.name.split('/').last().unwrap_or(&comp.id.name);
+        let bin_name = comp.id.name.split('/').next_back().unwrap_or(&comp.id.name);
         let gopath = std::env::var("GOPATH")
             .unwrap_or_else(|_| {
                 dirs_next::home_dir()
@@ -112,7 +112,7 @@ impl InstallBackend for GoInstallBackend {
     }
 
     fn is_installed(&self, comp: &ResolvedComponent) -> bool {
-        let bin_name = comp.id.name.split('/').last().unwrap_or(&comp.id.name);
+        let bin_name = comp.id.name.split('/').next_back().unwrap_or(&comp.id.name);
         crate::traits::binary_available(bin_name)
     }
 }

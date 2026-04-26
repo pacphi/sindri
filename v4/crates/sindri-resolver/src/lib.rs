@@ -10,13 +10,12 @@ pub mod version;
 pub use error::ResolverError;
 
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use sindri_core::lockfile::Lockfile;
 use sindri_core::manifest::BomManifest;
 use sindri_core::platform::{Platform, TargetProfile, Capabilities};
 use sindri_core::policy::InstallPolicy;
 use sindri_core::registry::ComponentEntry;
-use sindri_core::version::VersionSpec;
 
 /// Top-level resolver options
 pub struct ResolveOptions {

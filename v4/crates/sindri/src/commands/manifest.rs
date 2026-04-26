@@ -1,9 +1,7 @@
 //! Shared helpers for reading/modifying sindri.yaml
 
 use std::fs;
-use std::path::Path;
 use sindri_core::manifest::BomManifest;
-use sindri_core::component::BomEntry;
 
 pub fn load_manifest(path: &str) -> Result<(BomManifest, String), String> {
     let content = fs::read_to_string(path)

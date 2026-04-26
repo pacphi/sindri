@@ -11,7 +11,7 @@ pub struct SearchArgs {
 }
 
 pub fn run(args: SearchArgs) -> i32 {
-    let mut registry = load_registry(args.registry.as_deref());
+    let registry = load_registry(args.registry.as_deref());
     if registry.is_empty() {
         eprintln!("No registry cache found. Run `sindri registry refresh <name> <url>` first.");
         return EXIT_SCHEMA_OR_RESOLVE_ERROR;
@@ -49,7 +49,7 @@ pub fn run(args: SearchArgs) -> i32 {
             .collect();
         println!("{}", serde_json::to_string_pretty(&serde_json::json!({"results": items})).unwrap_or_default());
     } else {
-        println!("{:<30} {:<12} {:<12} {}", "COMPONENT", "BACKEND", "LATEST", "DESCRIPTION");
+        println!("{:<30} {:<12} {:<12} DESCRIPTION", "COMPONENT", "BACKEND", "LATEST");
         println!("{}", "-".repeat(80));
         for r in &results {
             println!(

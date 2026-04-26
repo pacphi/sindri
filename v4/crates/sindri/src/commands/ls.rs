@@ -77,7 +77,7 @@ pub fn run(args: LsArgs) -> i32 {
             );
         } else {
             println!("\nRegistry: {}", registry_name);
-            println!("{:<30} {:<12} {:<12} {}", "COMPONENT", "BACKEND", "LATEST", "KIND");
+            println!("{:<30} {:<12} {:<12} KIND", "COMPONENT", "BACKEND", "LATEST");
             println!("{}", "-".repeat(70));
             for comp in components {
                 let name = comp.get("name").and_then(|v| v.as_str()).unwrap_or("?");
