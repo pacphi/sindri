@@ -1,9 +1,9 @@
 # Sindri
 
 [![License](https://img.shields.io/github/license/pacphi/sindri)](LICENSE)
-[![CI v2](https://github.com/pacphi/sindri/actions/workflows/ci.yml/badge.svg?branch=v2)](https://github.com/pacphi/sindri/actions/workflows/ci.yml?query=branch%3Av2)
-[![CI v3](https://github.com/pacphi/sindri/actions/workflows/ci.yml/badge.svg?branch=v3)](https://github.com/pacphi/sindri/actions/workflows/ci.yml?query=branch%3Av3)
-[![CI v4](https://github.com/pacphi/sindri/actions/workflows/ci.yml/badge.svg?branch=v4)](https://github.com/pacphi/sindri/actions/workflows/ci.yml?query=branch%3Av4)
+[![v2 CI](https://img.shields.io/github/actions/workflow/status/pacphi/sindri/ci.yml?branch=v2&label=v2%3A%20CI)](https://github.com/pacphi/sindri/actions/workflows/ci.yml?query=branch%3Av2)
+[![v3 CI](https://img.shields.io/github/actions/workflow/status/pacphi/sindri/ci.yml?branch=v3&label=v3%3A%20CI)](https://github.com/pacphi/sindri/actions/workflows/ci.yml?query=branch%3Av3)
+[![v4 CI](https://img.shields.io/github/actions/workflow/status/pacphi/sindri/ci.yml?branch=v4&label=v4%3A%20CI)](https://github.com/pacphi/sindri/actions/workflows/ci.yml?query=branch%3Av4)
 [![FAQ](https://img.shields.io/badge/FAQ-on%20fly.dev-blue)](https://sindri-faq.fly.dev)
 [![GHCR](https://img.shields.io/badge/GHCR-container%20registry-blue)](https://github.com/pacphi/sindri/pkgs/container/sindri)
 
