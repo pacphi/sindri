@@ -1,5 +1,0 @@
-[tools]
-swift = "6.3"
-
-[settings]
-swift.gpg_verify = true

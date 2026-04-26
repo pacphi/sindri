@@ -1,8 +1,0 @@
-# compahook.toml - compahook npm package configuration for mise
-# Requires nodejs extension to be installed first
-
-[tools]
-"npm:compahook" = "1.1.2"
-
-[settings]
-experimental = true

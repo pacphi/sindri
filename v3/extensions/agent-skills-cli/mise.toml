@@ -1,5 +1,0 @@
-# agent-skills-cli — universal AI skill manager
-# Version pinned 1:1 with extension.yaml metadata.version
-
-[tools]
-"npm:agent-skills-cli" = "1.1.7"

@@ -1,4 +1,0 @@
-# claude-flow - AI-powered multi-agent orchestration for Claude Code
-
-[tools]
-"npm:claude-flow" = "3.5.80"
