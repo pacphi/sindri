@@ -219,9 +219,13 @@ $RECYCLE.BIN/
 .Trash-*
 .nfs*
 
-# Claude Code and Claude Flow generated files
+# Claude Code and Claude Flow generated files.
+# NOTE: CLAUDE.md and AGENTS.md are tracked per-branch as the AI tooling
+# guide for that branch (see scripts/reorg/branch-templates/). Keep them out
+# of this ignore list. Local Claude state under .claude/ remains ignored,
+# but specific subdirs like .claude/agents/ and .claude/skills/ are tracked
+# (git ignores untracked files only; tracked paths under .claude/ stay tracked).
 .claude/
-CLAUDE.md
 .claude-flow/
 claude-flow.config.json
 coordination/

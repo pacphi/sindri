@@ -71,7 +71,7 @@ install_ai_templates() {
   if [[ -f "$tpl" ]]; then
     cp "$tpl" CLAUDE.md
     cp "$tpl" AGENTS.md
-    git add CLAUDE.md AGENTS.md
+    git add -f CLAUDE.md AGENTS.md
   fi
 }
 
