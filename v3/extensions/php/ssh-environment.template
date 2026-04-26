@@ -1,3 +1,0 @@
-
-# PHP/Composer
-export PATH="$HOME/.composer/vendor/bin:$HOME/.config/composer/vendor/bin:$PATH"

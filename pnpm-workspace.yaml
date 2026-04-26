@@ -1,8 +1,0 @@
-# pnpm workspace configuration
-# Monorepo structure with v2 (bash/TypeScript) and v3 (Rust) implementations
-
-packages:
-  - "."
-  - "v2"
-  - "v3"
-  - "packages/@pacphi/*"

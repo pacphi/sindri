@@ -1,4 +1,0 @@
-# openskills - CLI for managing Claude Code skills from Anthropic's marketplace
-
-[tools]
-"npm:openskills" = "1.5.0"
