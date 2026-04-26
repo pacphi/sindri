@@ -5,13 +5,14 @@ name: Validate YAML
 
 on:
   pull_request:
+    branches: [main, v2, v3, v4]
     paths:
       - "**.yaml"
       - "**.yml"
       - "v2/docker/lib/schemas/*.json"
       - "v3/schemas/*.json"
   push:
-    branches: [main, feature/v3]
+    branches: [main, v2, v3, v4]
     paths:
       - "**.yaml"
       - "**.yml"
@@ -28,15 +29,34 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Skip if v2 source not present
+        id: gate
+        run: |
+          if [[ -d v2/docker/lib ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::v2/ not present on this branch; skipping v2 YAML lint."
+          fi
+
       - name: Install yamllint
+        if: steps.gate.outputs.run == 'true'
         run: pip install yamllint
 
       - name: Run yamllint on v2 YAML
+        if: steps.gate.outputs.run == 'true'
         run: |
-          yamllint --strict \
-            v2/docker/lib/*.yaml \
-            v2/docker/lib/extensions/*/extension.yaml \
-            examples/v2/**/*.yaml
+          # examples/ may live at branch root or under v2/examples after the reorg
+          examples_glob=""
+          if [[ -d examples/v2 ]]; then
+            examples_glob="examples/v2/**/*.yaml"
+          elif [[ -d v2/examples ]]; then
+            examples_glob="v2/examples/**/*.yaml"
+          fi
+          # Build the file list, omitting empty globs
+          targets=(v2/docker/lib/*.yaml v2/docker/lib/extensions/*/extension.yaml)
+          [[ -n "$examples_glob" ]] && targets+=($examples_glob)
+          yamllint --strict "${targets[@]}"
 
   lint-v3:
     name: YAML Lint (v3)
@@ -111,7 +131,7 @@ jobs:
           if [[ -f v2/test/unit/yaml/validate-schema.sh ]]; then
             ./v2/test/unit/yaml/validate-schema.sh all
           else
-            echo "::warning::v2 schema validation script not found"
+            echo "::notice::v2 schema validation script not present on this branch (expected on v2 only); skipping."
           fi
 
   schema-validation-v3:
@@ -181,7 +201,7 @@ jobs:
           if [[ -f v2/test/unit/yaml/test-cross-references.sh ]]; then
             ./v2/test/unit/yaml/test-cross-references.sh
           else
-            echo "::warning::v2 cross-reference test script not found"
+            echo "::notice::v2 cross-reference test script not present on this branch; skipping."
           fi
 
   cross-references-v3:
@@ -238,7 +258,7 @@ jobs:
             # DNS validation disabled in CI (network may be restricted)
             VALIDATE_DNS=false ./v2/test/unit/yaml/test-domain-requirements.sh
           else
-            echo "::warning::v2 domain requirements test script not found"
+            echo "::notice::v2 domain requirements test script not present on this branch; skipping."
           fi
 
   extension-consistency-v2:
@@ -255,6 +275,10 @@ jobs:
 
       - name: Check v2 extension naming consistency
         run: |
+          if [[ ! -d v2/docker/lib/extensions ]]; then
+            echo "::notice::v2/docker/lib/extensions not present on this branch; skipping."
+            exit 0
+          fi
           # Extension directory name must match metadata.name
           FAILURES=0
           for ext_dir in v2/docker/lib/extensions/*/; do
@@ -277,6 +301,10 @@ jobs:
 
       - name: Check v2 category consistency
         run: |
+          if [[ ! -d v2/docker/lib/extensions ]] || [[ ! -f v2/docker/lib/registry.yaml ]]; then
+            echo "::notice::v2 extension/registry tree not present on this branch; skipping."
+            exit 0
+          fi
           # Extension category must match registry entry
           FAILURES=0
           for ext_dir in v2/docker/lib/extensions/*/; do
