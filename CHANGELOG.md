@@ -1,75 +1,45 @@
 # Sindri Changelog
 
-This project maintains separate changelogs for each major version to improve clarity and reduce merge conflicts during concurrent development.
+`main` carries no product source. Each maintenance branch keeps its own
+changelog, located at the branch root.
 
----
+## Per-version changelogs
 
-## 📖 Version-Specific Changelogs
+| Branch                                                        | Changelog             | Status      |
+| ------------------------------------------------------------- | --------------------- | ----------- |
+| [`v1`](https://github.com/pacphi/sindri/blob/v1/CHANGELOG.md) | v1 (legacy bash)      | End-of-life |
+| [`v2`](https://github.com/pacphi/sindri/blob/v2/CHANGELOG.md) | v2 (Bash + Docker)    | Maintenance |
+| [`v3`](https://github.com/pacphi/sindri/blob/v3/CHANGELOG.md) | v3 (Rust workspace)   | Active      |
+| [`v4`](https://github.com/pacphi/sindri/blob/v4/CHANGELOG.md) | v4 (Rust, redesigned) | Pre-release |
 
-Choose the changelog for your version:
+## Per-version release notes
 
-### Current & Supported Versions
+Long-form release notes (breaking changes, migration steps) live alongside each
+branch's changelog:
 
-- **[v3 Changelog](v3/CHANGELOG.md)** - Current stable version (Rust-based CLI)
-  - **Status**: Active development
-  - **Architecture**: Rust binary with extension system
-  - **Latest**: See [releases](https://github.com/pacphi/sindri/releases?q=v3)
+| Branch | Release notes                                                                                                                                                                  |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `v2`   | [`v2/RELEASE_NOTES.md`](https://github.com/pacphi/sindri/blob/v2/RELEASE_NOTES.md)                                                                                             |
+| `v3`   | [`v3/RELEASE_NOTES.md`](https://github.com/pacphi/sindri/blob/v3/RELEASE_NOTES.md), [`v3/RELEASE_NOTES.3.1.md`](https://github.com/pacphi/sindri/blob/v3/RELEASE_NOTES.3.1.md) |
 
-- **[v2 Changelog](v2/CHANGELOG.md)** - Previous stable version (Bash/Docker)
-  - **Status**: Maintenance mode
-  - **Architecture**: Bash scripts with Docker containers
-  - **Latest**: See [releases](https://github.com/pacphi/sindri/releases?q=v2)
+## Format
 
-### Archived Versions
+All changelogs follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and
+adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-- **[v1 Changelog](v1/CHANGELOG.md)** - Legacy version (archived)
-  - **Status**: No longer supported
-  - **End of Life**: January 2026
-  - **Migration Guide**: [v1 → v2 Migration](RELEASE_NOTES.v2.md)
+Sections used: `Added`, `Fixed`, `Changed`, `Documentation`, `Dependencies`,
+`Performance`, `Tests`, `Maintenance`.
 
----
+## Reorganization (April 2026)
 
-## 🔄 Migration & Release Guides
+This repository was reorganized into dedicated `v1`/`v2`/`v3`/`v4` maintenance
+branches. See [`docs/REPO_REORG_PLAN.md`](docs/REPO_REORG_PLAN.md) and the
+`pre-reorg-2026-04-25` tag for the prior layout.
 
-Upgrading between major versions? These guides will help:
+## Quick links
 
-- **[v3.1.0 Release Notes](RELEASE_NOTES.v3.1.md)** - Sindri 3.1.0 (March 2026)
-  - Multi-distro support, collision handling, service framework, 8 new extensions, 24 extension upgrades
-- **[v2 → v3 Migration Guide](RELEASE_NOTES.v3.md)** - Upgrading from v2 (Bash/Docker) to v3 (Rust)
-  - Breaking changes, code examples, step-by-step migration
-- **[v1 → v2 Migration Guide](RELEASE_NOTES.v2.md)** - Upgrading from v1 to v2
-  - Extension system changes, capability-based architecture, removed extensions
-
----
-
-## 🚀 Quick Links
-
-- **[Latest Release](https://github.com/pacphi/sindri/releases/latest)** - Download the newest version
-- **[All Releases](https://github.com/pacphi/sindri/releases)** - Browse release history
-- **[Contributing Guide](docs/CONTRIBUTING.md)** - How to contribute to Sindri
-- **[Security Policy](docs/SECURITY.md)** - Report security vulnerabilities
-
----
-
-## 📋 Changelog Format
-
-All changelogs follow the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format and adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-### Changelog Sections
-
-- **Added** - New functionality and capabilities
-- **Fixed** - Resolved issues and error corrections
-- **Documentation** - Documentation improvements
-- **Dependencies** - Dependency updates and changes
-- **Performance** - Performance optimizations
-- **Changed** - Code restructuring and behavior changes
-- **Tests** - Test additions and improvements
-- **Maintenance** - Chores, CI/CD, and infrastructure updates
-
----
-
-## 🤔 Need Help?
-
-- **Questions**: [GitHub Discussions](https://github.com/pacphi/sindri/discussions)
-- **Bug Reports**: [GitHub Issues](https://github.com/pacphi/sindri/issues)
-- **Feature Requests**: [GitHub Discussions](https://github.com/pacphi/sindri/discussions/categories/ideas)
+- [Latest release](https://github.com/pacphi/sindri/releases/latest)
+- [All releases](https://github.com/pacphi/sindri/releases)
+- [Contributing](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
+- [Comparison guide](docs/COMPARISON_GUIDE.md)
