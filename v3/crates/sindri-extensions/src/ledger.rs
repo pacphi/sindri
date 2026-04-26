@@ -1,7 +1,6 @@
 use crate::events::{EventEnvelope, ExtensionEvent};
 use anyhow::{Context, Result};
 use chrono::{DateTime, Duration, Utc};
-use fs4::fs_std::FileExt;
 use serde::{Deserialize, Serialize};
 use sindri_core::types::ExtensionState;
 use std::collections::HashMap;
@@ -83,8 +82,9 @@ impl StatusLedger {
                 .open(&self.ledger_path)
                 .context("Failed to open ledger file")?;
 
-            // Acquire exclusive lock (released on drop)
-            file.lock_exclusive()
+            // Acquire exclusive lock (released on drop). fs4 1.0 renamed
+            // `lock_exclusive()` → `lock()`.
+            file.lock()
                 .context("Failed to acquire exclusive lock on ledger")?;
 
             let json_line = serde_json::to_string(&event).context("Failed to serialize event")?;
