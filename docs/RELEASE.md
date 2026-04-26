@@ -10,41 +10,171 @@ This guide explains how to create and publish new releases for Sindri.
 
 ## Overview
 
-Sindri uses **automated releases** triggered by Git tags with **version-specific workflows**:
+Sindri uses **automated releases** triggered by Git tags. After the April 2026 reorg, all release workflows live on `main` and are dispatched by tag pattern.
 
-- **v2 releases**: `.github/workflows/release-v2.yml` (Bash/Docker)
-- **v3 releases**: `.github/workflows/release-v3.yml` (Rust)
+| Tag pattern | Workflow on `main`                       | Source branch | Artifact type                              |
+| ----------- | ---------------------------------------- | ------------- | ------------------------------------------ |
+| `v2.*.*`    | `.github/workflows/release-v2.yml`       | `v2`          | Multi-distro Docker images + GHCR + cosign |
+| `v3.*.*`    | `.github/workflows/release-v3.yml`       | `v3`          | Rust binaries (cargo-dist) + Docker        |
+| `v4.*.*`    | `.github/workflows/release-v4.yml` (uses `_release-cargo-dist.yml`) | `v4` | Rust binaries (cargo-dist) |
 
-When you push a version tag (e.g., `v2.3.0` or `v3.1.0`), GitHub Actions automatically:
+When you push a version tag, GitHub Actions automatically:
 
 - Validates the tag format and version
-- Generates a changelog from commit messages (filtered by v2/ or v3/ directory)
-- Updates the version-specific CHANGELOG.md (v2/CHANGELOG.md or v3/CHANGELOG.md)
+- Generates a changelog from commit messages (filtered by the version's source dir)
+- Updates the version-specific CHANGELOG.md (`v2/CHANGELOG.md`, `v3/CHANGELOG.md`, or `v4/CHANGELOG.md`)
 - Validates version consistency across files
-- Builds and publishes Docker images to GHCR
-- Creates release assets (binaries for v3)
+- Builds and publishes Docker images to GHCR (v2 / v3) and/or Rust binaries (v3 / v4)
+- Signs container images with cosign and attaches SLSA build provenance
+- Generates and attaches an SBOM
+- Creates release assets
 - Publishes a GitHub Release
 - Updates documentation (for stable releases)
+
+> **Branch requirement**: You must tag on the version's source branch (e.g., `git tag v3.1.5` while on the `v3` branch). The release workflow checks out the source branch's `vN/RELEASE_NOTES.md` for the release body.
 
 ## Quick Release
 
 For maintainers who want to quickly cut a release:
 
 ```bash
-# 1. Ensure all changes are committed and pushed
-git add .
-git commit -m "feat: add new feature"
-git push origin main
+# 1. Switch to the version's source branch and pull latest
+git checkout v3              # or v2 / v4
+git pull --ff-only origin v3
 
-# 2. Create and push a version tag
-git tag v1.2.3
-git push origin v1.2.3
+# 2. Confirm CI is green for this branch
+gh run list --branch v3 --limit 1
 
-# 3. Monitor the release at:
-# https://github.com/pacphi/sindri/actions
+# 3. Create and push a version tag (matches release-v3.yml's tag pattern)
+git tag v3.1.5
+git push origin v3.1.5
+
+# 4. Monitor the release at:
+#    https://github.com/pacphi/sindri/actions/workflows/release-v3.yml
 ```
 
-That's it! The automation handles the rest.
+The tag pattern (`v2.*.*` / `v3.*.*` / `v4.*.*`) determines which release workflow fires.
+
+## Post-Reorg Release Walkthrough (first release on each line)
+
+After the April 2026 reorg, the first release of each version line should be treated as a verification run. Use the lowest-stakes upcoming release (e.g., a v4 alpha) and walk through the steps below, capturing any deviation as a follow-up issue.
+
+### 1. Pre-flight
+
+```bash
+# On the source branch:
+git checkout v4
+git pull --ff-only origin v4
+
+# Confirm CI shim is green
+gh run list --branch v4 --limit 5
+
+# Confirm no in-flight PRs to v4 that should land first
+gh pr list --base v4 --state open
+
+# Inspect what the release notes will reference
+cat v4/RELEASE_NOTES.md     # release-v4.yml uses this for the GitHub Release body
+```
+
+### 2. Tag and push
+
+```bash
+# Tag format is enforced by release-v{N}.yml's validate-tag job.
+# v4 example (alpha):
+git tag v4.0.0-alpha.1 -m "v4.0.0-alpha.1: first post-reorg dry run"
+git push origin v4.0.0-alpha.1
+```
+
+The push triggers `release-v4.yml` on `main` (matched by the `v4.*.*` tag pattern).
+
+### 3. Watch the workflow
+
+```bash
+# List release runs:
+gh run list --workflow release-v4.yml --limit 3
+# Tail the most recent run:
+gh run watch
+```
+
+Expected jobs (v4 example):
+
+| Job              | Purpose                                                              |
+| ---------------- | -------------------------------------------------------------------- |
+| `validate-tag`   | Confirms tag matches `^v4\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$`         |
+| `build`          | Calls `_release-cargo-dist.yml` to build cross-platform binaries     |
+| `publish`        | Creates the GitHub Release with `v4/RELEASE_NOTES.md` as body        |
+
+For v2 / v3, additional jobs run (changelog generation, Docker image build + GHCR push, cosign signing, SBOM, doc updates for stable releases).
+
+### 4. Verify artifacts and signatures
+
+After the workflow completes:
+
+```bash
+# Confirm the GitHub Release exists
+gh release view v4.0.0-alpha.1
+
+# Confirm release assets attached (binaries + checksums)
+gh release view v4.0.0-alpha.1 --json assets -q '.assets[].name'
+
+# v2 / v3: verify GHCR image
+docker pull ghcr.io/pacphi/sindri:3.1.5
+
+# v2 / v3: verify cosign signature (keyless)
+cosign verify ghcr.io/pacphi/sindri:3.1.5 \
+  --certificate-identity-regexp 'https://github.com/pacphi/sindri' \
+  --certificate-oidc-issuer 'https://token.actions.githubusercontent.com'
+
+# v2 / v3: verify SLSA build provenance
+gh attestation verify oci://ghcr.io/pacphi/sindri:3.1.5 --owner pacphi
+```
+
+### 5. Confirm release notes link to the right branch
+
+`release-v4.yml`'s publish job checks out `ref: v4` and uses `v4/RELEASE_NOTES.md` for the release body. Read the rendered release page and confirm:
+
+- Body content matches the source-branch RELEASE_NOTES.md
+- Generated changelog (if any) covers commits since the previous v4 tag
+- "Source branch" link points to `v4`, not `main`
+
+### 6. Capture timing for the runbook
+
+Record:
+
+- Total wall time (validate-tag → publish complete)
+- Per-job duration (helpful for spotting regressions later)
+- Any retries / re-runs and the underlying cause
+
+Update the [Release Schedule](#release-schedule) section if the observed cadence informs future planning.
+
+## Rollback procedure (post-reorg)
+
+If `release-vN.yml` fails after publishing artifacts:
+
+```bash
+# 1. Mark the GitHub Release as draft so users don't pull a partial release
+gh release edit v3.1.5 --draft
+
+# 2. (Optional) Untag the GHCR image so it can't be pulled by tag
+#    Requires write access to packages.
+gh api -X DELETE \
+  /user/packages/container/sindri/versions/<VERSION_ID>
+
+# 3. Delete the tag locally and remotely
+git tag -d v3.1.5
+git push origin :refs/tags/v3.1.5
+
+# 4. Fix the underlying issue (do NOT reuse the version number)
+# 5. Re-tag with a bumped patch (v3.1.6) and re-run
+
+# Never delete a published, in-use release without coordinating with users.
+```
+
+If only the documentation step failed (stable releases): the Release and image are intact; re-run only the failed job:
+
+```bash
+gh run rerun <run-id> --failed
+```
 
 ## Detailed Release Process
 
@@ -121,15 +251,14 @@ git push origin v1.2.3-rc.1
 ### Step 4: Monitor the Release Workflow
 
 1. Go to [GitHub Actions](https://github.com/pacphi/sindri/actions)
-2. Watch the "Release" workflow
-3. Verify all jobs complete successfully:
-   - Validate Release Tag
-   - Generate Changelog
-   - Update CHANGELOG.md
-   - Build and Push Docker Image
-   - Create GitHub Release
-   - Update Documentation (stable only)
-   - Notify Release
+2. Watch the version-specific workflow (`v2: Release`, `v3: Release`, or `v4: Release`)
+3. Verify the expected jobs complete successfully:
+   - `validate-tag` — semver/tag-pattern validation
+   - `generate-changelog` (v2/v3 only)
+   - `build` — binaries (v3/v4 via cargo-dist) and/or Docker image (v2/v3)
+   - `sign` / `attest` — cosign + SLSA provenance (v2/v3 image releases)
+   - `publish` — create the GitHub Release with attached assets
+   - `update-docs` (stable releases only)
 
 ### Step 5: Verify the Release
 
