@@ -177,7 +177,7 @@ Create pull request on GitHub with:
    extension-manager install myext
    ```
 
-See: [Extension Authoring Guide](../v2/docs/EXTENSION_AUTHORING.md)
+See: [Extension Authoring Guide](https://github.com/pacphi/sindri/blob/v2/v2/docs/EXTENSION_AUTHORING.md) (on the v2 branch)
 
 ## Testing Guidelines
 
@@ -432,18 +432,20 @@ mod tests {
 
 ### V3 Extension Development
 
-V3 uses a different extension system from V2. Extensions are defined as YAML manifests with JSON Schema validation. For full details, see the [V3 Extension Guide](../v3/docs/EXTENSIONS.md).
+V3 uses a different extension system from V2. Extensions are defined as YAML manifests with JSON Schema validation. For full details, see the [V3 Extension Guide](https://github.com/pacphi/sindri/blob/v3/v3/docs/EXTENSIONS.md).
 
 ### V3 Documentation
 
 V3-specific documentation lives in `v3/docs/`. Key guides:
 
-- [CLI Reference](../v3/docs/CLI.md)
-- [Architecture](../v3/docs/ARCHITECTURE.md)
-- [Getting Started](../v3/docs/GETTING_STARTED.md)
-- [Extensions](../v3/docs/EXTENSIONS.md)
-- [Configuration](../v3/docs/CONFIGURATION.md)
-- [Schema Reference](../v3/docs/SCHEMA.md)
+All v3 docs live on the [v3 branch](https://github.com/pacphi/sindri/tree/v3/v3/docs):
+
+- [CLI Reference](https://github.com/pacphi/sindri/blob/v3/v3/docs/CLI.md)
+- [Architecture](https://github.com/pacphi/sindri/blob/v3/v3/docs/ARCHITECTURE.md)
+- [Getting Started](https://github.com/pacphi/sindri/blob/v3/v3/docs/GETTING_STARTED.md)
+- [Extensions](https://github.com/pacphi/sindri/blob/v3/v3/docs/EXTENSIONS.md)
+- [Configuration](https://github.com/pacphi/sindri/blob/v3/v3/docs/CONFIGURATION.md)
+- [Schema Reference](https://github.com/pacphi/sindri/blob/v3/v3/docs/SCHEMA.md)
 
 ---
 
@@ -636,7 +638,7 @@ All PRs must:
 
 ## Release Process
 
-Sindri uses **automated releases** triggered by Git tags. For detailed instructions, see [RELEASE.md](RELEASE.md).
+Sindri uses **automated releases** triggered by Git tags. For detailed instructions, see [RELEASE.md](docs/RELEASE.md).
 
 ### Quick Release
 
@@ -682,7 +684,7 @@ git commit -m "fix(docker): resolve volume permission issue"
 git commit -m "docs(readme): update quickstart guide"
 ```
 
-See [RELEASE.md](RELEASE.md) for complete release documentation.
+See [RELEASE.md](docs/RELEASE.md) for complete release documentation.
 
 ## Getting Help
 

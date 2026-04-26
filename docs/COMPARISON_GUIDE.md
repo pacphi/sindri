@@ -1,6 +1,6 @@
 # Sindri Version Comparison Guide
 
-> 📖 **Ready to migrate?** See the [Migration Guide](MIGRATION_GUIDE.md) for step-by-step instructions.
+> 📖 **Ready to migrate?** See the [Migration Guide](https://github.com/pacphi/sindri/blob/v3/v3/docs/migration/MIGRATION_GUIDE.md) for step-by-step instructions.
 
 **Version:** 2.1.0
 **Created:** 2026-01-24
@@ -960,7 +960,7 @@ Sindri V3 represents a fundamental modernization delivering:
 - **328 new features** across all categories
 - **Enhanced security** with CVE remediation and SLSA L3
 
-For detailed migration steps, see the companion [Migration Guide](MIGRATION_GUIDE.md).
+For detailed migration steps, see the companion [Migration Guide](https://github.com/pacphi/sindri/blob/v3/v3/docs/migration/MIGRATION_GUIDE.md).
 
 ---
 

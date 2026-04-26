@@ -63,9 +63,9 @@ When reporting a vulnerability, please provide:
 
 For deployment and usage security guidelines, see:
 
-- **[v2 Security Best Practices](../v2/docs/SECURITY.md)** - Docker/Bash platform security
-- **[v2 Security Audit Report](../v2/docs/security/SECURITY_AUDIT_REPORT.md)** - Comprehensive security audit findings
-- **[v2 Security Audit Addendum](../v2/docs/security/SECURITY_AUDIT_ADDENDUM.md)** - Additional security recommendations
+- **[v2 Security Best Practices](https://github.com/pacphi/sindri/blob/v2/v2/docs/SECURITY.md)** - Docker/Bash platform security
+- **[v2 Security Audit Report](https://github.com/pacphi/sindri/blob/v2/v2/docs/security/SECURITY_AUDIT_REPORT.md)** - Comprehensive security audit findings
+- **[v2 Security Audit Addendum](https://github.com/pacphi/sindri/blob/v2/v2/docs/security/SECURITY_AUDIT_ADDENDUM.md)** - Additional security recommendations
 
 ## Security Features
 
