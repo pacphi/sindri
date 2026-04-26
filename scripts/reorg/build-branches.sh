@@ -52,8 +52,14 @@ paths_to_delete_for() {
   local manifest="$1"
   local tmp_keep
   tmp_keep=$(mktemp)
-  # Normalize manifest: strip comments, blank lines, trailing slashes (we match by prefix).
-  grep -vE '^\s*(#|$)' "$manifest" | sed 's|/$||' | sort -u > "$tmp_keep"
+  # Normalize manifest:
+  #   1. drop comment-only and blank lines
+  #   2. strip inline `# comments` and trailing whitespace
+  #   3. strip trailing slashes (we match dirs by prefix)
+  grep -vE '^\s*(#|$)' "$manifest" \
+    | sed -E 's/[[:space:]]+#.*$//; s/[[:space:]]+$//; s|/$||' \
+    | grep -vE '^$' \
+    | sort -u > "$tmp_keep"
 
   git ls-files | while read -r f; do
     keep=0
