@@ -2,18 +2,13 @@
 use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum PolicyPreset {
+    #[default]
     Default,
     Strict,
     Offline,
-}
-
-impl Default for PolicyPreset {
-    fn default() -> Self {
-        PolicyPreset::Default
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

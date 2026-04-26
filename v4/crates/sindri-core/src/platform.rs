@@ -59,21 +59,10 @@ pub struct TargetProfile {
     pub capabilities: Capabilities,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
 pub struct Capabilities {
     pub system_package_manager: Option<String>,
     pub has_docker: bool,
     pub has_sudo: bool,
     pub shell: Option<String>,
-}
-
-impl Default for Capabilities {
-    fn default() -> Self {
-        Self {
-            system_package_manager: None,
-            has_docker: false,
-            has_sudo: false,
-            shell: None,
-        }
-    }
 }

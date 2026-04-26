@@ -106,9 +106,7 @@ pub fn write_global_preset(preset: &PolicyPreset) -> Result<(), std::io::Error> 
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
-    let yaml = serde_yaml::to_string(&policy).map_err(|e| {
-        std::io::Error::new(std::io::ErrorKind::Other, e.to_string())
-    })?;
+    let yaml = serde_yaml::to_string(&policy).map_err(|e| std::io::Error::other(e.to_string()))?;
     fs::write(&path, yaml)
 }
 

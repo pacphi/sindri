@@ -16,18 +16,13 @@ impl std::fmt::Display for Version {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum VersionSpec {
+    #[default]
     Latest,
     Exact(String),
     Range(String),
-}
-
-impl Default for VersionSpec {
-    fn default() -> Self {
-        VersionSpec::Latest
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

@@ -1,11 +1,17 @@
 use std::path::Path;
-use sindri_core::platform::{Arch, Capabilities, Os, Platform, TargetProfile};
+use sindri_core::platform::{Capabilities, Platform, TargetProfile};
 use crate::error::TargetError;
 use crate::traits::{PrereqCheck, Target};
 
 /// Local machine target — the implicit default (ADR-023)
 pub struct LocalTarget {
     name: String,
+}
+
+impl Default for LocalTarget {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl LocalTarget {
