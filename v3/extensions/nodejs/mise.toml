@@ -1,9 +1,0 @@
-[tools]
-node = "lts"
-
-[hooks]
-# Enable corepack after node install — makes pnpm/yarn available for project-level use
-postinstall = "corepack enable pnpm && pnpm --version > /dev/null 2>&1"
-
-[env]
-NODE_ENV = "development"

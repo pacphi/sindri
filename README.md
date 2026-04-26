@@ -1,91 +1,72 @@
-# Sindri
+# Sindri v2
 
-[![License](https://img.shields.io/github/license/pacphi/sindri)](LICENSE)
-[![CI v2](https://github.com/pacphi/sindri/actions/workflows/ci-v2.yml/badge.svg?branch=v2)](https://github.com/pacphi/sindri/actions/workflows/ci-v2.yml)
-[![CI v3](https://github.com/pacphi/sindri/actions/workflows/ci-v3.yml/badge.svg?branch=v3)](https://github.com/pacphi/sindri/actions/workflows/ci-v3.yml)
-[![CI v4](https://github.com/pacphi/sindri/actions/workflows/ci-v4.yml/badge.svg?branch=v4)](https://github.com/pacphi/sindri/actions/workflows/ci-v4.yml)
-[![FAQ](https://img.shields.io/badge/FAQ-on%20fly.dev-blue)](https://sindri-faq.fly.dev)
-[![GHCR](https://img.shields.io/badge/GHCR-container%20registry-blue)](https://github.com/pacphi/sindri/pkgs/container/sindri)
+## Quick Start
 
-A declarative, provider-agnostic cloud development environment system. Deploy consistent
-development environments to Fly.io, local Docker, or via DevPod to Kubernetes, AWS, GCP,
-Azure, and other cloud providers using YAML-defined extensions.
+```bash
+# Clone repository
+git clone https://github.com/pacphi/sindri
+cd sindri
 
-```text
-   ███████╗██╗███╗   ██╗██████╗ ██████╗ ██╗
-   ██╔════╝██║████╗  ██║██╔══██╗██╔══██╗██║
-   ███████╗██║██╔██╗ ██║██║  ██║██████╔╝██║
-   ╚════██║██║██║╚██╗██║██║  ██║██╔══██╗██║
-   ███████║██║██║ ╚████║██████╔╝██║  ██║██║
-   ╚══════╝╚═╝╚═╝  ╚═══╝╚═════╝ ╚═╝  ╚═╝╚═╝
+# Initialize configuration
+./v2/cli/sindri config init
 
-   🔨 Forging Development Environments
-   📦 https://github.com/pacphi/sindri
+# Edit sindri.yaml for your needs
+# See examples/v2/ directory for v2 templates
+
+# Deploy locally
+./v2/cli/sindri deploy --provider docker
+
+# Or deploy to Fly.io
+./v2/cli/sindri deploy --provider fly
 ```
 
-> ## You are on `main`
->
-> **`main` carries no product source.** It hosts the umbrella documentation, project-wide
-> governance (`SECURITY.md`, `CONTRIBUTING.md`, `CODEOWNERS`), and the centralized
-> `.github/` that routes CI/CD workflows to the active maintenance branches.
->
-> Pick a version below to see source, build, deploy, and version-specific docs.
+**Prerequisites:** [Docker](https://www.docker.com/get-started/), [yq](https://github.com/mikefarah/yq). For Fly.io: [flyctl](https://fly.io/docs/flyctl/install/) CLI. For DevPod: [devpod](https://devpod.sh/) CLI.
 
-## Pick your version
+## Core Features
 
-| Branch                                               | Stack                        | Status                                    | What's there                                                         |
-| ---------------------------------------------------- | ---------------------------- | ----------------------------------------- | -------------------------------------------------------------------- |
-| **[`v1`](https://github.com/pacphi/sindri/tree/v1)** | legacy bash                  | **End-of-life** — security backports only | Historical changelog                                                 |
-| **[`v2`](https://github.com/pacphi/sindri/tree/v2)** | Bash + Docker                | **Maintenance**                           | CLI, Docker compose, deploy scripts, extensions                      |
-| **[`v3`](https://github.com/pacphi/sindri/tree/v3)** | Rust workspace + npm wrapper | **Active**                                | Cargo workspace, `@pacphi/sindri-cli` packages, full provider matrix |
-| **[`v4`](https://github.com/pacphi/sindri/tree/v4)** | Rust, redesigned             | **Pre-release**                           | New architecture: registry-core, renovate-plugin, tools              |
+- **Modular Extension System** - YAML-driven with dependency resolution
+- **Fast Startup** - Optimized Docker images with pre-installed tools (10-15s cold start)
+- **Extension System** - 70+ modular extensions for languages, tools, and infrastructure
+- **Schema Validation** - All YAML validated against JSON schemas
+- **Provider Adapters** - Clean abstraction for Docker, Fly.io, and DevPod (with Kubernetes, AWS, GCP, Azure backends)
+- **Volume Architecture** - Immutable `/docker/lib` system, mutable `$HOME` volume containing workspace
+- **BOM Tracking** - Comprehensive software bill of materials for security auditing
 
-Not sure which to use? Read [docs/COMPARISON_GUIDE.md](docs/COMPARISON_GUIDE.md).
+## Documentation
 
-## About the name
+### Getting Started
 
-**Sindri** (Old Norse: "spark") was a legendary dwarf blacksmith in Norse mythology,
-renowned for forging three of the most powerful artifacts: Mjölnir (Thor's hammer),
-Draupnir (Odin's ring), and Gullinbursti (Freyr's golden boar).
+- **[Quickstart Guide](docs/QUICKSTART.md)** - Fast setup and deployment
+- **[FAQ](../docs/FAQ.md)** - Searchable answers to common questions
+- **[Architecture Overview](docs/ARCHITECTURE.md)** - System design and concepts
+- **[Configuration Reference](docs/CONFIGURATION.md)** - Complete sindri.yaml guide
+- **[CLI Reference](docs/CLI.md)** - Complete command-line reference
 
-Like its mythological namesake, Sindri forges powerful development environments from
-raw materials — transforming cloud infrastructure, YAML configuration, and Docker into
-consistent, reproducible developer workspaces.
+### Extensions
 
-## Repository layout
+- **[Extension Catalog](docs/EXTENSIONS.md)** - Available extensions and usage
+- **[Extension Authoring](docs/EXTENSION_AUTHORING.md)** - Creating custom extensions
+- **[Bill of Materials](docs/BOM.md)** - Software tracking and SBOM generation
 
-```
-main         ← you are here. Umbrella docs + centralized .github/.
-├─ v1        ← end-of-life (read-only)
-├─ v2        ← Bash/Docker maintenance
-├─ v3        ← Rust active development
-└─ v4        ← Rust pre-release
-```
+### Deployment
 
-All CI, release, and provider workflows live under `.github/workflows/` on **`main`** and
-trigger automatically on push or pull request to a `v*` branch. There are no workflows on
-the `v*` branches themselves. See [`.github/WORKFLOW_ARCHITECTURE.md`](.github/WORKFLOW_ARCHITECTURE.md).
+- **[Deployment Overview](docs/DEPLOYMENT.md)** - Provider comparison and selection
+- **[Fly.io Deployment](docs/providers/FLY.md)** - Fly.io-specific guide
+- **[DevPod Integration](docs/providers/DEVPOD.md)** - DevContainer setup
+- **[Docker Deployment](docs/providers/DOCKER.md)** - Local Docker setup
+- **[E2B Deployment](docs/providers/E2B.md)** - Ultra-fast cloud sandboxes
+- **[Kubernetes Deployment](docs/providers/KUBERNETES.md)** - Enterprise K8s guide
+- **[IDE Integration](../docs/ides/README.md)** - Connect with VS Code, IntelliJ, Zed, Eclipse, or Warp
+- **[Secrets Management](docs/SECRETS_MANAGEMENT.md)** - Managing secrets across providers
 
-## Contributing
+### Development & Operations
 
-- New work targets a `v*` branch — never `main`. Open your PR against `v3` (or `v4` if
-  it's a v4-only feature). See [CONTRIBUTING.md](CONTRIBUTING.md).
-- Security disclosures: [SECURITY.md](SECURITY.md).
-- Release process: [docs/RELEASE.md](docs/RELEASE.md).
-- Changelog management: [docs/CHANGELOG_MANAGEMENT.md](docs/CHANGELOG_MANAGEMENT.md).
-
-## Related projects
-
-Sindri is part of a three-project ecosystem:
-
-| Repository                                     | Description                                                                                     |
-| ---------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| **sindri** (this repo)                         | CLI tool and extension ecosystem — provisions and configures instances                          |
-| [mimir](https://github.com/pacphi/mimir)       | Fleet management control plane — orchestrates, observes, and administers instances at scale     |
-| [draupnir](https://github.com/pacphi/draupnir) | Lightweight per-instance agent — bridges each instance to the mimir control plane via WebSocket |
-
-## License
-
-MIT License — see [LICENSE](LICENSE).
-
-![Sindri at his forge](sindri.png)
+- **[Project Management](docs/PROJECT_MANAGEMENT.md)** - Using new-project and clone-project
+- **[Backup & Restore](docs/BACKUP_RESTORE.md)** - Workspace backup, migration, and recovery
+- **[Contributing Guide](../docs/CONTRIBUTING.md)** - Development workflow and standards
+- **[Testing Guide](docs/TESTING.md)** - Running tests and CI/CD
+- **[Workflow Architecture](../.github/WORKFLOW_ARCHITECTURE.md)** - CI/CD workflow structure and design
+- **[CI Testing Deep Dive](docs/CI_WORKFLOW_IN_DEPTH.md)** - Comprehensive CI testing guide
+- **[Release Process](../docs/RELEASE.md)** - Creating releases and changelog automation
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Security](docs/SECURITY.md)** - Security best practices
