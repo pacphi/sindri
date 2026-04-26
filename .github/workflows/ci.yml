@@ -1,0 +1,26 @@
+name: "v1: CI (shim)"
+
+# This file exists ONLY so GitHub triggers the centralized ci-v1.yml
+# workflow that lives on the main branch. The actual CI logic is on main —
+# changes to it should be made there, not here.
+
+on:
+  push:
+    branches: [v1]
+  pull_request:
+    branches: [v1]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  attestations: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  ci:
+    name: CI
+    uses: pacphi/sindri/.github/workflows/ci-v1.yml@main
+    secrets: inherit
