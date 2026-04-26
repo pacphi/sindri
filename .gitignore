@@ -42,6 +42,9 @@ docker-compose.yml
 docker-compose.override.yml
 docker-compose.local.yml
 
+# GitNexus code-intelligence index — never committed; regenerate locally via `npx gitnexus analyze`
+.gitnexus/
+
 # Local Development Files
 .DS_Store
 .DS_Store?
