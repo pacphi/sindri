@@ -75,6 +75,74 @@ install_ai_templates() {
   fi
 }
 
+# Promote per-version root files (README, CHANGELOG, RELEASE_NOTES) from their
+# in-tree location (v*/README.md etc.) up to branch root, replacing the
+# umbrella forms that live on chore/repo-reorg. Runs BEFORE manifest deletion
+# so the promoted files are present when the cleaning sweep happens.
+promote_root_files() {
+  local br="$1"
+  case "$br" in
+    v1)
+      cp v1/CHANGELOG.md CHANGELOG.md
+      cat > README.md <<'README_EOF'
+# Sindri v1 (END OF LIFE)
+
+v1 is the original Bash implementation. It is end-of-life and accepts only
+critical security backports. See [`CHANGELOG.md`](CHANGELOG.md) for the
+historical record.
+
+For active development, switch to the [`v3`](https://github.com/pacphi/sindri/tree/v3)
+or [`v4`](https://github.com/pacphi/sindri/tree/v4) branch.
+README_EOF
+      git add README.md CHANGELOG.md
+      ;;
+    v2)
+      [[ -f v2/README.md    ]] && cp v2/README.md    README.md
+      [[ -f v2/CHANGELOG.md ]] && cp v2/CHANGELOG.md CHANGELOG.md
+      [[ -f RELEASE_NOTES.v2.md ]] && git mv RELEASE_NOTES.v2.md RELEASE_NOTES.md
+      git add README.md CHANGELOG.md RELEASE_NOTES.md 2>/dev/null || true
+      ;;
+    v3)
+      [[ -f v3/README.md    ]] && cp v3/README.md    README.md
+      [[ -f v3/CHANGELOG.md ]] && cp v3/CHANGELOG.md CHANGELOG.md
+      [[ -f RELEASE_NOTES.v3.md   ]] && git mv RELEASE_NOTES.v3.md   RELEASE_NOTES.md
+      [[ -f RELEASE_NOTES.v3.1.md ]] && git mv RELEASE_NOTES.v3.1.md RELEASE_NOTES.3.1.md
+      git add README.md CHANGELOG.md RELEASE_NOTES.md RELEASE_NOTES.3.1.md 2>/dev/null || true
+      ;;
+    v4)
+      if [[ -f v4/README.md ]]; then
+        cp v4/README.md README.md
+      else
+        cat > README.md <<'README_EOF'
+# Sindri v4
+
+v4 is the next-generation Rust implementation, promoted from `research/v4`
+during the April 2026 reorg. See [`v4/`](v4/) for source and `v4/docs/` for
+architecture (ADRs, DDDs, plan).
+README_EOF
+      fi
+      cat > CHANGELOG.md <<'CHANGELOG_EOF'
+# Changelog — v4
+
+All notable changes to v4 are recorded here. Format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and adheres to
+[Semantic Versioning](https://semver.org/).
+
+## [Unreleased]
+
+### Added
+
+- v4 promoted from the `research/v4` branch on 2026-04-25 as part of the repo
+  reorganization (see `pre-reorg-2026-04-25` tag and `research-v4-final` tag).
+CHANGELOG_EOF
+      git add README.md CHANGELOG.md
+      ;;
+    main)
+      : # main keeps its umbrella README and CHANGELOG already on chore/repo-reorg
+      ;;
+  esac
+}
+
 build_branch() {
   local br="$1"
   local manifest="$SCRIPT_DIR/manifest-${br}.txt"
@@ -87,6 +155,7 @@ build_branch() {
   run git checkout -B "$br" chore/repo-reorg
 
   if [[ $DRY_RUN -eq 0 ]]; then
+    promote_root_files "$br"
     install_ai_templates "$br"
   fi
 
