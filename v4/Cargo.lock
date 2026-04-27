@@ -3256,6 +3256,7 @@ name = "sindri-registry"
 version = "4.0.0-alpha.1"
 dependencies = [
  "anyhow",
+ "base64 0.22.1",
  "dirs-next",
  "ecdsa",
  "hex",

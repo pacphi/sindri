@@ -26,8 +26,17 @@ oci-client = { workspace = true }
 sigstore = { workspace = true }
 p256 = { workspace = true }
 ecdsa = { workspace = true }
+base64 = { workspace = true }
+
+[features]
+default = []
+# Enables tests that hit live public OCI registries (e.g. ghcr.io). Skipped by
+# default in CI; run locally with:
+#     cargo test -p sindri-registry --features live-oci-tests -- --ignored
+live-oci-tests = []
 
 [dev-dependencies]
 tempfile = { workspace = true }
 tokio = { workspace = true }
 rand_core = { version = "0.6", features = ["std"] }
+serde_json = { workspace = true }
