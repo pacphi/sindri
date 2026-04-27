@@ -1,14 +1,15 @@
-# lint-staged only runs when a root package.json exists (e.g. on
-# version branches that ship a JS/TS toolchain). After the v1..v4
-# reorg, main has no root package.json, so we skip the JS lint pass.
-if [ -f package.json ] && command -v pnpm >/dev/null 2>&1; then
-  pnpm lint-staged
-fi
+pnpm lint-staged
 
 # Rust checks (only if v3/ files are staged)
 if git diff --cached --name-only | grep -q '^v3/'; then
-  echo "Rust files staged — running cargo fmt --check and clippy..."
-  (cd v3 && cargo fmt --check && cargo clippy --workspace -- -D warnings)
+  echo "Rust files staged (v3) — running cargo fmt --check and clippy..."
+  (cd v3 && cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings)
+fi
+
+# Rust checks (only if v4/ files are staged)
+if git diff --cached --name-only | grep -q '^v4/'; then
+  echo "Rust files staged (v4) — running cargo fmt --check and clippy..."
+  (cd v4 && cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings)
 fi
 
 # Compatibility matrix validation (only if extension or matrix files are staged)
