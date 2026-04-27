@@ -101,6 +101,7 @@ mod tests {
             id: ComponentId {
                 backend: Backend::Pipx,
                 name: "black".into(),
+                qualifier: None,
             },
             version: Version::new("24.10.0"),
             backend: Backend::Pipx,

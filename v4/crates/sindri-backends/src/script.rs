@@ -138,6 +138,7 @@ mod tests {
             id: ComponentId {
                 backend: Backend::Script,
                 name: "tool".into(),
+                qualifier: None,
             },
             version: Version::new("1.0.0"),
             backend: Backend::Script,

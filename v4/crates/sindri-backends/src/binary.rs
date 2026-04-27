@@ -132,6 +132,7 @@ mod tests {
             id: ComponentId {
                 backend: Backend::Binary,
                 name: "ripgrep".into(),
+                qualifier: None,
             },
             version: Version::new("14.1.0"),
             backend: Backend::Binary,

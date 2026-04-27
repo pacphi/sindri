@@ -95,6 +95,7 @@ mod tests {
             id: ComponentId {
                 backend: Backend::Sdkman,
                 name: "java".into(),
+                qualifier: None,
             },
             version: Version::new("21.0.2-tem"),
             backend: Backend::Sdkman,

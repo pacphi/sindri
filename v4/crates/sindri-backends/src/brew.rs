@@ -91,6 +91,7 @@ mod tests {
             id: ComponentId {
                 backend: Backend::Brew,
                 name: "ripgrep".into(),
+                qualifier: None,
             },
             version: Version::new("14.1.0"),
             backend: Backend::Brew,

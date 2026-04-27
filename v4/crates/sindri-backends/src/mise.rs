@@ -55,6 +55,7 @@ mod tests {
             id: ComponentId {
                 backend: Backend::Mise,
                 name: "node".into(),
+                qualifier: None,
             },
             version: Version::new("20.0.0"),
             backend: Backend::Mise,

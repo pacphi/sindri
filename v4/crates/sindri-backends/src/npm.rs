@@ -86,6 +86,7 @@ mod tests {
             id: ComponentId {
                 backend: Backend::Npm,
                 name: "typescript".into(),
+                qualifier: None,
             },
             version: Version::new("5.4.0"),
             backend: Backend::Npm,
