@@ -42,6 +42,28 @@ pub enum RegistryError {
     #[error("Failed to parse cosign trust key '{path}': {detail}")]
     TrustKeyParseFailed { path: String, detail: String },
 
+    /// An OCI Distribution Spec call (manifest pull, blob pull) failed.
+    #[error("OCI fetch failed for '{reference}': {detail}")]
+    OciFetch { reference: String, detail: String },
+
+    /// The pulled OCI artifact had a layer media type the registry layer
+    /// does not know how to interpret.
+    #[error(
+        "Unsupported OCI layer media type '{media_type}' for reference '{reference}'; expected one of: {expected}"
+    )]
+    UnsupportedMediaType {
+        reference: String,
+        media_type: String,
+        expected: String,
+    },
+
+    /// The user passed `--insecure` while running under a policy that
+    /// requires signed registries (ADR-014, strict preset).
+    #[error(
+        "policy requires signing for registry '{registry}'; --insecure is not allowed in strict mode"
+    )]
+    InsecureForbiddenByPolicy { registry: String },
+
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
     #[error("JSON error: {0}")]

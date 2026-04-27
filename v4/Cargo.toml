@@ -45,6 +45,8 @@ sigstore = { version = "0.13", default-features = false, features = ["cosign", "
 # ECDSA P-256 verifying key parsing for the `CosignVerifier` trust-key loader.
 p256 = { version = "0.13", default-features = false, features = ["ecdsa", "pem", "pkcs8", "std"] }
 ecdsa = { version = "0.16", default-features = false, features = ["pem", "pkcs8"] }
+# base64 decoding for cosign signature annotation payloads (ADR-014).
+base64 = "0.22"
 tempfile = "3"
 # SBOM emission (ADR-007). The CycloneDX Rust crate (cyclonedx-bom 0.8.1) does
 # not yet support spec 1.6, so both SPDX 2.3 and CycloneDX 1.6 are emitted by

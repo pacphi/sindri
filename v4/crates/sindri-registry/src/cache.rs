@@ -118,6 +118,27 @@ impl RegistryCache {
         Ok(())
     }
 
+    /// Find any digest currently linked under `registry_name`.
+    ///
+    /// Useful when the caller knows the registry name but not the specific
+    /// OCI ref that produced the cache entry — for example, the resolver
+    /// reading a previously refreshed `index.yaml` and needing the
+    /// registry-level manifest digest to record on lockfile entries.
+    /// Returns `None` if no refs are linked.
+    pub fn any_digest_for_registry(&self, registry_name: &str) -> Option<String> {
+        let dir = self.root.join("refs").join(registry_name);
+        let entries = fs::read_dir(&dir).ok()?;
+        for entry in entries.flatten() {
+            if let Ok(s) = fs::read_to_string(entry.path()) {
+                let trimmed = s.trim();
+                if !trimmed.is_empty() {
+                    return Some(trimmed.to_string());
+                }
+            }
+        }
+        None
+    }
+
     /// Resolve an OCI reference for the given registry to its previously
     /// linked digest, if any.
     pub fn lookup_ref(&self, registry_name: &str, oci_ref: &OciRef) -> Option<String> {

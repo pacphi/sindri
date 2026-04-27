@@ -265,8 +265,18 @@ enum Commands {
 
 #[derive(Subcommand)]
 enum RegistrySubcmds {
-    /// Fetch and cache the registry index
-    Refresh { name: String, url: String },
+    /// Fetch and cache the registry index (live OCI pull + cosign verify, ADR-003 + ADR-014).
+    Refresh {
+        name: String,
+        url: String,
+        /// Bypass cosign signature verification with a loud warning.
+        ///
+        /// Forbidden when the active install policy requires signed
+        /// registries (strict preset). Intended for development against
+        /// unsigned local registries only.
+        #[arg(long)]
+        insecure: bool,
+    },
     /// Validate a component.yaml or directory
     Lint {
         path: String,
@@ -281,12 +291,18 @@ enum RegistrySubcmds {
     },
     /// Verify a registry's cosign signature against trusted keys (ADR-014).
     ///
-    /// Wave 3A.1 placeholder: trust-key loading is in place, but live
-    /// signature verification (cosign signature manifest fetch +
-    /// simple-signing payload verify) is deferred to Wave 3A.2. This
-    /// subcommand currently exits non-zero with an explanatory message so
-    /// it cannot silently pass in CI.
-    Verify { name: String },
+    /// Resolves the cached OCI ref + digest for the registry and runs the
+    /// full cosign verification flow against the trust set under
+    /// `~/.sindri/trust/<name>/`. Run `sindri registry refresh` first to
+    /// populate the cache.
+    Verify {
+        name: String,
+        /// OCI reference for the registry artifact (e.g.
+        /// `ghcr.io/sindri-dev/registry-core:1.0.0`). Required because the
+        /// CLI does not yet maintain a registry-name → URL map.
+        #[arg(long)]
+        url: String,
+    },
     /// Download assets and write sha256 checksums
     FetchChecksums { path: String },
 }
@@ -367,10 +383,18 @@ fn main() {
         }),
         Some(Commands::Registry { cmd }) => {
             let registry_cmd = match cmd {
-                RegistrySubcmds::Refresh { name, url } => RegistryCmd::Refresh { name, url },
+                RegistrySubcmds::Refresh {
+                    name,
+                    url,
+                    insecure,
+                } => RegistryCmd::Refresh {
+                    name,
+                    url,
+                    insecure,
+                },
                 RegistrySubcmds::Lint { path, json } => RegistryCmd::Lint { path, json },
                 RegistrySubcmds::Trust { name, signer } => RegistryCmd::Trust { name, signer },
-                RegistrySubcmds::Verify { name } => RegistryCmd::Verify { name },
+                RegistrySubcmds::Verify { name, url } => RegistryCmd::Verify { name, url },
                 RegistrySubcmds::FetchChecksums { path } => RegistryCmd::FetchChecksums { path },
             };
             commands::registry::run(registry_cmd)
