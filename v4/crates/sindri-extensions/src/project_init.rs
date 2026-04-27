@@ -231,6 +231,7 @@ mod tests {
             component_id: ComponentId {
                 backend: Backend::Mise,
                 name: name.into(),
+                qualifier: None,
             },
             name: name.into(),
         }

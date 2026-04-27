@@ -42,6 +42,7 @@ pub fn resolved_from_entry(
     let id = ComponentId {
         backend: chosen_backend.clone(),
         name: entry.name.clone(),
+        qualifier: None,
     };
     ResolvedComponent {
         id,

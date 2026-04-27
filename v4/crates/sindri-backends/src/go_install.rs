@@ -136,6 +136,7 @@ mod tests {
             id: ComponentId {
                 backend: Backend::GoInstall,
                 name: name.into(),
+                qualifier: None,
             },
             version: Version::new(ver),
             backend: Backend::GoInstall,

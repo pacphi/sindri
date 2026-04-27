@@ -46,6 +46,7 @@ pub fn expand_closure(
         let id = ComponentId {
             backend: backend.clone(),
             name,
+            qualifier: None,
         };
 
         visited.insert(address.clone(), depth);

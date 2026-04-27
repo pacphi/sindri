@@ -392,6 +392,11 @@ mod tests {
                 hooks: None,
                 project_init: None,
             },
+            options: Default::default(),
+            validate: None,
+            configure: None,
+            remove: None,
+            overrides: Default::default(),
         }
     }
 

@@ -139,6 +139,7 @@ mod tests {
             id: ComponentId {
                 backend: backend.clone(),
                 name: name.into(),
+                qualifier: None,
             },
             version: Version::new("1.0.0"),
             backend,
