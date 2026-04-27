@@ -191,6 +191,10 @@ enum Commands {
         target: Option<String>,
         #[arg(long)]
         fix: bool,
+        #[arg(long, conflicts_with = "fix")]
+        dry_run: bool,
+        #[arg(long)]
+        json: bool,
         #[arg(long)]
         components: bool,
     },
@@ -475,10 +479,14 @@ fn main() {
         Some(Commands::Doctor {
             target,
             fix,
+            dry_run,
+            json,
             components,
         }) => commands::doctor::run(commands::doctor::DoctorArgs {
             target,
             fix,
+            dry_run,
+            json,
             components,
         }),
         Some(Commands::Target { cmd }) => {
