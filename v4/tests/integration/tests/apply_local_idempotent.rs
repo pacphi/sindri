@@ -16,9 +16,7 @@ fn apply_dry_run_is_idempotent() {
     let registry_fixture = helpers::fixture_path("registries/prototype");
     helpers::write_local_registry(workdir, "core", &registry_fixture);
 
-    helpers::sindri_cmd()
-        .current_dir(workdir)
-        .env("HOME", workdir)
+    helpers::sindri_cmd_in(workdir)
         .args([
             "init",
             "--non-interactive",
@@ -32,26 +30,20 @@ fn apply_dry_run_is_idempotent() {
         .assert()
         .success();
 
-    helpers::sindri_cmd()
-        .current_dir(workdir)
-        .env("HOME", workdir)
+    helpers::sindri_cmd_in(workdir)
         .args(["resolve", "--offline"])
         .assert()
         .success();
 
     // First dry-run.
-    let first = helpers::sindri_cmd()
-        .current_dir(workdir)
-        .env("HOME", workdir)
+    let first = helpers::sindri_cmd_in(workdir)
         .args(["apply", "--dry-run", "--yes", "--target", "local"])
         .assert()
         .success();
     let first_out = String::from_utf8_lossy(&first.get_output().stdout).to_string();
 
     // Second dry-run — should produce the same plan headline.
-    let second = helpers::sindri_cmd()
-        .current_dir(workdir)
-        .env("HOME", workdir)
+    let second = helpers::sindri_cmd_in(workdir)
         .args(["apply", "--dry-run", "--yes", "--target", "local"])
         .assert()
         .success();

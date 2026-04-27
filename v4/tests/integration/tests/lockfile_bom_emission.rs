@@ -17,9 +17,7 @@ fn bom_spdx_emission_is_well_formed() {
     let registry_fixture = helpers::fixture_path("registries/prototype");
     helpers::write_local_registry(workdir, "core", &registry_fixture);
 
-    helpers::sindri_cmd()
-        .current_dir(workdir)
-        .env("HOME", workdir)
+    helpers::sindri_cmd_in(workdir)
         .args([
             "init",
             "--non-interactive",
@@ -33,17 +31,13 @@ fn bom_spdx_emission_is_well_formed() {
         .assert()
         .success();
 
-    helpers::sindri_cmd()
-        .current_dir(workdir)
-        .env("HOME", workdir)
+    helpers::sindri_cmd_in(workdir)
         .args(["resolve", "--offline"])
         .assert()
         .success();
 
     let bom_path = workdir.join("bom.spdx.json");
-    helpers::sindri_cmd()
-        .current_dir(workdir)
-        .env("HOME", workdir)
+    helpers::sindri_cmd_in(workdir)
         .args([
             "bom",
             "--format",

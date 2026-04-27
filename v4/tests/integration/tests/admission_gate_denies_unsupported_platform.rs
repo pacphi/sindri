@@ -38,9 +38,7 @@ fn admission_gate_denies_unsupported_platform() {
     )
     .expect("write manifest");
 
-    let assert = helpers::sindri_cmd()
-        .current_dir(workdir)
-        .env("HOME", workdir)
+    let assert = helpers::sindri_cmd_in(workdir)
         .env("SINDRI_TEST_PLATFORM_OVERRIDE", "macos-aarch64")
         .args(["resolve", "--offline"])
         .assert();

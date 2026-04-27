@@ -36,6 +36,23 @@ pub fn sindri_cmd() -> Command {
     cmd
 }
 
+/// Like [`sindri_cmd`] but additionally points the sindri process at
+/// `home_dir` for "where does the user live?" lookups, cross-platform.
+///
+/// `dirs_next::home_dir()` reads `$HOME` on Unix but `%USERPROFILE%` on
+/// Windows (it ignores `$HOME` on Windows entirely). Tests that
+/// pre-populate a tempdir-based `~/.sindri/...` layout therefore must
+/// set BOTH so sindri's cache lookups land on the same path on every
+/// OS. Use this helper from every scenario instead of `.env("HOME", ...)`
+/// alone.
+pub fn sindri_cmd_in(home_dir: &Path) -> Command {
+    let mut cmd = sindri_cmd();
+    cmd.current_dir(home_dir);
+    cmd.env("HOME", home_dir);
+    cmd.env("USERPROFILE", home_dir);
+    cmd
+}
+
 /// Resolve the path to the workspace's `sindri` binary.
 ///
 /// Order of resolution:
@@ -51,7 +68,11 @@ fn sindri_binary_path() -> PathBuf {
     if let Ok(p) = std::env::var("CARGO_BIN_EXE_sindri") {
         return PathBuf::from(p);
     }
-    let exe_name = if cfg!(windows) { "sindri.exe" } else { "sindri" };
+    let exe_name = if cfg!(windows) {
+        "sindri.exe"
+    } else {
+        "sindri"
+    };
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     // CARGO_MANIFEST_DIR is v4/tests/integration; workspace root is v4/.
     let workspace_root = manifest_dir

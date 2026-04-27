@@ -16,9 +16,7 @@ fn init_validate_resolve_round_trip() {
     helpers::write_local_registry(workdir, "core", &registry_fixture);
 
     // 1. `sindri init`
-    helpers::sindri_cmd()
-        .current_dir(workdir)
-        .env("HOME", workdir)
+    helpers::sindri_cmd_in(workdir)
         .args([
             "init",
             "--non-interactive",
@@ -42,9 +40,7 @@ fn init_validate_resolve_round_trip() {
     );
 
     // 2. `sindri validate sindri.yaml`
-    helpers::sindri_cmd()
-        .current_dir(workdir)
-        .env("HOME", workdir)
+    helpers::sindri_cmd_in(workdir)
         .args(["validate", "sindri.yaml"])
         .assert()
         .success()
@@ -60,9 +56,7 @@ fn init_validate_resolve_round_trip() {
     .expect("rewrite manifest with extra component");
 
     // 4. `sindri resolve --offline`
-    helpers::sindri_cmd()
-        .current_dir(workdir)
-        .env("HOME", workdir)
+    helpers::sindri_cmd_in(workdir)
         .args(["resolve", "--offline"])
         .assert()
         .success();
