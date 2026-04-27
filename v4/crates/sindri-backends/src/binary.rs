@@ -96,7 +96,7 @@ fn expand_install_path(template: &str, name: &str) -> PathBuf {
 }
 
 fn dirs_next_home() -> String {
-    dirs_next::home_dir()
+    sindri_core::paths::home_dir()
         .map(|h| h.to_string_lossy().to_string())
         .unwrap_or_default()
 }

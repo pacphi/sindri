@@ -10,7 +10,7 @@ pub struct LsArgs {
 }
 
 pub fn run(args: LsArgs) -> i32 {
-    let cache_dir = dirs_next::home_dir()
+    let cache_dir = sindri_core::paths::home_dir()
         .map(|h| h.join(".sindri").join("cache").join("registries"))
         .unwrap_or_else(|| std::path::PathBuf::from(".sindri/cache/registries"));
 

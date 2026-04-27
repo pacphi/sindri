@@ -38,7 +38,7 @@ pub fn run(args: DoctorArgs) -> i32 {
 
     // 3. Registry access
     println!("\nRegistry cache:");
-    let cache_dir = dirs_next::home_dir()
+    let cache_dir = sindri_core::paths::home_dir()
         .unwrap_or_default()
         .join(".sindri")
         .join("cache")

@@ -32,7 +32,7 @@ impl GoInstallBackend {
                 return std::path::PathBuf::from(gopath).join("bin");
             }
         }
-        dirs_next::home_dir()
+        sindri_core::paths::home_dir()
             .unwrap_or_default()
             .join("go")
             .join("bin")

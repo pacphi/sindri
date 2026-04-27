@@ -52,7 +52,7 @@ pub struct ConfigureContext<'a> {
     pub env_dir: &'a Path,
     /// Directory used as the base for `~`-expansion of [`FileTemplate::path`]
     /// and the rc-file location for the source-glob guard. Production callers
-    /// pass `dirs_next::home_dir()`; tests pass a temp dir so the rc files
+    /// pass `sindri_core::paths::home_dir()`; tests pass a temp dir so the rc files
     /// land inside the sandbox.
     pub home_dir: &'a Path,
 }

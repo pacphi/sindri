@@ -48,6 +48,14 @@ pub fn sindri_cmd() -> Command {
 pub fn sindri_cmd_in(home_dir: &Path) -> Command {
     let mut cmd = sindri_cmd();
     cmd.current_dir(home_dir);
+    // The canonical override: SINDRI_HOME is honoured by all production
+    // home-dir lookups (see sindri_core::paths::home_dir). On Windows,
+    // dirs_next::home_dir() goes through SHGetKnownFolderPath and ignores
+    // both HOME and USERPROFILE, so the env-var override below is the
+    // only reliable way to redirect the cache root in tests. We still
+    // set HOME + USERPROFILE for Unix tools and any third-party crate
+    // (e.g. sigstore) that may consult them directly.
+    cmd.env("SINDRI_HOME", home_dir);
     cmd.env("HOME", home_dir);
     cmd.env("USERPROFILE", home_dir);
     cmd

@@ -137,7 +137,7 @@ fn upgrade_all(
 }
 
 fn load_registry_from_cache() -> HashMap<String, ComponentEntry> {
-    let cache_root = dirs_next::home_dir()
+    let cache_root = sindri_core::paths::home_dir()
         .unwrap_or_default()
         .join(".sindri")
         .join("cache")
