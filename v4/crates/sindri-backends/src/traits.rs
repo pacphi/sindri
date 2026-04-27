@@ -1,7 +1,7 @@
+use crate::error::BackendError;
 use sindri_core::component::Backend;
 use sindri_core::lockfile::ResolvedComponent;
 use sindri_core::platform::Platform;
-use crate::error::BackendError;
 
 /// The unified install backend trait (Sprint 4, ADR-002)
 pub trait InstallBackend: Send + Sync {
@@ -53,15 +53,14 @@ pub fn binary_available(name: &str) -> bool {
 }
 
 fn which(name: &str) -> Option<std::path::PathBuf> {
-    std::env::var_os("PATH")
-        .and_then(|paths| {
-            std::env::split_paths(&paths).find_map(|dir| {
-                let candidate = dir.join(name);
-                if candidate.is_file() {
-                    Some(candidate)
-                } else {
-                    None
-                }
-            })
+    std::env::var_os("PATH").and_then(|paths| {
+        std::env::split_paths(&paths).find_map(|dir| {
+            let candidate = dir.join(name);
+            if candidate.is_file() {
+                Some(candidate)
+            } else {
+                None
+            }
         })
+    })
 }

@@ -1,7 +1,7 @@
 // ADR-001: User-authored sindri.yaml BOM as single source of truth
-use serde::{Deserialize, Serialize};
-use schemars::JsonSchema;
 use crate::component::BomEntry;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

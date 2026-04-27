@@ -1,8 +1,8 @@
+use crate::error::BackendError;
+use crate::traits::{binary_available, run_command, InstallBackend};
 use sindri_core::component::Backend;
 use sindri_core::lockfile::ResolvedComponent;
 use sindri_core::platform::{Os, Platform};
-use crate::error::BackendError;
-use crate::traits::{InstallBackend, binary_available, run_command};
 
 macro_rules! system_pm_backend {
     ($name:ident, $backend:ident, $os:expr, $cmd:expr, $install_args:expr, $remove_args:expr, $check_cmd:expr) => {
@@ -47,7 +47,9 @@ macro_rules! system_pm_backend {
 }
 
 system_pm_backend!(
-    AptBackend, Apt, Os::Linux,
+    AptBackend,
+    Apt,
+    Os::Linux,
     "apt-get",
     &["install", "-y"],
     &["remove", "-y"],
@@ -55,7 +57,9 @@ system_pm_backend!(
 );
 
 system_pm_backend!(
-    DnfBackend, Dnf, Os::Linux,
+    DnfBackend,
+    Dnf,
+    Os::Linux,
     "dnf",
     &["install", "-y"],
     &["remove", "-y"],
@@ -63,7 +67,9 @@ system_pm_backend!(
 );
 
 system_pm_backend!(
-    ZypperBackend, Zypper, Os::Linux,
+    ZypperBackend,
+    Zypper,
+    Os::Linux,
     "zypper",
     &["install", "-y"],
     &["remove", "-y"],
@@ -71,7 +77,9 @@ system_pm_backend!(
 );
 
 system_pm_backend!(
-    PacmanBackend, Pacman, Os::Linux,
+    PacmanBackend,
+    Pacman,
+    Os::Linux,
     "pacman",
     &["-S", "--noconfirm"],
     &["-R", "--noconfirm"],
@@ -79,7 +87,9 @@ system_pm_backend!(
 );
 
 system_pm_backend!(
-    ApkBackend, Apk, Os::Linux,
+    ApkBackend,
+    Apk,
+    Os::Linux,
     "apk",
     &["add"],
     &["del"],

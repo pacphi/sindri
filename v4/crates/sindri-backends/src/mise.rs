@@ -1,8 +1,8 @@
+use crate::error::BackendError;
+use crate::traits::{binary_available, run_command, InstallBackend};
 use sindri_core::component::Backend;
 use sindri_core::lockfile::ResolvedComponent;
 use sindri_core::platform::Platform;
-use crate::error::BackendError;
-use crate::traits::{InstallBackend, binary_available, run_command};
 
 /// mise — version manager backend (cross-platform, ADR-009)
 pub struct MiseBackend;
@@ -31,7 +31,6 @@ impl InstallBackend for MiseBackend {
     }
 
     fn is_installed(&self, comp: &ResolvedComponent) -> bool {
-        let _tool = format!("{}@{}", comp.id.name, comp.version);
         run_command("mise", &["which", &comp.id.name])
             .map(|(stdout, _)| !stdout.trim().is_empty())
             .unwrap_or(false)

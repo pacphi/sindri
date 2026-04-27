@@ -37,11 +37,10 @@ pub fn run(args: ResolveArgs) -> i32 {
 
     // Load registry from cache
     let registry = load_registry_from_cache();
-    if registry.is_empty() && !args.offline
-        && !args.json {
-            eprintln!("Warning: no registry index found. Run `sindri registry refresh` first.");
-            eprintln!("Proceeding with empty registry (no components will resolve).");
-        }
+    if registry.is_empty() && !args.offline && !args.json {
+        eprintln!("Warning: no registry index found. Run `sindri registry refresh` first.");
+        eprintln!("Proceeding with empty registry (no components will resolve).");
+    }
 
     // Load policy (defaults for now; Sprint 6 adds full policy loading)
     let mut policy = InstallPolicy {

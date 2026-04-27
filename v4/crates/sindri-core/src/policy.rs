@@ -1,6 +1,6 @@
 // ADR-008: Install policy as first-class subsystem
-use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]

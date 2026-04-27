@@ -1,10 +1,10 @@
-use std::fs;
-use std::path::{Path, PathBuf};
+use crate::error::BackendError;
+use crate::traits::InstallBackend;
 use sindri_core::component::Backend;
 use sindri_core::lockfile::ResolvedComponent;
 use sindri_core::platform::Platform;
-use crate::error::BackendError;
-use crate::traits::InstallBackend;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 /// Direct binary download backend (ADR-010: central platform-matrix resolver)
 pub struct BinaryBackend;
@@ -33,7 +33,11 @@ impl InstallBackend for BinaryBackend {
         }
 
         let platform = Platform::current();
-        let platform_key = format!("{}-{}", platform_os_str(&platform), platform_arch_str(&platform));
+        let platform_key = format!(
+            "{}-{}",
+            platform_os_str(&platform),
+            platform_arch_str(&platform)
+        );
 
         let expected_checksum = comp.checksums.get(&platform_key).ok_or_else(|| {
             BackendError::install(
@@ -45,7 +49,8 @@ impl InstallBackend for BinaryBackend {
         // Sprint 4 stub: just log the checksum verification step
         tracing::info!(
             "binary: would verify sha256 {} for {}",
-            expected_checksum, platform_key
+            expected_checksum,
+            platform_key
         );
 
         Ok(())

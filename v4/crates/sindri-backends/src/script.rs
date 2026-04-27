@@ -1,9 +1,9 @@
-use std::path::PathBuf;
+use crate::error::BackendError;
+use crate::traits::InstallBackend;
 use sindri_core::component::Backend;
 use sindri_core::lockfile::ResolvedComponent;
 use sindri_core::platform::{Os, Platform};
-use crate::error::BackendError;
-use crate::traits::InstallBackend;
+use std::path::PathBuf;
 
 /// Script backend — runs install.sh (bash) or install.ps1 (PowerShell)
 pub struct ScriptBackend;
