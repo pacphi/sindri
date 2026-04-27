@@ -2,6 +2,7 @@
 name = "schema-gen"
 version = "0.1.0"
 edition = "2021"
+description = "Generates JSON Schemas for sindri-core types and writes them to v4/schemas/"
 
 [[bin]]
 name = "schema-gen"
@@ -12,3 +13,9 @@ sindri-core = { path = "../../crates/sindri-core" }
 schemars = { workspace = true }
 serde_json = { workspace = true }
 anyhow = { workspace = true }
+clap = { workspace = true }
+
+[dev-dependencies]
+# Used in schema round-trip test to validate a sample BOM against the emitted schema.
+jsonschema = { version = "0.29", default-features = false }
+tempfile.workspace = true
