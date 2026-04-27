@@ -226,6 +226,14 @@ enum RegistrySubcmds {
         #[arg(long)]
         signer: String,
     },
+    /// Verify a registry's cosign signature against trusted keys (ADR-014).
+    ///
+    /// Wave 3A.1 placeholder: trust-key loading is in place, but live
+    /// signature verification (cosign signature manifest fetch +
+    /// simple-signing payload verify) is deferred to Wave 3A.2. This
+    /// subcommand currently exits non-zero with an explanatory message so
+    /// it cannot silently pass in CI.
+    Verify { name: String },
     /// Download assets and write sha256 checksums
     FetchChecksums { path: String },
 }
@@ -286,6 +294,7 @@ fn main() {
                 RegistrySubcmds::Refresh { name, url } => RegistryCmd::Refresh { name, url },
                 RegistrySubcmds::Lint { path, json } => RegistryCmd::Lint { path, json },
                 RegistrySubcmds::Trust { name, signer } => RegistryCmd::Trust { name, signer },
+                RegistrySubcmds::Verify { name } => RegistryCmd::Verify { name },
                 RegistrySubcmds::FetchChecksums { path } => RegistryCmd::FetchChecksums { path },
             };
             commands::registry::run(registry_cmd)

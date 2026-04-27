@@ -1,32 +1,77 @@
 use crate::cache::RegistryCache;
 use crate::error::RegistryError;
 use crate::index::RegistryIndex;
+use sindri_core::policy::InstallPolicy;
 use std::path::Path;
 use std::time::Duration;
 
-/// OCI registry client. Fetches index.yaml blobs from OCI registries (ADR-003).
+/// OCI registry client. Fetches `index.yaml` blobs from OCI registries
+/// (ADR-003).
 ///
-/// Sprint 2 uses HTTP fetch for index.yaml; full OCI Distribution Spec blob pipeline
-/// (manifest → blob layer → extract) is Sprint 6 hardening.
+/// **Wave 3A.1** still uses an HTTP shim for `index.yaml` — the
+/// `oci-client` crate is on the dependency tree (so 3A.2 can swap to the
+/// real OCI Distribution Spec pipeline) but is not yet called here.
+///
+/// **Wave 3A.2** will:
+///   1. Replace [`Self::fetch_from_source`] with `oci-client` manifest +
+///      blob fetches.
+///   2. Implement [`Self::verify`] using the loaded [`crate::CosignVerifier`].
+///   3. Honour the [`InstallPolicy`] threaded through [`Self::with_policy`].
 pub struct RegistryClient {
     cache: RegistryCache,
     ttl: Duration,
+    /// Active install policy. Wave 3A.1 only stores this; the policy is not
+    /// yet consulted in [`Self::fetch_index`].
+    policy: Option<InstallPolicy>,
 }
 
 impl RegistryClient {
+    /// Construct a client backed by the default user cache.
     pub fn new() -> Result<Self, RegistryError> {
         Ok(RegistryClient {
             cache: RegistryCache::new()?,
             ttl: Duration::from_secs(3600),
+            policy: None,
         })
     }
 
+    /// Override the cache TTL (default: 1h).
     pub fn with_ttl(mut self, ttl: Duration) -> Self {
         self.ttl = ttl;
         self
     }
 
+    /// Attach an install policy. Stored only — policy enforcement is
+    /// deferred to Wave 3A.2 (signed-registry gate, offline gate).
+    pub fn with_policy(mut self, policy: InstallPolicy) -> Self {
+        self.policy = Some(policy);
+        self
+    }
+
+    /// Read the policy currently attached to this client (mostly for tests
+    /// + diagnostics; Wave 3A.2 will actually consult it).
+    pub fn policy(&self) -> Option<&InstallPolicy> {
+        self.policy.as_ref()
+    }
+
+    /// Verify the cosign signature of the given registry against trusted
+    /// keys.
+    ///
+    /// **Wave 3A.1 stub.** Always returns
+    /// [`RegistryError::SignatureRequired`] with a message explicitly naming
+    /// Wave 3A.2 as the place that wires up real verification — we never
+    /// silently succeed.
+    pub async fn verify(&self, registry_name: &str) -> Result<(), RegistryError> {
+        Err(RegistryError::SignatureRequired {
+            registry: registry_name.to_string(),
+            reason: "verify not yet implemented (deferred to Wave 3A.2)".to_string(),
+        })
+    }
+
     /// Fetch the registry index, using cache if within TTL.
+    ///
+    /// TODO(wave-3a.2): real OCI fetch via `oci-client`; until then,
+    /// `fetch_from_source` still uses the HTTP shim below.
     pub async fn fetch_index(
         &self,
         registry_name: &str,
@@ -59,8 +104,8 @@ impl RegistryClient {
             return std::fs::read_to_string(&index_path).map_err(RegistryError::Io);
         }
 
-        // HTTP(S) — fetch index.yaml directly
-        // Full OCI Distribution Spec (manifest + blob) is Sprint 6
+        // HTTP(S) — fetch index.yaml directly.
+        // TODO(wave-3a.2): replace with oci-client (manifest + blob).
         let index_url = format!("{}/index.yaml", registry_url.trim_end_matches('/'));
         tracing::info!("Fetching registry index from {}", index_url);
 

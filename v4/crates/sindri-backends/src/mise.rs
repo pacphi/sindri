@@ -63,6 +63,7 @@ mod tests {
             checksums: HashMap::new(),
             depends_on: vec![],
             manifest: None,
+            manifest_digest: None,
         }
     }
 

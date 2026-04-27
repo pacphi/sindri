@@ -20,3 +20,14 @@ sha2 = { workspace = true }
 hex = { workspace = true }
 dirs-next = { workspace = true }
 reqwest = { workspace = true }
+# OCI + cosign foundation (Wave 3A.1 — scaffold; Wave 3A.2 wires real fetch/verify).
+# See ADR-003 (OCI-only registry distribution) and ADR-014 (signed registries).
+oci-client = { workspace = true }
+sigstore = { workspace = true }
+p256 = { workspace = true }
+ecdsa = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+tokio = { workspace = true }
+rand_core = { version = "0.6", features = ["std"] }

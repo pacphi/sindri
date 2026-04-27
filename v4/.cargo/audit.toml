@@ -1,0 +1,17 @@
+# cargo-audit configuration for the v4 workspace.
+#
+# Ignored advisories listed below are intentionally suppressed.  Each must
+# include a "reason" explaining why the vulnerable code path is unreachable
+# in this workspace.
+
+[advisories]
+ignore = [
+    # RUSTSEC-2023-0071 — "Marvin attack" timing side-channel in `rsa` crate
+    # decryption.  Pulled in transitively by `sigstore` (X.509 / Fulcio /
+    # Rekor support).  Sindri only loads ECDSA P-256 cosign keys (see
+    # crates/sindri-registry/src/signing.rs); the RSA decryption path is
+    # never exercised.  Upstream `rsa` has no fix as of 2026-04 — track for
+    # removal once the `rsa` crate releases a constant-time fix or
+    # `sigstore` ships a feature gate to drop the rsa dependency.
+    "RUSTSEC-2023-0071",
+]
