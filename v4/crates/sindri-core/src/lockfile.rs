@@ -1,4 +1,4 @@
-use crate::component::{Backend, ComponentId};
+use crate::component::{Backend, ComponentId, ComponentManifest};
 use crate::version::Version;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -35,4 +35,15 @@ pub struct ResolvedComponent {
     pub oci_digest: Option<String>,
     pub checksums: HashMap<String, String>,
     pub depends_on: Vec<String>,
+    /// Full component manifest, when available.
+    ///
+    /// The resolver does not yet fetch OCI manifests (Wave 3A), so today this
+    /// is always `None` and the apply pipeline degrades gracefully — only the
+    /// install + lifecycle hook steps run for a `None` manifest, and the
+    /// configure / validate / remove capability executors are skipped with a
+    /// `tracing::debug!`. The field is in place so that when OCI fetch lands,
+    /// `sindri apply` will pick up validate / configure / per-platform overrides
+    /// without further changes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub manifest: Option<ComponentManifest>,
 }
