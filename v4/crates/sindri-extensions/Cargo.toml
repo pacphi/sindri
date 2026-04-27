@@ -16,6 +16,8 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }
 anyhow = { workspace = true }
+semver = { workspace = true }
+dirs-next = { workspace = true }
 
 [dev-dependencies]
 tempfile = "3"

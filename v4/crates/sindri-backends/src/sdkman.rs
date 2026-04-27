@@ -102,6 +102,7 @@ mod tests {
             oci_digest: None,
             checksums: HashMap::new(),
             depends_on: vec![],
+            manifest: None,
         }
     }
 

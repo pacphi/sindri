@@ -51,5 +51,8 @@ pub fn resolved_from_entry(
         oci_digest: Some(entry.oci_ref.clone()),
         checksums: Default::default(),
         depends_on: entry.depends_on.clone(),
+        // Wave 3A will fetch manifests from OCI; until then, the apply
+        // pipeline degrades to install + hooks only when manifest is None.
+        manifest: None,
     }
 }

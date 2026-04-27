@@ -145,6 +145,7 @@ mod tests {
             oci_digest: None,
             checksums: HashMap::new(),
             depends_on: vec![],
+            manifest: None,
         };
         let ctx = InstallContext::new(&comp, None, &target);
         let err = ScriptBackend.install(&ctx).await.unwrap_err();
