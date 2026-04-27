@@ -1193,6 +1193,8 @@ dependencies = [
  "sindri-registry",
  "sindri-resolver",
  "sindri-targets",
+ "tempfile",
+ "thiserror 2.0.18",
  "tokio",
  "tracing",
 ]

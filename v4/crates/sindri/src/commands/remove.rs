@@ -1,3 +1,9 @@
+// SCOPE NOTE (feat/v4-apply-capability-wiring): the install-time wiring for
+// hooks / configure / validate / project-init lands in this PR. Wiring the
+// `RemoveExecutor` (running RemoveConfig.commands and deleting RemoveConfig
+// .files) is intentionally deferred to a follow-up so the diff stays
+// focused. Until then, `sindri remove` only edits sindri.yaml; backend
+// uninstall + custom remove commands are tracked as a follow-up to ADR-024.
 use crate::commands::manifest::{find_entry_index, load_manifest, save_manifest};
 use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
 

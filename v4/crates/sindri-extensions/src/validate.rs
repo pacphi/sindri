@@ -63,15 +63,14 @@ impl ValidateExecutor {
             "running validate command"
         );
 
-        let (stdout, stderr) =
-            ctx.target
-                .exec(&cmd.command, ctx.env)
-                .map_err(|err| ExtensionError::ValidateFailed {
-                    component: ctx.component.to_string(),
-                    command: cmd.command.clone(),
-                    expected: "command to exit 0".to_string(),
-                    got: err.to_string(),
-                })?;
+        let (stdout, stderr) = ctx.target.exec(&cmd.command, ctx.env).map_err(|err| {
+            ExtensionError::ValidateFailed {
+                component: ctx.component.to_string(),
+                command: cmd.command.clone(),
+                expected: "command to exit 0".to_string(),
+                got: err.to_string(),
+            }
+        })?;
 
         if let Some(expected) = &cmd.expected_output {
             if !stdout.contains(expected.as_str()) {
@@ -85,34 +84,31 @@ impl ValidateExecutor {
         }
 
         if let Some(spec) = &cmd.version_match {
-            let req = semver::VersionReq::parse(spec).map_err(|e| {
-                ExtensionError::ValidateFailed {
+            let req =
+                semver::VersionReq::parse(spec).map_err(|e| ExtensionError::ValidateFailed {
                     component: ctx.component.to_string(),
                     command: cmd.command.clone(),
                     expected: format!("valid semver requirement (`{}`)", spec),
                     got: format!("parse error: {}", e),
-                }
-            })?;
-
-            let token =
-                extract_semver(&stdout).ok_or_else(|| ExtensionError::ValidateFailed {
-                    component: ctx.component.to_string(),
-                    command: cmd.command.clone(),
-                    expected: format!("a semver-looking token matching `{}`", spec),
-                    got: format!(
-                        "no MAJOR.MINOR.PATCH token in stdout: {}",
-                        truncate(&stdout, 256)
-                    ),
                 })?;
 
-            let actual = semver::Version::parse(&token).map_err(|e| {
-                ExtensionError::ValidateFailed {
+            let token = extract_semver(&stdout).ok_or_else(|| ExtensionError::ValidateFailed {
+                component: ctx.component.to_string(),
+                command: cmd.command.clone(),
+                expected: format!("a semver-looking token matching `{}`", spec),
+                got: format!(
+                    "no MAJOR.MINOR.PATCH token in stdout: {}",
+                    truncate(&stdout, 256)
+                ),
+            })?;
+
+            let actual =
+                semver::Version::parse(&token).map_err(|e| ExtensionError::ValidateFailed {
                     component: ctx.component.to_string(),
                     command: cmd.command.clone(),
                     expected: format!("a parseable semver in stdout matching `{}`", spec),
                     got: format!("`{}`: {}", token, e),
-                }
-            })?;
+                })?;
 
             if !req.matches(&actual) {
                 return Err(ExtensionError::ValidateFailed {
@@ -166,7 +162,9 @@ fn match_semver_at(bytes: &[u8], start: usize) -> Option<(String, usize)> {
         return None;
     }
     let (_, c_end) = scan_digits(bytes, b_end + 1)?;
-    let token = std::str::from_utf8(&bytes[a_start..c_end]).ok()?.to_string();
+    let token = std::str::from_utf8(&bytes[a_start..c_end])
+        .ok()?
+        .to_string();
     Some((token, c_end))
 }
 
@@ -332,7 +330,10 @@ mod tests {
     fn extract_semver_handles_v_prefix_and_trailing_text() {
         assert_eq!(extract_semver("v22.5.1\n").as_deref(), Some("22.5.1"));
         assert_eq!(extract_semver("v22.5.1").as_deref(), Some("22.5.1"));
-        assert_eq!(extract_semver("Python 3.12.4 (...)\n").as_deref(), Some("3.12.4"));
+        assert_eq!(
+            extract_semver("Python 3.12.4 (...)\n").as_deref(),
+            Some("3.12.4")
+        );
         assert_eq!(extract_semver("garbage").as_deref(), None);
     }
 }

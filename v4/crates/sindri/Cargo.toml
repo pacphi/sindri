@@ -26,3 +26,7 @@ dirs-next = { workspace = true }
 sha2 = { workspace = true }
 hex = { workspace = true }
 serde = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"

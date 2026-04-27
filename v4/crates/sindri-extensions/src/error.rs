@@ -58,9 +58,7 @@ pub enum ExtensionError {
     },
 
     /// A `configure` step (env settings or file template) failed (ADR-024).
-    #[error(
-        "configure failed for component '{component}': {step} — {detail}"
-    )]
+    #[error("configure failed for component '{component}': {step} — {detail}")]
     ConfigureFailed {
         /// Component metadata name.
         component: String,
@@ -87,9 +85,7 @@ pub enum ExtensionError {
     },
 
     /// A `remove` step (custom command or file deletion) failed.
-    #[error(
-        "remove failed for component '{component}': {step} — {detail}"
-    )]
+    #[error("remove failed for component '{component}': {step} — {detail}")]
     RemoveFailed {
         /// Component metadata name.
         component: String,

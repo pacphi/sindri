@@ -250,13 +250,12 @@ fn apply_file_template(
         return Ok(());
     }
 
-    let rendered = render_mustache(&template.template, vars).map_err(|e| {
-        ExtensionError::ConfigureFailed {
+    let rendered =
+        render_mustache(&template.template, vars).map_err(|e| ExtensionError::ConfigureFailed {
             component: ctx.component.to_string(),
             step: format!("files[{}]", dest.display()),
             detail: e,
-        }
-    })?;
+        })?;
 
     if let Some(parent) = dest.parent() {
         std::fs::create_dir_all(parent).map_err(|e| ExtensionError::ConfigureFailed {
@@ -458,6 +457,9 @@ mod tests {
 
     #[test]
     fn shell_escape_handles_quotes_and_dollars() {
-        assert_eq!(shell_escape_double_quoted(r#"a"b$c\d`e"#), r#"a\"b\$c\\d\`e"#);
+        assert_eq!(
+            shell_escape_double_quoted(r#"a"b$c\d`e"#),
+            r#"a\"b\$c\\d\`e"#
+        );
     }
 }
