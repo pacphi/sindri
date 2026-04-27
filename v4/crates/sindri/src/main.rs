@@ -189,14 +189,43 @@ enum Commands {
     Doctor {
         #[arg(long)]
         target: Option<String>,
-        #[arg(long)]
+        /// Apply remediations for fixable failures.
+        #[arg(long, conflicts_with = "dry_run")]
         fix: bool,
+        /// Print would-be remediations without writing.
         #[arg(long, conflicts_with = "fix")]
         dry_run: bool,
+        /// Machine-readable output.
         #[arg(long)]
         json: bool,
         #[arg(long)]
         components: bool,
+    },
+    /// Validate / inspect / store secret references (Sprint 12)
+    Secrets {
+        #[command(subcommand)]
+        cmd: SecretsSubcmds,
+    },
+    /// Create a tarball of the user's sindri state
+    Backup {
+        /// Output path (file or directory). Defaults to cwd with a
+        /// timestamped filename.
+        #[arg(long, short)]
+        output: Option<std::path::PathBuf>,
+        /// Include `~/.sindri/cache/registries/` (large; off by default).
+        #[arg(long)]
+        include_cache: bool,
+    },
+    /// Restore a `sindri backup` archive
+    Restore {
+        /// Path to the archive.
+        archive: std::path::PathBuf,
+        /// Print the file list without writing.
+        #[arg(long)]
+        dry_run: bool,
+        /// Overwrite existing destination files.
+        #[arg(long)]
+        force: bool,
     },
     /// Target management (ADR-017, ADR-023)
     Target {
@@ -398,6 +427,62 @@ enum LedgerSubcmds {
 }
 
 #[derive(Subcommand)]
+enum SecretsSubcmds {
+    /// Resolve a configured secret and assert it succeeds (no value printed)
+    Validate {
+        id: String,
+        #[arg(short, long, default_value = "sindri.yaml")]
+        manifest: std::path::PathBuf,
+    },
+    /// List configured secrets (id + source kind only)
+    List {
+        #[arg(long)]
+        json: bool,
+        #[arg(short, long, default_value = "sindri.yaml")]
+        manifest: std::path::PathBuf,
+    },
+    /// Test connectivity to the configured vault backend
+    TestVault,
+    /// Encode a file for embedding in sindri.yaml
+    EncodeFile {
+        path: std::path::PathBuf,
+        #[arg(long, default_value = "base64")]
+        algorithm: String,
+        #[arg(long, short)]
+        output: Option<std::path::PathBuf>,
+    },
+    /// S3 secrets backend (shells out to `aws s3`)
+    S3 {
+        #[command(subcommand)]
+        cmd: SecretsS3Subcmds,
+    },
+}
+
+#[derive(Subcommand)]
+enum SecretsS3Subcmds {
+    /// `aws s3 cp s3://<bucket>/<key> -`
+    Get {
+        key: String,
+        #[arg(long)]
+        bucket: String,
+    },
+    /// `aws s3 cp <file> s3://<bucket>/<key>`
+    Put {
+        key: String,
+        file: std::path::PathBuf,
+        #[arg(long)]
+        bucket: String,
+    },
+    /// `aws s3 ls s3://<bucket>/<prefix>`
+    List {
+        #[arg(long)]
+        bucket: String,
+        #[arg(long)]
+        prefix: Option<String>,
+    },
+}
+
+#[derive(Subcommand)]
 enum PolicySubcmds {
     /// Set the active policy preset (default | strict | offline)
     Use { preset: String },
@@ -488,6 +573,49 @@ fn main() {
             dry_run,
             json,
             components,
+        }),
+        Some(Commands::Secrets { cmd }) => {
+            use commands::secrets::SecretsCmd;
+            let mapped = match cmd {
+                SecretsSubcmds::Validate { id, manifest } => SecretsCmd::Validate { id, manifest },
+                SecretsSubcmds::List { json, manifest } => SecretsCmd::List { json, manifest },
+                SecretsSubcmds::TestVault => SecretsCmd::TestVault,
+                SecretsSubcmds::EncodeFile {
+                    path,
+                    algorithm,
+                    output,
+                } => SecretsCmd::EncodeFile {
+                    path,
+                    algorithm,
+                    output,
+                },
+                SecretsSubcmds::S3 { cmd } => match cmd {
+                    SecretsS3Subcmds::Get { key, bucket } => SecretsCmd::S3Get { bucket, key },
+                    SecretsS3Subcmds::Put { key, file, bucket } => {
+                        SecretsCmd::S3Put { bucket, key, file }
+                    }
+                    SecretsS3Subcmds::List { bucket, prefix } => {
+                        SecretsCmd::S3List { bucket, prefix }
+                    }
+                },
+            };
+            commands::secrets::run(mapped)
+        }
+        Some(Commands::Backup {
+            output,
+            include_cache,
+        }) => commands::backup::run_backup(commands::backup::BackupArgs {
+            output,
+            include_cache,
+        }),
+        Some(Commands::Restore {
+            archive,
+            dry_run,
+            force,
+        }) => commands::backup::run_restore(commands::backup::RestoreArgs {
+            archive,
+            dry_run,
+            force,
         }),
         Some(Commands::Target { cmd }) => {
             let tc = match cmd {

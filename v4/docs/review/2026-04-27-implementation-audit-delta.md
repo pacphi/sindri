@@ -131,3 +131,52 @@ is **never modified**; new wave entries are appended here.
   - Per-component cosign signatures (each component blob signed
     independently). Out of scope until the SBOM work in Wave 5 wires
     component manifest digests through the lockfile.
+
+## Wave 4C — Sprint 12 hardening (`feat/v4-doctor-secrets-backup`)
+
+### Sprint 12 verbs (`doctor --fix`, `secrets *`, `backup` / `restore`)
+
+- **Status:** 🔴 → 🟢
+- **What landed:**
+  - `crates/sindri/src/commands/doctor.rs` rewritten as a typed
+    [`HealthCheck`] registry. Initial fixable checks: `~/.sindri/`,
+    `~/.sindri/trust/`, `~/.sindri/cache/registries/`,
+    `~/.cargo/bin` on `PATH` via guarded shell-rc block. Stale-lockfile
+    detection is suggestion-only (never auto-resolves).
+  - New `--fix`, `--dry-run`, and `--json` flags on `sindri doctor`.
+    `--fix` and `--dry-run` are mutually exclusive at the clap layer.
+  - Shell-rc remediation reuses the `# sindri:auto`-marker idempotent
+    pattern from `sindri-extensions::configure` (PR #215). The doctor
+    block uses a distinct `# sindri:auto path` marker so it does not
+    collide with the per-component env-fragment block.
+  - New `crates/sindri/src/commands/secrets.rs`: `validate`, `list`,
+    `test-vault`, `encode-file`, and `s3 {get,put,list}`. `secrets list`
+    and `secrets validate` never print the resolved secret value.
+  - **S3 backend simplification.** Rather than depend on `aws-sdk-s3`,
+    `secrets s3 *` shells out to the `aws` CLI. Documented in the PR
+    body. Argv builders are pure functions (`s3_list_argv`, …) so unit
+    tests assert command shape without invoking aws.
+  - `BomManifest` gained an optional `secrets: HashMap<String,String>`
+    field (additive, `#[serde(default)]`) to back `secrets validate`.
+  - New `crates/sindri/src/commands/backup.rs`: `sindri backup`
+    produces `sindri-backup-<iso8601>.tar.gz` containing project
+    files (`sindri.yaml`, `sindri.policy.yaml`, `sindri.lock`,
+    `sindri.<target>.lock`), `~/.sindri/ledger.jsonl`,
+    `~/.sindri/{trust,plugins,history}/`, and optionally
+    `~/.sindri/cache/registries/` under `--include-cache`.
+  - `sindri restore` honours default-deny overwrite (`--force` to
+    override) and rejects archives containing absolute paths or `..`
+    traversal entries before any extraction.
+  - `flate2`, `tar`, `base64`, and `chrono` added as workspace
+    dependencies.
+  - Wired into `main.rs` as `Doctor`, `Secrets { … }`, `Backup`, and
+    `Restore` subcommands.
+  - Tests added (all passing): 5 in `doctor::tests`, 6 in
+    `secrets::tests`, 4 in `backup::tests`.
+- **What's deferred:**
+  - Full HashiCorp Vault protocol-level health checks (today: shell out
+    to `vault status`).
+  - `sindri doctor --components` runs validate commands from the
+    lockfile (Sprint 12.2 backlog item; flag exists but is reserved).
+  - Compression alternatives (zstd) for backup; `flate2` is the
+    initial choice for portability.

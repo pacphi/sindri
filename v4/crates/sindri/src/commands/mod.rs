@@ -1,6 +1,7 @@
 pub mod add;
 pub mod apply;
 pub mod apply_lifecycle;
+pub mod backup;
 pub mod bom;
 pub mod completions;
 pub mod diff;
@@ -21,6 +22,7 @@ pub mod remove;
 pub mod resolve;
 pub mod rollback;
 pub mod search;
+pub mod secrets;
 pub mod self_upgrade;
 pub mod show;
 pub mod target;
