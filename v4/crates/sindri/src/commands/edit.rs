@@ -202,9 +202,20 @@ fn prompt_reopen() -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn minimal_valid_yaml() -> &'static str {
+        "name: demo\ncomponents: []\n"
+    }
+
+    // Editor-spawning tests rely on POSIX shebang scripts + chmod +x,
+    // which std::os::unix::fs::PermissionsExt provides only on Unix.
+    // Skip on Windows; the pure-logic tests below still run there.
+    #[cfg(unix)]
     use std::os::unix::fs::PermissionsExt;
+    #[cfg(unix)]
     use tempfile::TempDir;
 
+    #[cfg(unix)]
     fn write_fake_editor(dir: &Path, name: &str, body: &str) -> PathBuf {
         let path = dir.join(name);
         std::fs::write(&path, body).unwrap();
@@ -214,10 +225,7 @@ mod tests {
         path
     }
 
-    fn minimal_valid_yaml() -> &'static str {
-        "name: demo\ncomponents: []\n"
-    }
-
+    #[cfg(unix)]
     #[test]
     fn editor_exit_zero_runs_validate() {
         let tmp = TempDir::new().unwrap();
@@ -240,6 +248,7 @@ mod tests {
         assert!(!tmp.path().join("sindri.yaml.bak").exists());
     }
 
+    #[cfg(unix)]
     #[test]
     fn editor_exit_nonzero_restores_bak() {
         let tmp = TempDir::new().unwrap();
