@@ -7,7 +7,7 @@ mod validate;
 
 use commands::policy::PolicyCmd;
 use commands::registry::RegistryCmd;
-use commands::target::TargetCmd;
+use commands::target::{PluginSub, TargetCmd};
 
 #[derive(Parser)]
 #[command(
@@ -323,6 +323,51 @@ enum TargetSubcmds {
     Doctor { name: Option<String> },
     /// Open an interactive shell on the target
     Shell { name: String },
+    /// Set the default target in sindri.yaml
+    Use { name: String },
+    /// Start a previously-created target resource
+    Start { name: String },
+    /// Stop a target resource without destroying it
+    Stop { name: String },
+    /// Configure auth credentials for a target (ADR-020)
+    Auth {
+        name: String,
+        /// Optional pre-supplied prefixed-value (env:VAR | file:PATH | cli:CMD | plain:VALUE)
+        #[arg(long)]
+        value: Option<String>,
+    },
+    /// EXPERIMENTAL: diff sindri.yaml against the on-disk infra lock for a target
+    Update { name: String },
+    /// Plugin management (ADR-019)
+    Plugin {
+        #[command(subcommand)]
+        cmd: TargetPluginSubcmds,
+    },
+}
+
+#[derive(Subcommand)]
+enum TargetPluginSubcmds {
+    /// List installed target plugins
+    Ls,
+    /// Install a target plugin from an OCI reference (EXPERIMENTAL — requires Wave 3A.2)
+    Install {
+        oci_ref: String,
+        /// Override the kind under which to install (defaults to the trailing path component)
+        #[arg(long)]
+        kind: Option<String>,
+    },
+    /// Trust a cosign public key for a plugin kind
+    Trust {
+        kind: String,
+        #[arg(long)]
+        signer: String,
+    },
+    /// Uninstall a plugin
+    Uninstall {
+        kind: String,
+        #[arg(long)]
+        yes: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -449,6 +494,26 @@ fn main() {
                 TargetSubcmds::Destroy { name } => TargetCmd::Destroy { name },
                 TargetSubcmds::Doctor { name } => TargetCmd::Doctor { name },
                 TargetSubcmds::Shell { name } => TargetCmd::Shell { name },
+                TargetSubcmds::Use { name } => TargetCmd::Use { name },
+                TargetSubcmds::Start { name } => TargetCmd::Start { name },
+                TargetSubcmds::Stop { name } => TargetCmd::Stop { name },
+                TargetSubcmds::Auth { name, value } => TargetCmd::Auth { name, value },
+                TargetSubcmds::Update { name } => TargetCmd::Update { name },
+                TargetSubcmds::Plugin { cmd } => {
+                    let sub = match cmd {
+                        TargetPluginSubcmds::Ls => PluginSub::Ls,
+                        TargetPluginSubcmds::Install { oci_ref, kind } => {
+                            PluginSub::Install { oci_ref, kind }
+                        }
+                        TargetPluginSubcmds::Trust { kind, signer } => {
+                            PluginSub::Trust { kind, signer }
+                        }
+                        TargetPluginSubcmds::Uninstall { kind, yes } => {
+                            PluginSub::Uninstall { kind, yes }
+                        }
+                    };
+                    TargetCmd::Plugin { sub }
+                }
             };
             commands::target::run(tc)
         }
