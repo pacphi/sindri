@@ -9,13 +9,13 @@ pub mod version;
 
 pub use error::ResolverError;
 
-use std::collections::HashMap;
-use std::path::PathBuf;
 use sindri_core::lockfile::Lockfile;
 use sindri_core::manifest::BomManifest;
-use sindri_core::platform::{Platform, TargetProfile, Capabilities};
+use sindri_core::platform::{Capabilities, Platform, TargetProfile};
 use sindri_core::policy::InstallPolicy;
 use sindri_core::registry::ComponentEntry;
+use std::collections::HashMap;
+use std::path::PathBuf;
 
 /// Top-level resolver options
 pub struct ResolveOptions {
@@ -40,11 +40,7 @@ pub fn resolve(
         .map_err(|e| ResolverError::Serialization(e.to_string()))?;
 
     // 2. Expand dependency closure
-    let root_addrs: Vec<String> = bom
-        .components
-        .iter()
-        .map(|c| c.address.clone())
-        .collect();
+    let root_addrs: Vec<String> = bom.components.iter().map(|c| c.address.clone()).collect();
 
     let closure_nodes = closure::expand_closure(&root_addrs, registry)?;
 
@@ -80,7 +76,8 @@ pub fn resolve(
         }
 
         let chosen = backend_choice::choose_backend(&node.entry, platform, None);
-        let resolved = lockfile_writer::resolved_from_entry(&node.entry, chosen, &node.id.to_address());
+        let resolved =
+            lockfile_writer::resolved_from_entry(&node.entry, chosen, &node.id.to_address());
         lockfile.components.push(resolved);
     }
 

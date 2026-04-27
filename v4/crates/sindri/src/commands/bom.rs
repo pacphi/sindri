@@ -1,9 +1,9 @@
+use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_STALE_LOCKFILE, EXIT_SUCCESS};
+use sindri_core::lockfile::Lockfile;
 /// SBOM generation (ADR-007, Sprint 12)
 ///
 /// Emits SPDX 2.3 JSON or CycloneDX 1.6 XML from a resolved lockfile.
 use std::path::PathBuf;
-use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_STALE_LOCKFILE, EXIT_SUCCESS};
-use sindri_core::lockfile::Lockfile;
 
 pub struct BomArgs {
     pub format: String, // "spdx" | "cyclonedx"
@@ -20,18 +20,27 @@ pub fn run(args: BomArgs) -> i32 {
 
     let lockfile_path = PathBuf::from(&lock_name);
     if !lockfile_path.exists() {
-        eprintln!("Lockfile '{}' not found. Run `sindri resolve` first.", lock_name);
+        eprintln!(
+            "Lockfile '{}' not found. Run `sindri resolve` first.",
+            lock_name
+        );
         return EXIT_STALE_LOCKFILE;
     }
 
     let content = match std::fs::read_to_string(&lockfile_path) {
         Ok(c) => c,
-        Err(e) => { eprintln!("Cannot read lockfile: {}", e); return EXIT_STALE_LOCKFILE; }
+        Err(e) => {
+            eprintln!("Cannot read lockfile: {}", e);
+            return EXIT_STALE_LOCKFILE;
+        }
     };
 
     let lockfile: Lockfile = match serde_json::from_str(&content) {
         Ok(l) => l,
-        Err(e) => { eprintln!("Malformed lockfile: {}", e); return EXIT_STALE_LOCKFILE; }
+        Err(e) => {
+            eprintln!("Malformed lockfile: {}", e);
+            return EXIT_STALE_LOCKFILE;
+        }
     };
 
     let sbom = match args.format.as_str() {
@@ -40,7 +49,11 @@ pub fn run(args: BomArgs) -> i32 {
     };
 
     let output_path = args.output.as_deref().unwrap_or_else(|| {
-        if args.format == "cyclonedx" { "sindri.bom.cdx.xml" } else { "sindri.bom.spdx.json" }
+        if args.format == "cyclonedx" {
+            "sindri.bom.cdx.xml"
+        } else {
+            "sindri.bom.spdx.json"
+        }
     });
 
     match std::fs::write(output_path, &sbom) {
@@ -86,20 +99,24 @@ fn emit_spdx(lockfile: &Lockfile) -> String {
 }
 
 fn emit_cyclonedx(lockfile: &Lockfile) -> String {
-    let components: Vec<String> = lockfile.components.iter().map(|c| {
-        format!(
-            r#"    <component type="library">
+    let components: Vec<String> = lockfile
+        .components
+        .iter()
+        .map(|c| {
+            format!(
+                r#"    <component type="library">
       <name>{}</name>
       <version>{}</version>
       <purl>pkg:{}/{}@{}</purl>
     </component>"#,
-            xml_escape(&c.id.name),
-            xml_escape(&c.version.0),
-            xml_escape(c.id.backend.as_str()),
-            xml_escape(&c.id.name),
-            xml_escape(&c.version.0),
-        )
-    }).collect();
+                xml_escape(&c.id.name),
+                xml_escape(&c.version.0),
+                xml_escape(c.id.backend.as_str()),
+                xml_escape(&c.id.name),
+                xml_escape(&c.version.0),
+            )
+        })
+        .collect();
 
     format!(
         r#"<?xml version="1.0" encoding="UTF-8"?>
@@ -122,7 +139,7 @@ fn emit_cyclonedx(lockfile: &Lockfile) -> String {
 
 fn xml_escape(s: &str) -> String {
     s.replace('&', "&amp;")
-     .replace('<', "&lt;")
-     .replace('>', "&gt;")
-     .replace('"', "&quot;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
 }

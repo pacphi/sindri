@@ -1,7 +1,7 @@
-use std::fs;
-use std::path::Path;
 use crate::error::RegistryError;
 use sindri_core::component::ComponentManifest;
+use std::fs;
+use std::path::Path;
 
 /// A lint error or warning for a component
 #[derive(Debug, Clone)]
@@ -21,7 +21,11 @@ pub struct LintResult {
 
 impl LintResult {
     pub fn ok() -> Self {
-        LintResult { passed: true, errors: Vec::new(), warnings: Vec::new() }
+        LintResult {
+            passed: true,
+            errors: Vec::new(),
+            warnings: Vec::new(),
+        }
     }
 }
 
@@ -35,8 +39,8 @@ pub fn lint_path(path: &Path) -> Result<LintResult, RegistryError> {
 
 fn lint_file(path: &Path) -> Result<LintResult, RegistryError> {
     let content = fs::read_to_string(path)?;
-    let manifest: ComponentManifest = serde_yaml::from_str(&content)
-        .map_err(|e| RegistryError::SchemaError(e.to_string()))?;
+    let manifest: ComponentManifest =
+        serde_yaml::from_str(&content).map_err(|e| RegistryError::SchemaError(e.to_string()))?;
 
     let mut errors = Vec::new();
     let mut warnings = Vec::new();
@@ -64,7 +68,8 @@ fn lint_file(path: &Path) -> Result<LintResult, RegistryError> {
         if binary.checksums.is_empty() {
             errors.push(LintDiagnostic {
                 code: "LINT_MISSING_CHECKSUMS".into(),
-                message: "`binary` components must have `checksums` for all listed platforms".into(),
+                message: "`binary` components must have `checksums` for all listed platforms"
+                    .into(),
                 fix: Some("Run `sindri registry fetch-checksums` to populate checksums".into()),
             });
         }
@@ -98,7 +103,11 @@ fn lint_file(path: &Path) -> Result<LintResult, RegistryError> {
     }
 
     let passed = errors.is_empty();
-    Ok(LintResult { passed, errors, warnings })
+    Ok(LintResult {
+        passed,
+        errors,
+        warnings,
+    })
 }
 
 fn lint_directory(dir: &Path) -> Result<LintResult, RegistryError> {
@@ -116,5 +125,9 @@ fn lint_directory(dir: &Path) -> Result<LintResult, RegistryError> {
     }
 
     let passed = all_errors.is_empty();
-    Ok(LintResult { passed, errors: all_errors, warnings: all_warnings })
+    Ok(LintResult {
+        passed,
+        errors: all_errors,
+        warnings: all_warnings,
+    })
 }

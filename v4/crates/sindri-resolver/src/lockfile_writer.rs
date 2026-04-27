@@ -1,14 +1,14 @@
+use crate::error::ResolverError;
+use sindri_core::component::{Backend, ComponentId};
+use sindri_core::lockfile::{Lockfile, ResolvedComponent};
+use sindri_core::registry::ComponentEntry;
+use sindri_core::version::Version;
 use std::fs;
 use std::path::Path;
-use sindri_core::lockfile::{Lockfile, ResolvedComponent};
-use sindri_core::component::{Backend, ComponentId};
-use sindri_core::version::Version;
-use sindri_core::registry::ComponentEntry;
-use crate::error::ResolverError;
 
 /// Compute bom_hash as sha256 of the sindri.yaml content
 pub fn compute_bom_hash(bom_content: &str) -> String {
-    use sha2::{Sha256, Digest};
+    use sha2::{Digest, Sha256};
     let mut hasher = Sha256::new();
     hasher.update(bom_content.as_bytes());
     hex::encode(hasher.finalize())
@@ -30,8 +30,7 @@ pub fn read_lockfile(path: &Path) -> Result<Lockfile, ResolverError> {
         return Err(ResolverError::LockfileStale);
     }
     let content = fs::read_to_string(path)?;
-    serde_json::from_str(&content)
-        .map_err(|e| ResolverError::Serialization(e.to_string()))
+    serde_json::from_str(&content).map_err(|e| ResolverError::Serialization(e.to_string()))
 }
 
 /// Build ResolvedComponent from a closure node

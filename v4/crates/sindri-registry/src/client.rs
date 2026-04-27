@@ -1,8 +1,8 @@
-use std::path::Path;
-use std::time::Duration;
 use crate::cache::RegistryCache;
 use crate::error::RegistryError;
 use crate::index::RegistryIndex;
+use std::path::Path;
+use std::time::Duration;
 
 /// OCI registry client. Fetches index.yaml blobs from OCI registries (ADR-003).
 ///

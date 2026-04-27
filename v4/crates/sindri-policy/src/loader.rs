@@ -1,6 +1,6 @@
+use sindri_core::policy::{AuditConfig, InstallPolicy, PolicyAction, PolicyPreset};
 use std::fs;
 use std::path::{Path, PathBuf};
-use sindri_core::policy::{AuditConfig, InstallPolicy, PolicyAction, PolicyPreset};
 
 /// Source annotation for a policy setting
 #[derive(Debug, Clone)]
@@ -33,15 +33,21 @@ pub fn preset_strict() -> InstallPolicy {
     InstallPolicy {
         preset: PolicyPreset::Strict,
         allowed_licenses: vec![
-            "MIT".into(), "Apache-2.0".into(), "BSD-2-Clause".into(),
-            "BSD-3-Clause".into(), "ISC".into(), "MPL-2.0".into(),
+            "MIT".into(),
+            "Apache-2.0".into(),
+            "BSD-2-Clause".into(),
+            "BSD-3-Clause".into(),
+            "ISC".into(),
+            "MPL-2.0".into(),
         ],
         denied_licenses: vec!["GPL-3.0-only".into(), "AGPL-3.0-only".into()],
         on_unknown_license: Some(PolicyAction::Deny),
         require_signed_registries: Some(true),
         require_checksums: Some(true),
         offline: Some(false),
-        audit: Some(AuditConfig { require_justification: true }),
+        audit: Some(AuditConfig {
+            require_justification: true,
+        }),
     }
 }
 
@@ -72,7 +78,9 @@ pub fn load_effective_policy() -> EffectivePolicy {
                 merge_policy(&mut policy, &global);
                 sources.push((
                     format!("preset: {}", preset_name(&policy.preset)),
-                    PolicySource { file: global_path.to_string_lossy().to_string() },
+                    PolicySource {
+                        file: global_path.to_string_lossy().to_string(),
+                    },
                 ));
             }
         }
@@ -86,7 +94,9 @@ pub fn load_effective_policy() -> EffectivePolicy {
                 merge_policy(&mut policy, &project);
                 sources.push((
                     "project policy".to_string(),
-                    PolicySource { file: "sindri.policy.yaml".to_string() },
+                    PolicySource {
+                        file: "sindri.policy.yaml".to_string(),
+                    },
                 ));
             }
         }
@@ -170,6 +180,9 @@ mod tests {
     #[test]
     fn default_preset_allows_unknown() {
         let policy = preset_default();
-        assert!(matches!(policy.on_unknown_license, Some(PolicyAction::Warn)));
+        assert!(matches!(
+            policy.on_unknown_license,
+            Some(PolicyAction::Warn)
+        ));
     }
 }

@@ -1,7 +1,9 @@
-use std::collections::HashMap;
+use crate::commands::manifest::{
+    address_without_version, find_entry_index, load_manifest, save_manifest,
+};
 use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
 use sindri_core::registry::ComponentEntry;
-use crate::commands::manifest::{load_manifest, save_manifest, find_entry_index, address_without_version};
+use std::collections::HashMap;
 
 pub struct UpgradeArgs {
     pub component: Option<String>,
@@ -37,7 +39,10 @@ pub fn run(args: UpgradeArgs) -> i32 {
     EXIT_SCHEMA_OR_RESOLVE_ERROR
 }
 
-fn check_upgrades(manifest: &sindri_core::manifest::BomManifest, registry: &HashMap<String, ComponentEntry>) -> i32 {
+fn check_upgrades(
+    manifest: &sindri_core::manifest::BomManifest,
+    registry: &HashMap<String, ComponentEntry>,
+) -> i32 {
     let mut upgradeable = 0;
     for comp in &manifest.components {
         let clean = address_without_version(&comp.address);
@@ -118,7 +123,10 @@ fn upgrade_all(
 
     match save_manifest(manifest_path, manifest) {
         Ok(_) => {
-            println!("Upgraded {} component(s). Run `sindri resolve` to update the lockfile.", upgraded);
+            println!(
+                "Upgraded {} component(s). Run `sindri resolve` to update the lockfile.",
+                upgraded
+            );
             EXIT_SUCCESS
         }
         Err(e) => {
@@ -143,9 +151,17 @@ fn load_registry_from_cache() -> HashMap<String, ComponentEntry> {
 
     for entry in entries.flatten() {
         let index_path = entry.path().join("index.yaml");
-        if !index_path.exists() { continue; }
-        let content = match std::fs::read_to_string(&index_path) { Ok(c) => c, Err(_) => continue };
-        let index: sindri_core::registry::RegistryIndex = match serde_yaml::from_str(&content) { Ok(i) => i, Err(_) => continue };
+        if !index_path.exists() {
+            continue;
+        }
+        let content = match std::fs::read_to_string(&index_path) {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
+        let index: sindri_core::registry::RegistryIndex = match serde_yaml::from_str(&content) {
+            Ok(i) => i,
+            Err(_) => continue,
+        };
         for comp in index.components {
             let addr = format!("{}:{}", comp.backend, comp.name);
             map.insert(addr, comp);

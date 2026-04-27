@@ -1,6 +1,6 @@
-use std::path::PathBuf;
 use sindri_core::exit_codes::{EXIT_STALE_LOCKFILE, EXIT_SUCCESS};
 use sindri_core::lockfile::Lockfile;
+use std::path::PathBuf;
 
 pub struct PlanArgs {
     pub target: String,
@@ -19,7 +19,10 @@ pub fn run(args: PlanArgs) -> i32 {
         if args.json {
             eprintln!(r#"{{"error":"STALE_LOCKFILE","fix":"Run sindri resolve"}}"#);
         } else {
-            eprintln!("Lockfile '{}' not found. Run `sindri resolve` first.", lock_name);
+            eprintln!(
+                "Lockfile '{}' not found. Run `sindri resolve` first.",
+                lock_name
+            );
         }
         return EXIT_STALE_LOCKFILE;
     }
@@ -64,9 +67,18 @@ pub fn run(args: PlanArgs) -> i32 {
             .unwrap_or_default()
         );
     } else {
-        println!("Plan for target '{}' ({} component(s)):", lockfile.target, lockfile.components.len());
+        println!(
+            "Plan for target '{}' ({} component(s)):",
+            lockfile.target,
+            lockfile.components.len()
+        );
         for comp in &lockfile.components {
-            println!("  + {} {} ({})", comp.id.to_address(), comp.version, comp.backend.as_str());
+            println!(
+                "  + {} {} ({})",
+                comp.id.to_address(),
+                comp.version,
+                comp.backend.as_str()
+            );
         }
     }
 

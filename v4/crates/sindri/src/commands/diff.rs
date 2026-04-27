@@ -1,6 +1,6 @@
-use std::path::PathBuf;
-use sindri_core::exit_codes::{EXIT_STALE_LOCKFILE, EXIT_SUCCESS, EXIT_ERROR};
+use sindri_core::exit_codes::{EXIT_ERROR, EXIT_STALE_LOCKFILE, EXIT_SUCCESS};
 use sindri_core::lockfile::Lockfile;
+use std::path::PathBuf;
 
 pub struct DiffArgs {
     pub target: String,
@@ -18,7 +18,10 @@ pub fn run(args: DiffArgs) -> i32 {
         if args.json {
             eprintln!(r#"{{"error":"STALE_LOCKFILE"}}"#);
         } else {
-            eprintln!("Lockfile '{}' not found. Run `sindri resolve` first.", lock_name);
+            eprintln!(
+                "Lockfile '{}' not found. Run `sindri resolve` first.",
+                lock_name
+            );
         }
         return EXIT_STALE_LOCKFILE;
     }
@@ -60,7 +63,8 @@ pub fn run(args: DiffArgs) -> i32 {
             // Sprint 7: mark all as "+" (unknown installed state)
             println!(
                 "  ? {} {} (not tracked — run sindri apply to reconcile)",
-                comp.id.to_address(), comp.version
+                comp.id.to_address(),
+                comp.version
             );
         }
     } else {

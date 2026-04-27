@@ -266,11 +266,21 @@ fn main() {
     let cli = Cli::parse();
     let code = match cli.command {
         Some(Commands::Validate { path, json, .. }) => validate::run(&path, json),
-        Some(Commands::Ls { registry, backend, installed, outdated, json, refresh }) => {
-            commands::ls::run(commands::ls::LsArgs {
-                registry, backend, installed, outdated, json, refresh,
-            })
-        }
+        Some(Commands::Ls {
+            registry,
+            backend,
+            installed,
+            outdated,
+            json,
+            refresh,
+        }) => commands::ls::run(commands::ls::LsArgs {
+            registry,
+            backend,
+            installed,
+            outdated,
+            json,
+            refresh,
+        }),
         Some(Commands::Registry { cmd }) => {
             let registry_cmd = match cmd {
                 RegistrySubcmds::Refresh { name, url } => RegistryCmd::Refresh { name, url },
@@ -280,29 +290,50 @@ fn main() {
             };
             commands::registry::run(registry_cmd)
         }
-        Some(Commands::Resolve { manifest, offline, refresh, strict, explain, target }) => {
-            commands::resolve::run(commands::resolve::ResolveArgs {
-                manifest,
-                offline,
-                refresh,
-                strict,
-                explain,
-                target,
-                json: false,
-            })
-        }
-        Some(Commands::Bom { format, target, output }) => {
-            commands::bom::run(commands::bom::BomArgs { format, target, output })
-        }
+        Some(Commands::Resolve {
+            manifest,
+            offline,
+            refresh,
+            strict,
+            explain,
+            target,
+        }) => commands::resolve::run(commands::resolve::ResolveArgs {
+            manifest,
+            offline,
+            refresh,
+            strict,
+            explain,
+            target,
+            json: false,
+        }),
+        Some(Commands::Bom {
+            format,
+            target,
+            output,
+        }) => commands::bom::run(commands::bom::BomArgs {
+            format,
+            target,
+            output,
+        }),
         Some(Commands::Log { last, json }) => {
             commands::log::run_log(commands::log::LogArgs { last, json })
         }
-        Some(Commands::Doctor { target, fix, components }) => {
-            commands::doctor::run(commands::doctor::DoctorArgs { target, fix, components })
-        }
+        Some(Commands::Doctor {
+            target,
+            fix,
+            components,
+        }) => commands::doctor::run(commands::doctor::DoctorArgs {
+            target,
+            fix,
+            components,
+        }),
         Some(Commands::Target { cmd }) => {
             let tc = match cmd {
-                TargetSubcmds::Add { name, kind } => TargetCmd::Add { name, kind, opts: Vec::new() },
+                TargetSubcmds::Add { name, kind } => TargetCmd::Add {
+                    name,
+                    kind,
+                    opts: Vec::new(),
+                },
                 TargetSubcmds::Ls => TargetCmd::Ls,
                 TargetSubcmds::Status { name } => TargetCmd::Status { name },
                 TargetSubcmds::Create { name } => TargetCmd::Create { name },
@@ -316,49 +347,113 @@ fn main() {
             let policy_cmd = match cmd {
                 PolicySubcmds::Use { preset } => PolicyCmd::Use { preset },
                 PolicySubcmds::Show => PolicyCmd::Show,
-                PolicySubcmds::AllowLicense { spdx, reason } => PolicyCmd::AllowLicense { spdx, reason },
+                PolicySubcmds::AllowLicense { spdx, reason } => {
+                    PolicyCmd::AllowLicense { spdx, reason }
+                }
             };
             commands::policy::run(policy_cmd)
         }
-        Some(Commands::Init { template, name, policy, non_interactive, force }) => {
-            commands::init::run(commands::init::InitArgs { template, name, policy, non_interactive, force })
-        }
-        Some(Commands::Add { address, manifest, dry_run, apply }) => {
-            commands::add::run(commands::add::AddArgs { address, dry_run, apply, manifest })
-        }
+        Some(Commands::Init {
+            template,
+            name,
+            policy,
+            non_interactive,
+            force,
+        }) => commands::init::run(commands::init::InitArgs {
+            template,
+            name,
+            policy,
+            non_interactive,
+            force,
+        }),
+        Some(Commands::Add {
+            address,
+            manifest,
+            dry_run,
+            apply,
+        }) => commands::add::run(commands::add::AddArgs {
+            address,
+            dry_run,
+            apply,
+            manifest,
+        }),
         Some(Commands::Remove { address, manifest }) => {
             commands::remove::run(commands::remove::RemoveArgs { address, manifest })
         }
-        Some(Commands::Pin { address, version, manifest }) => {
-            commands::pin::run_pin(commands::pin::PinArgs { address, version, manifest })
-        }
+        Some(Commands::Pin {
+            address,
+            version,
+            manifest,
+        }) => commands::pin::run_pin(commands::pin::PinArgs {
+            address,
+            version,
+            manifest,
+        }),
         Some(Commands::Unpin { address, manifest }) => {
             commands::pin::run_unpin(commands::pin::UnpinArgs { address, manifest })
         }
-        Some(Commands::Upgrade { component, all, check, manifest }) => {
-            commands::upgrade::run(commands::upgrade::UpgradeArgs { component, all, check, manifest })
-        }
+        Some(Commands::Upgrade {
+            component,
+            all,
+            check,
+            manifest,
+        }) => commands::upgrade::run(commands::upgrade::UpgradeArgs {
+            component,
+            all,
+            check,
+            manifest,
+        }),
         Some(Commands::Plan { target, json }) => {
             commands::plan::run(commands::plan::PlanArgs { target, json })
         }
         Some(Commands::Diff { target, json }) => {
             commands::diff::run(commands::diff::DiffArgs { target, json })
         }
-        Some(Commands::Search { query, registry, backend, json }) => {
-            commands::search::run(commands::search::SearchArgs { query, registry, backend, json })
-        }
-        Some(Commands::Show { address, versions, json }) => {
-            commands::show::run(commands::show::ShowArgs { address, versions, json })
-        }
-        Some(Commands::Graph { address, format, reverse }) => {
-            commands::graph::run_graph(commands::graph::GraphArgs { address, format, reverse })
-        }
-        Some(Commands::Explain { component, in_collection }) => {
-            commands::graph::run_explain(commands::graph::ExplainArgs { component, in_collection })
-        }
-        Some(Commands::Apply { yes, dry_run, target }) => {
-            commands::apply::run(commands::apply::ApplyArgs { yes, dry_run, target })
-        }
+        Some(Commands::Search {
+            query,
+            registry,
+            backend,
+            json,
+        }) => commands::search::run(commands::search::SearchArgs {
+            query,
+            registry,
+            backend,
+            json,
+        }),
+        Some(Commands::Show {
+            address,
+            versions,
+            json,
+        }) => commands::show::run(commands::show::ShowArgs {
+            address,
+            versions,
+            json,
+        }),
+        Some(Commands::Graph {
+            address,
+            format,
+            reverse,
+        }) => commands::graph::run_graph(commands::graph::GraphArgs {
+            address,
+            format,
+            reverse,
+        }),
+        Some(Commands::Explain {
+            component,
+            in_collection,
+        }) => commands::graph::run_explain(commands::graph::ExplainArgs {
+            component,
+            in_collection,
+        }),
+        Some(Commands::Apply {
+            yes,
+            dry_run,
+            target,
+        }) => commands::apply::run(commands::apply::ApplyArgs {
+            yes,
+            dry_run,
+            target,
+        }),
         None => {
             use clap::CommandFactory;
             Cli::command().print_help().ok();

@@ -1,11 +1,11 @@
 pub mod add;
 pub mod apply;
 pub mod bom;
-pub mod doctor;
-pub mod log;
 pub mod diff;
+pub mod doctor;
 pub mod graph;
 pub mod init;
+pub mod log;
 pub mod ls;
 pub mod manifest;
 pub mod pin;

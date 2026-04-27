@@ -1,6 +1,6 @@
-use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
+use crate::commands::manifest::{find_entry_index, load_manifest, save_manifest};
 use sindri_core::component::BomEntry;
-use crate::commands::manifest::{load_manifest, save_manifest, find_entry_index};
+use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
 
 pub struct AddArgs {
     pub address: String,
@@ -31,10 +31,7 @@ pub fn run(args: AddArgs) -> i32 {
     // Check for duplicate
     let clean_addr = crate::commands::manifest::address_without_version(&args.address);
     if find_entry_index(&manifest, &clean_addr).is_some() {
-        eprintln!(
-            "Component '{}' is already in sindri.yaml",
-            clean_addr
-        );
+        eprintln!("Component '{}' is already in sindri.yaml", clean_addr);
         eprintln!("Use `sindri upgrade {}` to change its version.", clean_addr);
         return EXIT_SCHEMA_OR_RESOLVE_ERROR;
     }

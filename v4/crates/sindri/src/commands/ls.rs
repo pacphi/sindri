@@ -16,7 +16,9 @@ pub fn run(args: LsArgs) -> i32 {
 
     if !cache_dir.exists() {
         if args.json {
-            println!(r#"{{"components":[],"hint":"Run sindri registry refresh <name> <url> first"}}"#);
+            println!(
+                r#"{{"components":[],"hint":"Run sindri registry refresh <name> <url> first"}}"#
+            );
         } else {
             eprintln!("No registry cache found. Run `sindri registry refresh <name> <url>` first.");
         }
@@ -77,15 +79,26 @@ pub fn run(args: LsArgs) -> i32 {
             );
         } else {
             println!("\nRegistry: {}", registry_name);
-            println!("{:<30} {:<12} {:<12} KIND", "COMPONENT", "BACKEND", "LATEST");
+            println!(
+                "{:<30} {:<12} {:<12} KIND",
+                "COMPONENT", "BACKEND", "LATEST"
+            );
             println!("{}", "-".repeat(70));
             for comp in components {
                 let name = comp.get("name").and_then(|v| v.as_str()).unwrap_or("?");
                 let backend = comp.get("backend").and_then(|v| v.as_str()).unwrap_or("?");
                 let latest = comp.get("latest").and_then(|v| v.as_str()).unwrap_or("?");
-                let kind = comp.get("kind").and_then(|v| v.as_str()).unwrap_or("component");
+                let kind = comp
+                    .get("kind")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("component");
 
-                if args.backend.as_deref().map(|b| b == backend).unwrap_or(true) {
+                if args
+                    .backend
+                    .as_deref()
+                    .map(|b| b == backend)
+                    .unwrap_or(true)
+                {
                     println!("{:<30} {:<12} {:<12} {}", name, backend, latest, kind);
                 }
             }

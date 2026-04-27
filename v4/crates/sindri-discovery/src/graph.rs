@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use sindri_core::registry::ComponentEntry;
+use std::collections::HashMap;
 
 /// Render a dependency graph as a text tree (Sprint 8)
 pub fn render_tree(
@@ -63,10 +63,7 @@ fn render_reverse_tree(target: &str, registry: &HashMap<String, ComponentEntry>)
 }
 
 /// Render a Mermaid graph diagram
-pub fn render_mermaid(
-    roots: &[&str],
-    registry: &HashMap<String, ComponentEntry>,
-) -> String {
+pub fn render_mermaid(roots: &[&str], registry: &HashMap<String, ComponentEntry>) -> String {
     let mut lines = vec!["graph TD".to_string()];
     let mut visited = std::collections::HashSet::new();
 

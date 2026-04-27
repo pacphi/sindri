@@ -1,7 +1,7 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use crate::error::ResolverError;
 use sindri_core::component::ComponentId;
 use sindri_core::registry::ComponentEntry;
-use crate::error::ResolverError;
+use std::collections::{HashMap, HashSet, VecDeque};
 
 /// A node in the expanded dependency closure
 #[derive(Debug, Clone)]
@@ -40,10 +40,7 @@ pub fn expand_closure(
 
         let (backend, name) = parse_address(&address)?;
         let entry = registry.get(&address).ok_or_else(|| {
-            ResolverError::NotFound(format!(
-                "Component '{}' not found in registry",
-                address
-            ))
+            ResolverError::NotFound(format!("Component '{}' not found in registry", address))
         })?;
 
         let id = ComponentId {
@@ -61,7 +58,11 @@ pub fn expand_closure(
             }
         }
 
-        result.push(ClosureNode { id, entry: entry.clone(), depth });
+        result.push(ClosureNode {
+            id,
+            entry: entry.clone(),
+            depth,
+        });
         in_stack.remove(&address);
     }
 
@@ -85,7 +86,9 @@ pub fn expand_closure(
     Ok(result)
 }
 
-fn parse_address(address: &str) -> Result<(sindri_core::component::Backend, String), ResolverError> {
+fn parse_address(
+    address: &str,
+) -> Result<(sindri_core::component::Backend, String), ResolverError> {
     let id = ComponentId::parse(address).ok_or_else(|| {
         ResolverError::NotFound(format!("Invalid component address: {}", address))
     })?;

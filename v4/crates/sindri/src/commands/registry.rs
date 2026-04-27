@@ -1,5 +1,5 @@
-use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
 use sindri_core::component::ComponentManifest;
+use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
 
 pub enum RegistryCmd {
     Refresh { name: String, url: String },
@@ -52,7 +52,10 @@ fn refresh(name: &str, url: &str) -> i32 {
             EXIT_SCHEMA_OR_RESOLVE_ERROR
         }
         Err(e) => {
-            eprintln!("curl not available: {}. Install curl to fetch registries.", e);
+            eprintln!(
+                "curl not available: {}. Install curl to fetch registries.",
+                e
+            );
             EXIT_SCHEMA_OR_RESOLVE_ERROR
         }
     }
@@ -123,7 +126,11 @@ fn lint_file(p: &std::path::Path, json: bool) -> i32 {
         Ok(m) => m,
         Err(e) => {
             if json {
-                eprintln!(r#"{{"error":"PARSE_ERROR","path":"{}","detail":"{}"}}"#, p.display(), e);
+                eprintln!(
+                    r#"{{"error":"PARSE_ERROR","path":"{}","detail":"{}"}}"#,
+                    p.display(),
+                    e
+                );
             } else {
                 eprintln!("{}: FAILED (parse error: {})", p.display(), e);
             }
@@ -137,9 +144,17 @@ fn lint_file(p: &std::path::Path, json: bool) -> i32 {
         errors.push("LINT_EMPTY_PLATFORMS: `platforms` must not be empty".into());
     }
     if manifest.metadata.license.trim().is_empty() {
-        errors.push("LINT_MISSING_LICENSE: `metadata.license` must be a valid SPDX identifier".into());
+        errors.push(
+            "LINT_MISSING_LICENSE: `metadata.license` must be a valid SPDX identifier".into(),
+        );
     }
-    if manifest.install.binary.as_ref().map(|b| b.checksums.is_empty()).unwrap_or(false) {
+    if manifest
+        .install
+        .binary
+        .as_ref()
+        .map(|b| b.checksums.is_empty())
+        .unwrap_or(false)
+    {
         errors.push("LINT_MISSING_CHECKSUMS: `binary` components must have `checksums`".into());
     }
     if let Some(cap) = &manifest.capabilities.collision_handling {
@@ -161,12 +176,16 @@ fn lint_file(p: &std::path::Path, json: bool) -> i32 {
         EXIT_SUCCESS
     } else {
         if json {
-            let errs: Vec<serde_json::Value> =
-                errors.iter().map(|e| serde_json::json!({"error": e})).collect();
+            let errs: Vec<serde_json::Value> = errors
+                .iter()
+                .map(|e| serde_json::json!({"error": e}))
+                .collect();
             println!(
                 "{}",
-                serde_json::to_string(&serde_json::json!({"valid":false,"path":p.display().to_string(),"errors":errs}))
-                    .unwrap_or_default()
+                serde_json::to_string(
+                    &serde_json::json!({"valid":false,"path":p.display().to_string(),"errors":errs})
+                )
+                .unwrap_or_default()
             );
         } else {
             eprintln!("{}: FAILED", p.display());
@@ -197,7 +216,11 @@ fn lint_dir(dir: &std::path::Path, json: bool) -> i32 {
         }
     }
 
-    if any_failed { EXIT_SCHEMA_OR_RESOLVE_ERROR } else { EXIT_SUCCESS }
+    if any_failed {
+        EXIT_SCHEMA_OR_RESOLVE_ERROR
+    } else {
+        EXIT_SUCCESS
+    }
 }
 
 fn trust(name: &str, signer: &str) -> i32 {
@@ -233,7 +256,10 @@ fn trust(name: &str, signer: &str) -> i32 {
 fn fetch_checksums(path: &str) -> i32 {
     // Sprint 2: stub — downloads assets and computes sha256
     // Full implementation uses sha2 crate + reqwest
-    println!("fetch-checksums for {}: stub (Sprint 2 — full download in Sprint 6)", path);
+    println!(
+        "fetch-checksums for {}: stub (Sprint 2 — full download in Sprint 6)",
+        path
+    );
     EXIT_SUCCESS
 }
 

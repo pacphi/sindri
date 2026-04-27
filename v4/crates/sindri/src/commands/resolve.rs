@@ -1,9 +1,9 @@
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
 use sindri_core::platform::Platform;
 use sindri_core::policy::InstallPolicy;
 use sindri_core::registry::ComponentEntry;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
 pub struct ResolveArgs {
     pub manifest: String,
@@ -19,7 +19,10 @@ pub fn run(args: ResolveArgs) -> i32 {
     let manifest_path = PathBuf::from(&args.manifest);
     if !manifest_path.exists() {
         if args.json {
-            eprintln!(r#"{{"error":"FILE_NOT_FOUND","path":"{}","fix":"Create sindri.yaml or run sindri init"}}"#, args.manifest);
+            eprintln!(
+                r#"{{"error":"FILE_NOT_FOUND","path":"{}","fix":"Create sindri.yaml or run sindri init"}}"#,
+                args.manifest
+            );
         } else {
             eprintln!("Manifest not found: {}", args.manifest);
             eprintln!("Hint: run `sindri init` to create a sindri.yaml");
@@ -33,7 +36,10 @@ pub fn run(args: ResolveArgs) -> i32 {
     } else {
         format!("sindri.{}.lock", args.target)
     };
-    let lockfile_path = manifest_path.parent().unwrap_or(Path::new(".")).join(&lock_name);
+    let lockfile_path = manifest_path
+        .parent()
+        .unwrap_or(Path::new("."))
+        .join(&lock_name);
 
     // Load registry from cache
     let registry = load_registry_from_cache();
@@ -82,7 +88,12 @@ pub fn run(args: ResolveArgs) -> i32 {
                     lockfile_path.display()
                 );
                 for c in &lockfile.components {
-                    println!("  {} {} ({})", c.id.to_address(), c.version, c.backend.as_str());
+                    println!(
+                        "  {} {} ({})",
+                        c.id.to_address(),
+                        c.version,
+                        c.backend.as_str()
+                    );
                 }
             }
             EXIT_SUCCESS

@@ -1,7 +1,7 @@
 /// Full doctor implementation (Sprint 12)
 use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
-use sindri_targets::LocalTarget;
 use sindri_targets::traits::Target;
+use sindri_targets::LocalTarget;
 
 pub struct DoctorArgs {
     pub target: Option<String>,
@@ -44,7 +44,9 @@ pub fn run(args: DoctorArgs) -> i32 {
         .join("cache")
         .join("registries");
     if cache_dir.exists() {
-        let count = std::fs::read_dir(&cache_dir).map(|d| d.count()).unwrap_or(0);
+        let count = std::fs::read_dir(&cache_dir)
+            .map(|d| d.count())
+            .unwrap_or(0);
         if count > 0 {
             println!("  [OK]   {} registry/registries cached", count);
         } else {
@@ -68,8 +70,11 @@ pub fn run(args: DoctorArgs) -> i32 {
     // 5. Mise availability
     println!("\nBackend availability:");
     for (backend, binary) in &[
-        ("mise", "mise"), ("npm", "npm"), ("brew", "brew"),
-        ("docker", "docker"), ("git", "git"),
+        ("mise", "mise"),
+        ("npm", "npm"),
+        ("brew", "brew"),
+        ("docker", "docker"),
+        ("git", "git"),
     ] {
         if which(binary).is_some() {
             println!("  [OK]   {} ({})", backend, binary);
@@ -91,7 +96,11 @@ fn which(name: &str) -> Option<std::path::PathBuf> {
     std::env::var_os("PATH").and_then(|paths| {
         std::env::split_paths(&paths).find_map(|d| {
             let c = d.join(name);
-            if c.is_file() { Some(c) } else { None }
+            if c.is_file() {
+                Some(c)
+            } else {
+                None
+            }
         })
     })
 }

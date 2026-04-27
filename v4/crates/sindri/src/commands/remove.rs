@@ -1,5 +1,5 @@
+use crate::commands::manifest::{find_entry_index, load_manifest, save_manifest};
 use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
-use crate::commands::manifest::{load_manifest, save_manifest, find_entry_index};
 
 pub struct RemoveArgs {
     pub address: String,
@@ -25,7 +25,8 @@ pub fn run(args: RemoveArgs) -> i32 {
 
     // Check if other components depend on this one
     let addr_clean = crate::commands::manifest::address_without_version(&args.address);
-    let dependents: Vec<String> = manifest.components
+    let dependents: Vec<String> = manifest
+        .components
         .iter()
         .enumerate()
         .filter(|(i, _)| *i != idx)

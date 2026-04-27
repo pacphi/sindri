@@ -1,6 +1,6 @@
+use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
 use std::fs;
 use std::path::Path;
-use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
 
 pub struct InitArgs {
     pub template: Option<String>,

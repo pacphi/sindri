@@ -1,19 +1,18 @@
 //! Shared helpers for reading/modifying sindri.yaml
 
-use std::fs;
 use sindri_core::manifest::BomManifest;
+use std::fs;
 
 pub fn load_manifest(path: &str) -> Result<(BomManifest, String), String> {
-    let content = fs::read_to_string(path)
-        .map_err(|e| format!("Cannot read {}: {}", path, e))?;
+    let content = fs::read_to_string(path).map_err(|e| format!("Cannot read {}: {}", path, e))?;
     let manifest = serde_yaml::from_str::<BomManifest>(&content)
         .map_err(|e| format!("Parse error in {}: {}", path, e))?;
     Ok((manifest, content))
 }
 
 pub fn save_manifest(path: &str, manifest: &BomManifest) -> Result<(), String> {
-    let yaml = serde_yaml::to_string(manifest)
-        .map_err(|e| format!("Serialization error: {}", e))?;
+    let yaml =
+        serde_yaml::to_string(manifest).map_err(|e| format!("Serialization error: {}", e))?;
 
     // Preserve the YAML-LSP pragma if the original had one
     let existing = fs::read_to_string(path).unwrap_or_default();
@@ -32,10 +31,7 @@ pub fn save_manifest(path: &str, manifest: &BomManifest) -> Result<(), String> {
 }
 
 fn extract_pragma(content: &str) -> String {
-    let lines: Vec<&str> = content
-        .lines()
-        .take_while(|l| l.starts_with('#'))
-        .collect();
+    let lines: Vec<&str> = content.lines().take_while(|l| l.starts_with('#')).collect();
     if lines.is_empty() {
         String::new()
     } else {

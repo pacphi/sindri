@@ -21,7 +21,9 @@ impl RegistryIndex {
 
     /// Find a component by backend:name address
     pub fn find(&self, backend: &str, name: &str) -> Option<&ComponentEntry> {
-        self.components.iter().find(|c| c.backend == backend && c.name == name)
+        self.components
+            .iter()
+            .find(|c| c.backend == backend && c.name == name)
     }
 
     pub fn find_by_name(&self, name: &str) -> Vec<&ComponentEntry> {
