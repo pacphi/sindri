@@ -4,6 +4,6 @@ pub mod explain;
 pub mod graph;
 pub mod search;
 
-pub use search::{search, SearchResult, SearchFilters};
-pub use graph::{render_tree, render_mermaid};
 pub use explain::{explain_path, render_explain};
+pub use graph::{render_mermaid, render_tree};
+pub use search::{search, SearchFilters, SearchResult};

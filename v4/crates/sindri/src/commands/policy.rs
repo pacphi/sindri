@@ -2,9 +2,14 @@ use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
 use sindri_core::policy::PolicyPreset;
 
 pub enum PolicyCmd {
-    Use { preset: String },
+    Use {
+        preset: String,
+    },
     Show,
-    AllowLicense { spdx: String, reason: Option<String> },
+    AllowLicense {
+        spdx: String,
+        reason: Option<String>,
+    },
 }
 
 pub fn run(cmd: PolicyCmd) -> i32 {
@@ -21,7 +26,10 @@ fn use_preset(preset: &str) -> i32 {
         "strict" => PolicyPreset::Strict,
         "offline" => PolicyPreset::Offline,
         other => {
-            eprintln!("Unknown preset '{}'. Valid presets: default, strict, offline", other);
+            eprintln!(
+                "Unknown preset '{}'. Valid presets: default, strict, offline",
+                other
+            );
             return EXIT_SCHEMA_OR_RESOLVE_ERROR;
         }
     };
@@ -44,13 +52,39 @@ fn show_policy() -> i32 {
 
     println!("Effective policy:");
     println!("  preset:                  {}", preset_name(&p.preset));
-    println!("  allowed_licenses:        {}", if p.allowed_licenses.is_empty() { "(any)".into() } else { p.allowed_licenses.join(", ") });
-    println!("  denied_licenses:         {}", if p.denied_licenses.is_empty() { "(none)".into() } else { p.denied_licenses.join(", ") });
+    println!(
+        "  allowed_licenses:        {}",
+        if p.allowed_licenses.is_empty() {
+            "(any)".into()
+        } else {
+            p.allowed_licenses.join(", ")
+        }
+    );
+    println!(
+        "  denied_licenses:         {}",
+        if p.denied_licenses.is_empty() {
+            "(none)".into()
+        } else {
+            p.denied_licenses.join(", ")
+        }
+    );
     println!("  on_unknown_license:      {:?}", p.on_unknown_license);
-    println!("  require_signed_registries: {}", p.require_signed_registries.unwrap_or(false));
-    println!("  require_checksums:       {}", p.require_checksums.unwrap_or(false));
+    println!(
+        "  require_signed_registries: {}",
+        p.require_signed_registries.unwrap_or(false)
+    );
+    println!(
+        "  require_checksums:       {}",
+        p.require_checksums.unwrap_or(false)
+    );
     println!("  offline:                 {}", p.offline.unwrap_or(false));
-    println!("  audit.require_justification: {}", p.audit.as_ref().map(|a| a.require_justification).unwrap_or(false));
+    println!(
+        "  audit.require_justification: {}",
+        p.audit
+            .as_ref()
+            .map(|a| a.require_justification)
+            .unwrap_or(false)
+    );
 
     if !effective.sources.is_empty() {
         println!("\nSources:");

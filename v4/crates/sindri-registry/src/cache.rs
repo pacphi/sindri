@@ -1,7 +1,7 @@
+use crate::error::RegistryError;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
-use crate::error::RegistryError;
 
 /// Content-addressed blob cache at ~/.sindri/cache/registries/ (ADR-003)
 pub struct RegistryCache {

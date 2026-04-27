@@ -1,14 +1,28 @@
 use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
-use sindri_targets::{LocalTarget, DockerTarget, Target};
+use sindri_targets::{DockerTarget, LocalTarget, Target};
 
 pub enum TargetCmd {
-    Add { name: String, kind: String, opts: Vec<(String, String)> },
+    Add {
+        name: String,
+        kind: String,
+        opts: Vec<(String, String)>,
+    },
     Ls,
-    Status { name: String },
-    Create { name: String },
-    Destroy { name: String },
-    Doctor { name: Option<String> },
-    Shell { name: String },
+    Status {
+        name: String,
+    },
+    Create {
+        name: String,
+    },
+    Destroy {
+        name: String,
+    },
+    Doctor {
+        name: Option<String>,
+    },
+    Shell {
+        name: String,
+    },
 }
 
 pub fn run(cmd: TargetCmd) -> i32 {
@@ -26,7 +40,10 @@ pub fn run(cmd: TargetCmd) -> i32 {
 fn add_target(name: &str, kind: &str, _opts: &[(String, String)]) -> i32 {
     // Sprint 9: write to sindri.yaml targets: section
     // Full implementation requires manifest read/write
-    println!("Target '{}' (kind: {}) added — update sindri.yaml targets: section manually for now", name, kind);
+    println!(
+        "Target '{}' (kind: {}) added — update sindri.yaml targets: section manually for now",
+        name, kind
+    );
     EXIT_SUCCESS
 }
 
@@ -45,7 +62,13 @@ fn status_target(name: &str) -> i32 {
             Ok(p) => {
                 println!("Target: local");
                 println!("  Platform: {}", p.platform.triple());
-                println!("  System PM: {}", p.capabilities.system_package_manager.as_deref().unwrap_or("none"));
+                println!(
+                    "  System PM: {}",
+                    p.capabilities
+                        .system_package_manager
+                        .as_deref()
+                        .unwrap_or("none")
+                );
                 println!("  Docker: {}", p.capabilities.has_docker);
             }
             Err(e) => eprintln!("Error: {}", e),
@@ -124,9 +147,16 @@ fn shell(name: &str) -> i32 {
         let status = std::process::Command::new(&shell)
             .status()
             .unwrap_or_else(|_| std::process::exit(1));
-        if status.success() { EXIT_SUCCESS } else { EXIT_SCHEMA_OR_RESOLVE_ERROR }
+        if status.success() {
+            EXIT_SUCCESS
+        } else {
+            EXIT_SCHEMA_OR_RESOLVE_ERROR
+        }
     } else {
-        eprintln!("Interactive shell for target '{}': sprint 10 (cloud targets)", name);
+        eprintln!(
+            "Interactive shell for target '{}': sprint 10 (cloud targets)",
+            name
+        );
         EXIT_SCHEMA_OR_RESOLVE_ERROR
     }
 }

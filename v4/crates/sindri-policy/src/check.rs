@@ -12,7 +12,12 @@ pub struct PolicyCheckResult {
 
 impl PolicyCheckResult {
     pub fn ok() -> Self {
-        PolicyCheckResult { allowed: true, code: "OK".into(), message: "Allowed".into(), fix: None }
+        PolicyCheckResult {
+            allowed: true,
+            code: "OK".into(),
+            message: "Allowed".into(),
+            fix: None,
+        }
     }
 
     pub fn deny(code: &str, msg: &str, fix: Option<&str>) -> Self {
@@ -50,7 +55,10 @@ pub fn check_license(license: &str, policy: &InstallPolicy) -> PolicyCheckResult
 
     // Unknown license handling
     if license.trim().is_empty() {
-        let action = policy.on_unknown_license.as_ref().unwrap_or(&PolicyAction::Warn);
+        let action = policy
+            .on_unknown_license
+            .as_ref()
+            .unwrap_or(&PolicyAction::Warn);
         match action {
             PolicyAction::Deny => {
                 return PolicyCheckResult::deny(
@@ -83,7 +91,7 @@ pub fn check_closure(entries: &[&ComponentEntry], policy: &InstallPolicy) -> Pol
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::loader::{preset_strict, preset_default};
+    use crate::loader::{preset_default, preset_strict};
 
     #[test]
     fn strict_denies_gpl() {

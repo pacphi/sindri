@@ -20,12 +20,20 @@ pub enum MatchField {
 /// Fuzzy search across the registry index with relevance scoring (ADR-011, Sprint 8)
 ///
 /// Score: exact name (100) > backend:name (80) > tag (60) > description (40) > fuzzy (20)
-pub fn search(query: &str, entries: &[ComponentEntry], filters: &SearchFilters) -> Vec<SearchResult> {
+pub fn search(
+    query: &str,
+    entries: &[ComponentEntry],
+    filters: &SearchFilters,
+) -> Vec<SearchResult> {
     let q = query.to_lowercase();
     let mut results: Vec<SearchResult> = entries
         .iter()
         .filter(|e| {
-            filters.backend.as_ref().map(|b| &e.backend == b).unwrap_or(true)
+            filters
+                .backend
+                .as_ref()
+                .map(|b| &e.backend == b)
+                .unwrap_or(true)
         })
         .filter_map(|entry| score_entry(entry, &q))
         .collect();
@@ -41,24 +49,48 @@ fn score_entry(entry: &ComponentEntry, query: &str) -> Option<SearchResult> {
     let addr = format!("{}:{}", entry.backend, entry.name).to_lowercase();
 
     if name == query {
-        return Some(SearchResult { entry: entry.clone(), score: 100, match_field: MatchField::ExactName });
+        return Some(SearchResult {
+            entry: entry.clone(),
+            score: 100,
+            match_field: MatchField::ExactName,
+        });
     }
     if addr == query {
-        return Some(SearchResult { entry: entry.clone(), score: 90, match_field: MatchField::ExactName });
+        return Some(SearchResult {
+            entry: entry.clone(),
+            score: 90,
+            match_field: MatchField::ExactName,
+        });
     }
     if name.starts_with(query) || name.contains(query) {
-        return Some(SearchResult { entry: entry.clone(), score: 80, match_field: MatchField::ExactName });
+        return Some(SearchResult {
+            entry: entry.clone(),
+            score: 80,
+            match_field: MatchField::ExactName,
+        });
     }
     if addr.contains(query) {
-        return Some(SearchResult { entry: entry.clone(), score: 70, match_field: MatchField::Backend });
+        return Some(SearchResult {
+            entry: entry.clone(),
+            score: 70,
+            match_field: MatchField::Backend,
+        });
     }
     if desc.contains(query) {
-        return Some(SearchResult { entry: entry.clone(), score: 40, match_field: MatchField::Description });
+        return Some(SearchResult {
+            entry: entry.clone(),
+            score: 40,
+            match_field: MatchField::Description,
+        });
     }
     // Fuzzy: count matching chars
     let fuzzy_score = fuzzy_match(&name, query);
     if fuzzy_score > 0 {
-        return Some(SearchResult { entry: entry.clone(), score: fuzzy_score as u32, match_field: MatchField::Fuzzy });
+        return Some(SearchResult {
+            entry: entry.clone(),
+            score: fuzzy_score as u32,
+            match_field: MatchField::Fuzzy,
+        });
     }
     None
 }
@@ -74,7 +106,11 @@ fn fuzzy_match(text: &str, query: &str) -> usize {
             score += 1;
         }
     }
-    if qi == query_chars.len() && score > 2 { score } else { 0 }
+    if qi == query_chars.len() && score > 2 {
+        score
+    } else {
+        0
+    }
 }
 
 #[derive(Default)]
@@ -116,9 +152,7 @@ mod tests {
 
     #[test]
     fn description_match_found() {
-        let entries = vec![
-            make_entry("binary", "gh", "GitHub CLI tool"),
-        ];
+        let entries = vec![make_entry("binary", "gh", "GitHub CLI tool")];
         let results = search("github", &entries, &SearchFilters::default());
         assert!(!results.is_empty());
         assert!(matches!(results[0].match_field, MatchField::Description));

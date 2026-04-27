@@ -1,7 +1,7 @@
 /// StatusLedger — sindri log / sindri ledger (Sprint 12, ADR-007)
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
 use std::path::PathBuf;
-use sindri_core::exit_codes::{EXIT_SUCCESS, EXIT_SCHEMA_OR_RESOLVE_ERROR};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LedgerEvent {
@@ -27,7 +27,10 @@ pub fn append_event(event: &LedgerEvent) -> Result<(), std::io::Error> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    let mut f = std::fs::OpenOptions::new().create(true).append(true).open(&path)?;
+    let mut f = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&path)?;
     writeln!(f, "{}", serde_json::to_string(event).unwrap_or_default())
 }
 
@@ -45,7 +48,10 @@ pub fn run_log(args: LogArgs) -> i32 {
 
     let content = match std::fs::read_to_string(&path) {
         Ok(c) => c,
-        Err(e) => { eprintln!("Cannot read ledger: {}", e); return EXIT_SCHEMA_OR_RESOLVE_ERROR; }
+        Err(e) => {
+            eprintln!("Cannot read ledger: {}", e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
     };
 
     let mut events: Vec<LedgerEvent> = content
@@ -64,7 +70,10 @@ pub fn run_log(args: LogArgs) -> i32 {
     }
 
     if args.json {
-        println!("{}", serde_json::to_string_pretty(&events).unwrap_or_default());
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&events).unwrap_or_default()
+        );
     } else {
         for e in &events {
             let status = if e.success { "OK" } else { "FAIL" };

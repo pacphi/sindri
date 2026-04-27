@@ -1,8 +1,8 @@
-use std::fs;
-use std::path::PathBuf;
 use crate::error::RegistryError;
 use crate::index::RegistryIndex;
 use sindri_core::component::ComponentManifest;
+use std::fs;
+use std::path::PathBuf;
 
 /// Local registry loader for development (registry:local:/path protocol, ADR-003)
 pub struct LocalRegistry {
@@ -11,7 +11,9 @@ pub struct LocalRegistry {
 
 impl LocalRegistry {
     pub fn new(path: &str) -> Self {
-        LocalRegistry { root: PathBuf::from(path) }
+        LocalRegistry {
+            root: PathBuf::from(path),
+        }
     }
 
     pub fn load_index(&self) -> Result<RegistryIndex, RegistryError> {
@@ -35,6 +37,10 @@ impl LocalRegistry {
 
     pub fn list_components(&self) -> Result<Vec<(String, String)>, RegistryError> {
         let index = self.load_index()?;
-        Ok(index.components.iter().map(|c| (c.backend.clone(), c.name.clone())).collect())
+        Ok(index
+            .components
+            .iter()
+            .map(|c| (c.backend.clone(), c.name.clone()))
+            .collect())
     }
 }

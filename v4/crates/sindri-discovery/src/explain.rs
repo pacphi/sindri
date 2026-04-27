@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use sindri_core::registry::ComponentEntry;
+use std::collections::HashMap;
 
 /// Find the dependency path from a collection to a target component (like `npm why`)
 pub fn explain_path(

@@ -1,5 +1,5 @@
-use sindri_core::version::{Version, VersionSpec};
 use crate::error::ResolverError;
+use sindri_core::version::{Version, VersionSpec};
 
 /// Resolve a VersionSpec against a list of available versions (ADR-004)
 pub fn resolve_version(
@@ -15,15 +15,11 @@ pub fn resolve_version(
             // Return the last entry (registries list versions oldest-first by convention)
             Ok(available.last().unwrap().clone())
         }
-        VersionSpec::Exact(v) => {
-            available
-                .iter()
-                .find(|a| a.0 == *v)
-                .cloned()
-                .ok_or_else(|| {
-                    ResolverError::NotFound(format!("Exact version {} not available", v))
-                })
-        }
+        VersionSpec::Exact(v) => available
+            .iter()
+            .find(|a| a.0 == *v)
+            .cloned()
+            .ok_or_else(|| ResolverError::NotFound(format!("Exact version {} not available", v))),
         VersionSpec::Range(range) => {
             // Simple semver-like range matching: ">=1.0, <2.0", "^1.2", "~1.2.3"
             // For Sprint 3: match prefix ranges and exact. Full semver in Sprint 3 hardening.
@@ -113,7 +109,11 @@ mod tests {
 
     #[test]
     fn exact_version_matches() {
-        let avail = vec![Version::new("1.0.0"), Version::new("1.1.0"), Version::new("2.0.0")];
+        let avail = vec![
+            Version::new("1.0.0"),
+            Version::new("1.1.0"),
+            Version::new("2.0.0"),
+        ];
         let v = resolve_version(&VersionSpec::Exact("1.1.0".into()), &avail).unwrap();
         assert_eq!(v.0, "1.1.0");
     }
