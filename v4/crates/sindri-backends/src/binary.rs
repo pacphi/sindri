@@ -141,6 +141,7 @@ mod tests {
             depends_on: vec![],
             manifest: None,
             manifest_digest: None,
+            component_digest: None,
         };
         let ctx = InstallContext::new(&c, None, &mock);
         // Empty-checksum path: backend logs a warn and returns Ok without

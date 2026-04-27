@@ -67,5 +67,10 @@ pub fn resolved_from_entry(
         // pipeline degrades to install + hooks only when manifest is None.
         manifest: None,
         manifest_digest: registry_manifest_digest.map(|s| s.to_string()),
+        // Wave 5A — D5: per-component digest is populated by the OCI fetch
+        // path that lands alongside per-component cosign verification. Until
+        // the resolver has a layer-fetch step, emit `None` (apply tolerates
+        // this under permissive policy; strict policy requires it).
+        component_digest: None,
     }
 }

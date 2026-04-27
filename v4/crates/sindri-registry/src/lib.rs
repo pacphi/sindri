@@ -19,6 +19,7 @@ pub mod lint;
 pub mod local;
 pub mod oci_ref;
 pub mod signing;
+pub mod tarball;
 
 pub use cache::{BlobKind, RegistryCache};
 pub use client::RegistryClient;

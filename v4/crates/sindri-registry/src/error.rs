@@ -64,6 +64,16 @@ pub enum RegistryError {
     )]
     InsecureForbiddenByPolicy { registry: String },
 
+    /// Layer extraction failed (Wave 5A — D6). Wraps tar/gzip errors and
+    /// per-entry path-traversal violations.
+    #[error("tar layer extraction failed for '{reference}': {detail}")]
+    LayerExtraction { reference: String, detail: String },
+
+    /// The pulled OCI artifact's tar/tar+gzip layer did not contain an
+    /// `index.yaml` at the layer root.
+    #[error("OCI artifact '{reference}' tar layer did not contain index.yaml")]
+    IndexMissingFromLayer { reference: String },
+
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
     #[error("JSON error: {0}")]

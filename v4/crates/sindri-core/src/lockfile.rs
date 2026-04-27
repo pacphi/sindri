@@ -53,6 +53,18 @@ pub struct ResolvedComponent {
     /// path that populates the digest from the registry response.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub manifest_digest: Option<String>,
+    /// SHA-256 digest of the component's primary OCI layer (Wave 5A — D5).
+    ///
+    /// Populated when the resolver fetches a signed component artifact from
+    /// an OCI registry; used by `sindri apply` to verify a per-component
+    /// cosign signature before the install backend runs.
+    ///
+    /// `#[serde(default)]` keeps the schema backward-compatible with
+    /// pre-Wave-5A lockfiles, which omit the field entirely. Under
+    /// `policy.require_signed_registries=true`, apply requires this field on
+    /// every newly-resolved entry — see `crates/sindri/src/commands/apply.rs`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub component_digest: Option<String>,
 }
 
 #[cfg(test)]
@@ -74,6 +86,7 @@ mod tests {
             depends_on: vec![],
             manifest: None,
             manifest_digest,
+            component_digest: None,
         }
     }
 
@@ -101,6 +114,37 @@ depends_on: []
         let parsed: ResolvedComponent = serde_yaml::from_str(&yaml).unwrap();
         assert_eq!(parsed.manifest_digest.as_deref(), Some("sha256:deadbeef"));
         assert_eq!(parsed.id.name, original.id.name);
+    }
+
+    #[test]
+    fn lockfile_without_component_digest_still_deserializes() {
+        // Wave 5A backward-compat: lockfiles produced before D5 omit
+        // `component_digest` entirely. They must still deserialize and
+        // surface `None` for the field.
+        let yaml = r#"
+id:
+  backend: brew
+  name: git
+version: "2.45.0"
+backend: brew
+oci_digest: null
+checksums: {}
+depends_on: []
+manifest_digest: "sha256:abc"
+"#;
+        let parsed: ResolvedComponent = serde_yaml::from_str(yaml).unwrap();
+        assert!(parsed.component_digest.is_none());
+        assert_eq!(parsed.manifest_digest.as_deref(), Some("sha256:abc"));
+    }
+
+    #[test]
+    fn component_digest_round_trips() {
+        let mut comp = sample(Some("sha256:reg".into()));
+        comp.component_digest = Some("sha256:comp".into());
+        let yaml = serde_yaml::to_string(&comp).unwrap();
+        let parsed: ResolvedComponent = serde_yaml::from_str(&yaml).unwrap();
+        assert_eq!(parsed.component_digest.as_deref(), Some("sha256:comp"));
+        assert_eq!(parsed.manifest_digest.as_deref(), Some("sha256:reg"));
     }
 
     #[test]

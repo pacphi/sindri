@@ -148,6 +148,7 @@ mod tests {
             depends_on: vec![],
             manifest: None,
             manifest_digest: None,
+            component_digest: None,
         }
     }
 
