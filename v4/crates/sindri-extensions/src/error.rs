@@ -57,6 +57,48 @@ pub enum ExtensionError {
         fix: String,
     },
 
+    /// A `configure` step (env settings or file template) failed (ADR-024).
+    #[error(
+        "configure failed for component '{component}': {step} — {detail}"
+    )]
+    ConfigureFailed {
+        /// Component metadata name.
+        component: String,
+        /// Which configure sub-step failed (e.g. `environment[FOO]`, `files[/etc/x.conf]`).
+        step: String,
+        /// Human-readable reason.
+        detail: String,
+    },
+
+    /// A `validate` command failed an assertion (ADR-024).
+    #[error(
+        "validate failed for component '{component}': command `{command}` — \
+         expected {expected}, got `{got}`"
+    )]
+    ValidateFailed {
+        /// Component metadata name.
+        component: String,
+        /// Verbatim command string that failed.
+        command: String,
+        /// Human-readable description of the failed assertion.
+        expected: String,
+        /// The actual stdout (truncated) the command produced.
+        got: String,
+    },
+
+    /// A `remove` step (custom command or file deletion) failed.
+    #[error(
+        "remove failed for component '{component}': {step} — {detail}"
+    )]
+    RemoveFailed {
+        /// Component metadata name.
+        component: String,
+        /// Which remove sub-step failed (e.g. `commands[0]`, `files[/etc/x]`).
+        step: String,
+        /// Human-readable reason.
+        detail: String,
+    },
+
     /// Underlying target dispatch failed.
     #[error(transparent)]
     Target(#[from] sindri_targets::error::TargetError),
