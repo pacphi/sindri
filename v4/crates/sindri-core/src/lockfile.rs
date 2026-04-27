@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
-use schemars::JsonSchema;
 use crate::component::{Backend, ComponentId};
 use crate::version::Version;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

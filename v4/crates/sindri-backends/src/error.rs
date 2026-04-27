@@ -9,7 +9,11 @@ pub enum BackendError {
     #[error("Removal failed for {component}: {detail}")]
     RemoveFailed { component: String, detail: String },
     #[error("Checksum mismatch for {component}: expected {expected}, got {got}")]
-    ChecksumMismatch { component: String, expected: String, got: String },
+    ChecksumMismatch {
+        component: String,
+        expected: String,
+        got: String,
+    },
     #[error("Command failed: {cmd} — {detail}")]
     CommandFailed { cmd: String, detail: String },
     #[error("IO error: {0}")]

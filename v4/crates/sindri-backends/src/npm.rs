@@ -1,8 +1,8 @@
+use crate::error::BackendError;
+use crate::traits::{binary_available, run_command, InstallBackend};
 use sindri_core::component::Backend;
 use sindri_core::lockfile::ResolvedComponent;
 use sindri_core::platform::Platform;
-use crate::error::BackendError;
-use crate::traits::{InstallBackend, binary_available, run_command};
 
 /// npm global install backend
 pub struct NpmBackend;

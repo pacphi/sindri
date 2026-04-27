@@ -75,10 +75,12 @@ pub fn choose_backend(
 pub fn explain_choice(entry: &ComponentEntry, platform: &Platform) -> String {
     let chain = default_preference(&platform.os);
     let chosen = choose_backend(entry, platform, None);
-    let lines = [format!("Component: {}:{}", entry.backend, entry.name),
+    let lines = [
+        format!("Component: {}:{}", entry.backend, entry.name),
         format!("Platform:  {}", platform.triple()),
         format!("Preference chain: {}", chain.iter().map(|b| b.as_str()).collect::<Vec<_>>().join(" > ")),
-        format!("Chosen: {}", chosen.as_str())];
+        format!("Chosen: {}", chosen.as_str()),
+    ];
     lines.join("\n")
 }
 

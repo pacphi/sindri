@@ -1,8 +1,8 @@
+use crate::error::BackendError;
+use crate::traits::{binary_available, run_command, InstallBackend};
 use sindri_core::component::Backend;
 use sindri_core::lockfile::ResolvedComponent;
 use sindri_core::platform::{Os, Platform};
-use crate::error::BackendError;
-use crate::traits::{InstallBackend, binary_available, run_command};
 
 /// winget backend — Windows only (ADR-009)
 pub struct WingetBackend;
@@ -18,7 +18,10 @@ impl InstallBackend for WingetBackend {
 
     fn install(&self, comp: &ResolvedComponent) -> Result<(), BackendError> {
         tracing::info!("winget: installing {}", comp.id.name);
-        run_command("winget", &["install", "--exact", "--id", &comp.id.name, "-e"])?;
+        run_command(
+            "winget",
+            &["install", "--exact", "--id", &comp.id.name, "-e"],
+        )?;
         Ok(())
     }
 
