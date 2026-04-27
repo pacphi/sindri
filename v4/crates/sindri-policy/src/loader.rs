@@ -147,7 +147,7 @@ fn merge_policy(base: &mut InstallPolicy, overlay: &InstallPolicy) {
 }
 
 pub fn global_policy_path() -> PathBuf {
-    dirs_next::home_dir()
+    sindri_core::paths::home_dir()
         .unwrap_or_default()
         .join(".sindri")
         .join("policy.yaml")

@@ -167,7 +167,7 @@ pub fn append_history_entry(
 
 /// Default location of the rollback history root: `~/.sindri/history`.
 pub fn default_history_root() -> PathBuf {
-    dirs_next::home_dir()
+    sindri_core::paths::home_dir()
         .unwrap_or_default()
         .join(".sindri")
         .join("history")

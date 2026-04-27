@@ -31,7 +31,6 @@ hex = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
 uuid = { workspace = true }
-chrono = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }

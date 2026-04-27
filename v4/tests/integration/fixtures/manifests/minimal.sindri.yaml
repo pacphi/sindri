@@ -1,0 +1,3 @@
+name: minimal-fixture
+components:
+  - address: "mise:nodejs"

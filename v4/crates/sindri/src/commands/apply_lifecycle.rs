@@ -169,7 +169,7 @@ fn hook_ctx<'a>(component: &'a str, version: &'a str, target: &'a dyn Target) ->
 }
 
 fn default_env_dir() -> PathBuf {
-    if let Some(home) = dirs_next::home_dir() {
+    if let Some(home) = sindri_core::paths::home_dir() {
         home.join(".sindri").join("env")
     } else {
         PathBuf::from(".sindri/env")
@@ -177,7 +177,7 @@ fn default_env_dir() -> PathBuf {
 }
 
 fn default_home_dir() -> PathBuf {
-    dirs_next::home_dir().unwrap_or_else(|| PathBuf::from("."))
+    sindri_core::paths::home_dir().unwrap_or_else(|| PathBuf::from("."))
 }
 
 #[cfg(test)]

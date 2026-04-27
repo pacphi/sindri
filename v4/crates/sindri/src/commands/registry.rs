@@ -69,7 +69,7 @@ fn refresh(name: &str, url: &str, insecure: bool) -> i32 {
         let policy = sindri_policy::loader::load_effective_policy().policy;
         client = client.with_policy(policy);
 
-        let trust_dir = dirs_next::home_dir()
+        let trust_dir = sindri_core::paths::home_dir()
             .unwrap_or_default()
             .join(".sindri")
             .join("trust");
@@ -287,7 +287,7 @@ fn trust(name: &str, signer: &str) -> i32 {
         }
     };
 
-    let trust_dir = dirs_next::home_dir()
+    let trust_dir = sindri_core::paths::home_dir()
         .unwrap_or_default()
         .join(".sindri")
         .join("trust")
@@ -349,7 +349,7 @@ fn verify(name: &str, url: &str) -> i32 {
             }
         };
         client = client.with_policy(sindri_policy::loader::load_effective_policy().policy);
-        let trust_dir = dirs_next::home_dir()
+        let trust_dir = sindri_core::paths::home_dir()
             .unwrap_or_default()
             .join(".sindri")
             .join("trust");

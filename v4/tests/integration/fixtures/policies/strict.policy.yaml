@@ -1,0 +1,9 @@
+preset: strict
+allowed_licenses:
+  - MIT
+  - Apache-2.0
+denied_licenses:
+  - GPL-3.0
+on_unknown_license: deny
+require_signed_registries: true
+require_checksums: true

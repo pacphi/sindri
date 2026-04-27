@@ -10,6 +10,7 @@ members = [
     "crates/sindri-targets",
     "crates/sindri-discovery",
     "crates/sindri-extensions",
+    "tests/integration",
     "tools/schema-gen",
 ]
 
@@ -23,8 +24,10 @@ clap = { version = "4", features = ["derive"] }
 clap_complete = "4"
 # Gzip archive support for `sindri ledger compact` archive rotation (ADR-007).
 flate2 = "1"
-# ISO-8601 / RFC-3339 date parsing for `--since` filters in `sindri ledger stats`.
-chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+# ISO-8601 / RFC-3339 date parsing for `--since` filters in `sindri ledger
+# stats` (PR #217); `std` feature added for SBOM creationInfo timestamps
+# in `sindri bom` (PR #219). Union of both PRs' feature sets.
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "std"] }
 thiserror = "2"
 anyhow = "1"
 tokio = { version = "1", features = ["full"] }
@@ -52,4 +55,3 @@ tempfile = "3"
 # not yet support spec 1.6, so both SPDX 2.3 and CycloneDX 1.6 are emitted by
 # hand against `serde_json::Value` schemas — see `sindri::commands::bom`.
 uuid = { version = "1", features = ["v4"] }
-chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }

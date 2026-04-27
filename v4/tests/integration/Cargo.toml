@@ -1,0 +1,45 @@
+[package]
+name = "integration-tests"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "End-to-end integration tests for the `sindri` CLI (Wave 4A)."
+# Explicit `[[test]]` entries below — cargo's auto-discovery would pick up
+# `tests/helpers.rs` as a stand-alone test target, which it isn't.
+autotests = false
+
+# Each scenario lives in its own file so it shows up individually in
+# `cargo test` output. `harness = true` (the default) keeps libtest's
+# parallel runner — we still rely on per-test isolation via tempdirs.
+
+[[test]]
+name = "init_validate_resolve"
+path = "tests/init_validate_resolve.rs"
+
+[[test]]
+name = "apply_local_idempotent"
+path = "tests/apply_local_idempotent.rs"
+
+[[test]]
+name = "admission_gate_denies_unsupported_platform"
+path = "tests/admission_gate_denies_unsupported_platform.rs"
+
+[[test]]
+name = "registry_lint_finds_missing_license"
+path = "tests/registry_lint_finds_missing_license.rs"
+
+[[test]]
+name = "lockfile_bom_emission"
+path = "tests/lockfile_bom_emission.rs"
+
+[dev-dependencies]
+# `assert_cmd::Command::cargo_bin("sindri")` locates the workspace binary
+# in `target/debug/sindri`. Running `cargo test --workspace` (or
+# `cargo build -p sindri && cargo test -p integration-tests`) ensures the
+# binary is built first. We deliberately do **not** declare `sindri` as a
+# dev-dependency: it has no library target, so cargo would emit a warning.
+assert_cmd = "2"
+predicates = "3"
+tempfile = { workspace = true }
+serde_yaml = { workspace = true }
+serde_json = { workspace = true }

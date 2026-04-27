@@ -495,11 +495,11 @@ fn run_plugin(sub: PluginSub) -> i32 {
 }
 
 fn plugins_root() -> Option<PathBuf> {
-    dirs_next::home_dir().map(|h| h.join(".sindri").join("plugins"))
+    sindri_core::paths::home_dir().map(|h| h.join(".sindri").join("plugins"))
 }
 
 fn plugin_trust_root() -> Option<PathBuf> {
-    dirs_next::home_dir().map(|h| h.join(".sindri").join("trust").join("plugins"))
+    sindri_core::paths::home_dir().map(|h| h.join(".sindri").join("trust").join("plugins"))
 }
 
 fn plugin_ls() -> i32 {

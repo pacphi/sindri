@@ -85,7 +85,7 @@ fn cached_script_path(name: &str, platform: &Platform) -> PathBuf {
         Os::Windows => "ps1",
         _ => "sh",
     };
-    dirs_next::home_dir()
+    sindri_core::paths::home_dir()
         .unwrap_or_default()
         .join(".sindri")
         .join("cache")
