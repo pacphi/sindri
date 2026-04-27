@@ -271,10 +271,25 @@ pub struct CollisionHandlingConfig {
     pub path_prefix: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+/// Lifecycle hook commands declared by a component.
+///
+/// Each field is an optional shell command string executed via the active
+/// [`sindri_targets::Target`] at the corresponding lifecycle stage.
+///
+/// Per ADR-024 (script-component lifecycle contract), hooks are declarative:
+/// they run on the same target as the install, observe the same environment,
+/// and a non-zero exit code aborts the lifecycle phase.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "kebab-case")]
 pub struct HooksConfig {
+    /// Runs immediately before the install backend executes.
     pub pre_install: Option<String>,
+    /// Runs immediately after a successful install.
     pub post_install: Option<String>,
+    /// Runs before any [`ProjectInitStep`] executes for this component.
+    pub pre_project_init: Option<String>,
+    /// Runs after the final [`ProjectInitStep`] for this component succeeds.
+    pub post_project_init: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

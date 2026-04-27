@@ -9,4 +9,13 @@ path = "src/lib.rs"
 
 [dependencies]
 sindri-core = { path = "../sindri-core" }
+sindri-targets = { path = "../sindri-targets" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }
 anyhow = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"
