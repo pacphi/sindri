@@ -25,6 +25,12 @@ pub struct ResolveOptions {
     pub offline: bool,
     pub strict: bool,
     pub explain: Option<String>,
+    /// Live OCI manifest digest of the registry artifact this resolution
+    /// was performed against. Populated by callers that fetched the index
+    /// via `RegistryClient::fetch_index` (Wave 3A.2). When `None`, lockfile
+    /// entries omit `manifest_digest`. ADR-003 audit-delta tracks moving
+    /// this from registry-scoped to per-component when SBOM (Wave 5) lands.
+    pub registry_manifest_digest: Option<String>,
 }
 
 /// Main resolution pipeline: manifest → registry → closure → gates → backend → lockfile
@@ -76,8 +82,12 @@ pub fn resolve(
         }
 
         let chosen = backend_choice::choose_backend(&node.entry, platform, None);
-        let resolved =
-            lockfile_writer::resolved_from_entry(&node.entry, chosen, &node.id.to_address());
+        let resolved = lockfile_writer::resolved_from_entry(
+            &node.entry,
+            chosen,
+            &node.id.to_address(),
+            opts.registry_manifest_digest.as_deref(),
+        );
         lockfile.components.push(resolved);
     }
 

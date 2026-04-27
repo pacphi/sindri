@@ -64,6 +64,16 @@ pub fn run(args: ResolveArgs) -> i32 {
     }
 
     let platform = Platform::current();
+    // Wave 3A.2: when the registry was fetched live via oci-client, its
+    // manifest digest is recorded in the content-addressed cache. Surface
+    // any one such digest into the lockfile so apply-time integrity checks
+    // can prove "this lockfile was resolved against this exact index.yaml
+    // snapshot." Per ADR-003 audit-delta, per-component digests are
+    // deferred to Wave 5 (SBOM).
+    let registry_manifest_digest = sindri_registry::RegistryCache::new()
+        .ok()
+        .and_then(|c| c.any_digest_for_registry(sindri_core::registry::CORE_REGISTRY_NAME));
+
     let opts = sindri_resolver::ResolveOptions {
         manifest_path: manifest_path.clone(),
         lockfile_path: lockfile_path.clone(),
@@ -71,6 +81,7 @@ pub fn run(args: ResolveArgs) -> i32 {
         offline: args.offline,
         strict: args.strict,
         explain: args.explain.clone(),
+        registry_manifest_digest,
     };
 
     match sindri_resolver::resolve(&opts, &registry, &policy, &platform) {

@@ -33,11 +33,23 @@ pub fn read_lockfile(path: &Path) -> Result<Lockfile, ResolverError> {
     serde_json::from_str(&content).map_err(|e| ResolverError::Serialization(e.to_string()))
 }
 
-/// Build ResolvedComponent from a closure node
+/// Build ResolvedComponent from a closure node.
+///
+/// `registry_manifest_digest` is the live OCI manifest digest returned by
+/// `oci-client` when the resolver fetched the registry's `index.yaml` (Wave
+/// 3A.2). When `None` (e.g. local-protocol fixtures, offline mode), the
+/// lockfile entry omits `manifest_digest` for backwards compatibility.
+///
+/// Per ADR-003 audit-delta (Wave 3A.2): per-component manifest digests
+/// (each component carrying its own OCI digest) are deferred to the SBOM
+/// work in Wave 5. This field carries the *registry-level* artifact digest
+/// — an integrity tie-in for "this lockfile was resolved against this
+/// exact `index.yaml` snapshot."
 pub fn resolved_from_entry(
     entry: &ComponentEntry,
     chosen_backend: Backend,
     _bom_address: &str,
+    registry_manifest_digest: Option<&str>,
 ) -> ResolvedComponent {
     let id = ComponentId {
         backend: chosen_backend.clone(),
@@ -54,8 +66,6 @@ pub fn resolved_from_entry(
         // Wave 3A will fetch manifests from OCI; until then, the apply
         // pipeline degrades to install + hooks only when manifest is None.
         manifest: None,
-        // Wave 3A.1: resolver still writes None. Wave 3A.2 will populate
-        // this from the live OCI manifest digest returned by oci-client.
-        manifest_digest: None,
+        manifest_digest: registry_manifest_digest.map(|s| s.to_string()),
     }
 }

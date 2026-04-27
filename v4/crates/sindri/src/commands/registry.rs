@@ -1,96 +1,122 @@
 use sindri_core::component::ComponentManifest;
 use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
 use sindri_registry::signing::TrustedKey;
+use sindri_registry::{CosignVerifier, OciRef, RegistryClient};
 
 pub enum RegistryCmd {
-    Refresh { name: String, url: String },
-    Lint { path: String, json: bool },
-    Trust { name: String, signer: String },
-    Verify { name: String },
-    FetchChecksums { path: String },
+    Refresh {
+        name: String,
+        url: String,
+        insecure: bool,
+    },
+    Lint {
+        path: String,
+        json: bool,
+    },
+    Trust {
+        name: String,
+        signer: String,
+    },
+    Verify {
+        name: String,
+        url: String,
+    },
+    FetchChecksums {
+        path: String,
+    },
 }
 
 pub fn run(cmd: RegistryCmd) -> i32 {
     match cmd {
-        RegistryCmd::Refresh { name, url } => refresh(&name, &url),
+        RegistryCmd::Refresh {
+            name,
+            url,
+            insecure,
+        } => refresh(&name, &url, insecure),
         RegistryCmd::Lint { path, json } => lint(&path, json),
         RegistryCmd::Trust { name, signer } => trust(&name, &signer),
-        RegistryCmd::Verify { name } => verify(&name),
+        RegistryCmd::Verify { name, url } => verify(&name, &url),
         RegistryCmd::FetchChecksums { path } => fetch_checksums(&path),
     }
 }
 
-fn refresh(name: &str, url: &str) -> i32 {
-    // local registry protocol
-    if let Some(path) = url.strip_prefix("registry:local:") {
-        let index_path = std::path::Path::new(path).join("index.yaml");
-        if !index_path.exists() {
-            eprintln!("Local registry index not found: {}", index_path.display());
+/// Refresh a registry index via the live OCI Distribution Spec pipeline
+/// (ADR-003) and verify its cosign signature (ADR-014) before caching.
+///
+/// `--insecure` bypasses cosign verification with a loud warning. It is
+/// rejected when the active install policy sets `require_signed_registries`.
+fn refresh(name: &str, url: &str, insecure: bool) -> i32 {
+    let runtime = match tokio::runtime::Runtime::new() {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("Cannot start async runtime: {}", e);
             return EXIT_SCHEMA_OR_RESOLVE_ERROR;
         }
-        let content = match std::fs::read_to_string(&index_path) {
+    };
+
+    runtime.block_on(async move {
+        let mut client = match RegistryClient::new() {
             Ok(c) => c,
             Err(e) => {
-                eprintln!("Cannot read local registry: {}", e);
+                eprintln!("Cannot construct registry client: {}", e);
                 return EXIT_SCHEMA_OR_RESOLVE_ERROR;
             }
         };
-        return write_to_cache(name, &content);
-    }
 
-    // HTTP fetch via curl (matches Sprint 2 risk mitigation strategy)
-    let index_url = format!("{}/index.yaml", url.trim_end_matches('/'));
-    eprintln!("Fetching registry index from {}...", index_url);
+        // Load policy + trust keys. Policy may not exist yet for a fresh
+        // install; default to permissive in that case so `--insecure`
+        // semantics are usable out of the box.
+        let policy = sindri_policy::loader::load_effective_policy().policy;
+        client = client.with_policy(policy);
 
-    match std::process::Command::new("curl")
-        .args(["-sSfL", &index_url, "--max-time", "30"])
-        .output()
-    {
-        Ok(out) if out.status.success() => {
-            let content = String::from_utf8_lossy(&out.stdout);
-            write_to_cache(name, &content)
+        let trust_dir = dirs_next::home_dir()
+            .unwrap_or_default()
+            .join(".sindri")
+            .join("trust");
+        match CosignVerifier::load_from_trust_dir(&trust_dir) {
+            Ok(v) => client = client.with_verifier(v),
+            Err(e) => {
+                eprintln!("Cannot load trust keys from {}: {}", trust_dir.display(), e);
+                return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+            }
         }
-        Ok(out) => {
-            eprintln!("curl failed: {}", String::from_utf8_lossy(&out.stderr));
-            EXIT_SCHEMA_OR_RESOLVE_ERROR
-        }
-        Err(e) => {
-            eprintln!(
-                "curl not available: {}. Install curl to fetch registries.",
-                e
+
+        if insecure {
+            client = client.with_insecure(true);
+            tracing::warn!(
+                "INSECURE: cosign verification will be skipped for registry '{}'",
+                name
             );
-            EXIT_SCHEMA_OR_RESOLVE_ERROR
         }
-    }
-}
 
-fn write_to_cache(name: &str, content: &str) -> i32 {
-    let cache_dir = dirs_next::home_dir()
-        .unwrap_or_default()
-        .join(".sindri")
-        .join("cache")
-        .join("registries")
-        .join(name);
-
-    if let Err(e) = std::fs::create_dir_all(&cache_dir) {
-        eprintln!("Cannot create cache dir: {}", e);
-        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
-    }
-
-    let index_path = cache_dir.join("index.yaml");
-    let tmp_path = cache_dir.join("index.yaml.tmp");
-
-    if let Err(e) = std::fs::write(&tmp_path, content) {
-        eprintln!("Cannot write cache: {}", e);
-        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
-    }
-    if let Err(e) = std::fs::rename(&tmp_path, &index_path) {
-        eprintln!("Cannot finalize cache: {}", e);
-        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
-    }
-
-    println!("Registry '{}' refreshed ({} bytes)", name, content.len());
-    EXIT_SUCCESS
+        match client.refresh_index(name, url).await {
+            Ok((index, digest)) => {
+                let bytes_hint = match serde_yaml::to_string(&index) {
+                    Ok(s) => s.len(),
+                    Err(_) => 0,
+                };
+                match digest {
+                    Some(d) => println!(
+                        "Registry '{}' refreshed (digest {}, {} components)",
+                        name,
+                        d,
+                        index.components.len()
+                    ),
+                    None => println!(
+                        "Registry '{}' refreshed from local protocol ({} components, {} bytes)",
+                        name,
+                        index.components.len(),
+                        bytes_hint
+                    ),
+                }
+                EXIT_SUCCESS
+            }
+            Err(e) => {
+                eprintln!("Registry refresh failed: {}", e);
+                EXIT_SCHEMA_OR_RESOLVE_ERROR
+            }
+        }
+    })
 }
 
 fn lint(path: &str, json: bool) -> i32 {
@@ -292,21 +318,70 @@ fn trust(name: &str, signer: &str) -> i32 {
     EXIT_SUCCESS
 }
 
-/// Verify the cosign signature on a registry's manifest (ADR-014).
+/// Verify the cosign signature on a registry's artifact (ADR-014).
 ///
-/// **Wave 3A.1 placeholder.** Verification — fetching the cosign signature
-/// manifest, decoding the simple-signing payload, and verifying the
-/// signature bytes against trusted keys — lands in Wave 3A.2. Today this
-/// command exits non-zero with a clear message so callers can wire it into
-/// CI without it silently passing.
-fn verify(name: &str) -> i32 {
-    eprintln!(
-        "registry verify '{}': not yet implemented (deferred to Wave 3A.2). \
-         Trust-key loading is in place; signature verification will be wired \
-         once the live oci-client fetch path lands.",
-        name
-    );
-    EXIT_SCHEMA_OR_RESOLVE_ERROR
+/// Wave 3A.2: runs the full cosign verification flow against the trust
+/// keys in `~/.sindri/trust/<name>/`. The OCI ref must be supplied because
+/// the CLI does not yet maintain a registry-name → URL map.
+fn verify(name: &str, url: &str) -> i32 {
+    let oci_ref = match OciRef::parse(url) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("Invalid OCI reference '{}': {}", url, e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+
+    let runtime = match tokio::runtime::Runtime::new() {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("Cannot start async runtime: {}", e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+
+    runtime.block_on(async move {
+        let mut client = match RegistryClient::new() {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("Cannot construct registry client: {}", e);
+                return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+            }
+        };
+        client = client.with_policy(sindri_policy::loader::load_effective_policy().policy);
+        let trust_dir = dirs_next::home_dir()
+            .unwrap_or_default()
+            .join(".sindri")
+            .join("trust");
+        match CosignVerifier::load_from_trust_dir(&trust_dir) {
+            Ok(v) => client = client.with_verifier(v),
+            Err(e) => {
+                eprintln!("Cannot load trust keys: {}", e);
+                return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+            }
+        }
+
+        match client.verify(name, &oci_ref).await {
+            Ok(key_id) if key_id == "<unsigned>" => {
+                println!(
+                    "Registry '{}': no trust keys configured; verification skipped (permissive policy)",
+                    name
+                );
+                EXIT_SUCCESS
+            }
+            Ok(key_id) => {
+                println!(
+                    "Verified registry '{}': signed by trusted key {}",
+                    name, key_id
+                );
+                EXIT_SUCCESS
+            }
+            Err(e) => {
+                eprintln!("Verification failed for registry '{}': {}", name, e);
+                EXIT_SCHEMA_OR_RESOLVE_ERROR
+            }
+        }
+    })
 }
 
 fn fetch_checksums(path: &str) -> i32 {
