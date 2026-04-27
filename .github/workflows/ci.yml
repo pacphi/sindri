@@ -7,8 +7,19 @@ name: "v2: CI (shim)"
 on:
   push:
     branches: [v2]
+    paths:
+      - 'v2/**'
+      - '.github/workflows/ci.yml'
+      - '.dockerignore'
+      - '.shellcheckrc'
+      - '.yamllint.yml'
+      - 'Makefile'
   pull_request:
     branches: [v2]
+    paths-ignore:
+      - 'CHANGELOG.md'
+      - 'RELEASE_NOTES*.md'
+      - '**/*.md'
   workflow_dispatch:
 
 # Permissions must be a SUPERSET of every nested permission the called
