@@ -22,11 +22,55 @@ use tempfile::TempDir;
 /// Sets `RUST_LOG=warn` to keep test output focussed on assertions and
 /// strips inherited `SINDRI_TEST_PLATFORM_OVERRIDE` so individual tests
 /// must opt in explicitly.
+///
+/// Cross-package quirk: `assert_cmd::Command::cargo_bin("sindri")` only
+/// works when the test target is in the *same* cargo package as the
+/// binary (cargo only sets `CARGO_BIN_EXE_sindri` for that case). Since
+/// `integration-tests` is a sibling workspace crate, we resolve the
+/// binary via [`sindri_binary_path`] which tries the env var first and
+/// falls back to a workspace target-dir lookup.
 pub fn sindri_cmd() -> Command {
-    let mut cmd = Command::cargo_bin("sindri").expect("sindri binary built by cargo test");
+    let mut cmd = Command::new(sindri_binary_path());
     cmd.env("RUST_LOG", "warn");
     cmd.env_remove("SINDRI_TEST_PLATFORM_OVERRIDE");
     cmd
+}
+
+/// Resolve the path to the workspace's `sindri` binary.
+///
+/// Order of resolution:
+/// 1. `CARGO_BIN_EXE_sindri` (set automatically when the test target is
+///    in the same package as the binary — not our case, but cheap to honour).
+/// 2. `<CARGO_TARGET_DIR>/<profile>/sindri[.exe]` for `profile` in
+///    `["debug", "release"]`.
+/// 3. `<workspace_root>/target/<profile>/sindri[.exe]`.
+///
+/// CI runs `cargo build --workspace` before `cargo test --workspace`, so
+/// the binary exists at `target/debug/sindri` by the time tests run.
+fn sindri_binary_path() -> PathBuf {
+    if let Ok(p) = std::env::var("CARGO_BIN_EXE_sindri") {
+        return PathBuf::from(p);
+    }
+    let exe_name = if cfg!(windows) { "sindri.exe" } else { "sindri" };
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    // CARGO_MANIFEST_DIR is v4/tests/integration; workspace root is v4/.
+    let workspace_root = manifest_dir
+        .parent()
+        .and_then(|p| p.parent())
+        .expect("integration-tests manifest dir has at least two ancestors");
+    let target_dir = std::env::var("CARGO_TARGET_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| workspace_root.join("target"));
+    for profile in &["debug", "release"] {
+        let candidate = target_dir.join(profile).join(exe_name);
+        if candidate.exists() {
+            return candidate;
+        }
+    }
+    panic!(
+        "sindri binary not found under {}; run `cargo build -p sindri` first",
+        target_dir.display(),
+    );
 }
 
 /// Create a fresh tempdir for a scenario.
