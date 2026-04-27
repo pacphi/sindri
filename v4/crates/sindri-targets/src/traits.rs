@@ -3,14 +3,18 @@ pub fn which(name: &str) -> Option<std::path::PathBuf> {
     std::env::var_os("PATH").and_then(|paths| {
         std::env::split_paths(&paths).find_map(|dir| {
             let candidate = dir.join(name);
-            if candidate.is_file() { Some(candidate) } else { None }
+            if candidate.is_file() {
+                Some(candidate)
+            } else {
+                None
+            }
         })
     })
 }
 
+use crate::error::TargetError;
 /// The Target trait — replaces Provider from v3 (ADR-017)
 use sindri_core::platform::TargetProfile;
-use crate::error::TargetError;
 
 pub trait Target: Send + Sync {
     /// Human-readable name of this target instance
@@ -60,10 +64,18 @@ pub struct PrereqCheck {
 
 impl PrereqCheck {
     pub fn ok(name: &str) -> Self {
-        PrereqCheck { name: name.to_string(), passed: true, fix: None }
+        PrereqCheck {
+            name: name.to_string(),
+            passed: true,
+            fix: None,
+        }
     }
 
     pub fn fail(name: &str, fix: &str) -> Self {
-        PrereqCheck { name: name.to_string(), passed: false, fix: Some(fix.to_string()) }
+        PrereqCheck {
+            name: name.to_string(),
+            passed: false,
+            fix: Some(fix.to_string()),
+        }
     }
 }

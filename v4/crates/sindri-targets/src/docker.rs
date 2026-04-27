@@ -1,7 +1,7 @@
-use std::path::Path;
-use sindri_core::platform::{Arch, Capabilities, Os, Platform, TargetProfile};
 use crate::error::TargetError;
 use crate::traits::{PrereqCheck, Target};
+use sindri_core::platform::{Arch, Capabilities, Os, Platform, TargetProfile};
+use std::path::Path;
 
 /// Docker container target (ADR-017)
 pub struct DockerTarget {
@@ -53,7 +53,9 @@ impl Target for DockerTarget {
 
     fn profile(&self) -> Result<TargetProfile, TargetError> {
         if !self.is_running() {
-            return Err(TargetError::NotProvisioned { name: self.name.clone() });
+            return Err(TargetError::NotProvisioned {
+                name: self.name.clone(),
+            });
         }
         // Query the container's OS/arch
         let (stdout, _) = self.exec("uname -m", &[])?;
@@ -63,7 +65,10 @@ impl Target for DockerTarget {
             Arch::X86_64
         };
         Ok(TargetProfile {
-            platform: Platform { os: Os::Linux, arch },
+            platform: Platform {
+                os: Os::Linux,
+                arch,
+            },
             capabilities: Capabilities {
                 system_package_manager: detect_container_pm(self),
                 has_docker: false,
@@ -109,9 +114,20 @@ impl Target for DockerTarget {
     }
 
     fn create(&self) -> Result<(), TargetError> {
-        tracing::info!("docker: creating container {} from {}", self.container_name, self.image);
+        tracing::info!(
+            "docker: creating container {} from {}",
+            self.container_name,
+            self.image
+        );
         let (_, stderr) = self.run_docker(&[
-            "run", "--name", &self.container_name, "-d", "--rm", &self.image, "sleep", "infinity",
+            "run",
+            "--name",
+            &self.container_name,
+            "-d",
+            "--rm",
+            &self.image,
+            "sleep",
+            "infinity",
         ])?;
         if !stderr.is_empty() && stderr.contains("Error") {
             return Err(TargetError::ExecFailed {
@@ -130,19 +146,24 @@ impl Target for DockerTarget {
     }
 
     fn check_prerequisites(&self) -> Vec<PrereqCheck> {
-        vec![
-            if crate::traits::which("docker").is_some() {
-                PrereqCheck::ok("docker CLI")
-            } else {
-                PrereqCheck::fail("docker CLI", "Install Docker: https://docs.docker.com/get-docker/")
-            },
-        ]
+        vec![if crate::traits::which("docker").is_some() {
+            PrereqCheck::ok("docker CLI")
+        } else {
+            PrereqCheck::fail(
+                "docker CLI",
+                "Install Docker: https://docs.docker.com/get-docker/",
+            )
+        }]
     }
 }
 
 fn detect_container_pm(target: &DockerTarget) -> Option<String> {
     for pm in &["apt-get", "dnf", "apk"] {
-        if target.exec(&format!("which {}", pm), &[]).map(|(o, _)| !o.trim().is_empty()).unwrap_or(false) {
+        if target
+            .exec(&format!("which {}", pm), &[])
+            .map(|(o, _)| !o.trim().is_empty())
+            .unwrap_or(false)
+        {
             return Some(pm.to_string());
         }
     }
