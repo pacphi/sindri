@@ -54,5 +54,8 @@ pub fn resolved_from_entry(
         // Wave 3A will fetch manifests from OCI; until then, the apply
         // pipeline degrades to install + hooks only when manifest is None.
         manifest: None,
+        // Wave 3A.1: resolver still writes None. Wave 3A.2 will populate
+        // this from the live OCI manifest digest returned by oci-client.
+        manifest_digest: None,
     }
 }
