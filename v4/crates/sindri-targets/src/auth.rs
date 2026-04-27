@@ -52,9 +52,17 @@ impl AuthValue {
             AuthValue::Cli(cmd) => {
                 let parts: Vec<&str> = cmd.splitn(2, ' ').collect();
                 let out = std::process::Command::new(parts[0])
-                    .args(parts.get(1).map(|s| s.split_whitespace().collect::<Vec<_>>()).unwrap_or_default())
+                    .args(
+                        parts
+                            .get(1)
+                            .map(|s| s.split_whitespace().collect::<Vec<_>>())
+                            .unwrap_or_default(),
+                    )
                     .output()
-                    .map_err(|e| TargetError::AuthFailed { target: "(cli)".into(), detail: e.to_string() })?;
+                    .map_err(|e| TargetError::AuthFailed {
+                        target: "(cli)".into(),
+                        detail: e.to_string(),
+                    })?;
                 Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
             }
             AuthValue::Plain(val) => {

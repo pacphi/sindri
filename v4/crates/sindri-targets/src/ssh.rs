@@ -1,8 +1,8 @@
-use std::path::Path;
-use sindri_core::platform::{Arch, Capabilities, Os, Platform, TargetProfile};
 use crate::auth::AuthValue;
 use crate::error::TargetError;
 use crate::traits::{PrereqCheck, Target};
+use sindri_core::platform::{Arch, Capabilities, Os, Platform, TargetProfile};
+use std::path::Path;
 
 /// SSH remote target (ADR-017, ADR-020)
 /// Sprint 9: shells out to the `ssh`/`scp` CLI binaries.
@@ -66,16 +66,26 @@ impl Target for SshTarget {
     fn profile(&self) -> Result<TargetProfile, TargetError> {
         let (stdout, _) = self.exec("uname -m && uname -s", &[])?;
         let parts: Vec<&str> = stdout.trim().lines().collect();
-        let arch = parts.first().map(|s| if s.contains("aarch64") || s.contains("arm") {
-            Arch::Aarch64
-        } else {
-            Arch::X86_64
-        }).unwrap_or(Arch::X86_64);
-        let os = parts.get(1).map(|s| if s.contains("Darwin") {
-            Os::Macos
-        } else {
-            Os::Linux
-        }).unwrap_or(Os::Linux);
+        let arch = parts
+            .first()
+            .map(|s| {
+                if s.contains("aarch64") || s.contains("arm") {
+                    Arch::Aarch64
+                } else {
+                    Arch::X86_64
+                }
+            })
+            .unwrap_or(Arch::X86_64);
+        let os = parts
+            .get(1)
+            .map(|s| {
+                if s.contains("Darwin") {
+                    Os::Macos
+                } else {
+                    Os::Linux
+                }
+            })
+            .unwrap_or(Os::Linux);
 
         Ok(TargetProfile {
             platform: Platform { os, arch },
@@ -89,9 +99,7 @@ impl Target for SshTarget {
     }
 
     fn exec(&self, cmd: &str, env: &[(&str, &str)]) -> Result<(String, String), TargetError> {
-        let env_prefix: String = env.iter()
-            .map(|(k, v)| format!("{}={} ", k, v))
-            .collect();
+        let env_prefix: String = env.iter().map(|(k, v)| format!("{}={} ", k, v)).collect();
         let full_cmd = format!("{}{}", env_prefix, cmd);
 
         let mut args = self.ssh_args();

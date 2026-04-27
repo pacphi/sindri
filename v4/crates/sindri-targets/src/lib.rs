@@ -13,4 +13,4 @@ pub use docker::DockerTarget;
 pub use error::TargetError;
 pub use local::LocalTarget;
 pub use ssh::SshTarget;
-pub use traits::{Target, PrereqCheck};
+pub use traits::{PrereqCheck, Target};

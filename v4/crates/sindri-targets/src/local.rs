@@ -1,7 +1,7 @@
-use std::path::Path;
-use sindri_core::platform::{Capabilities, Platform, TargetProfile};
 use crate::error::TargetError;
 use crate::traits::{PrereqCheck, Target};
+use sindri_core::platform::{Capabilities, Platform, TargetProfile};
+use std::path::Path;
 
 /// Local machine target — the implicit default (ADR-023)
 pub struct LocalTarget {
@@ -16,11 +16,15 @@ impl Default for LocalTarget {
 
 impl LocalTarget {
     pub fn new() -> Self {
-        LocalTarget { name: "local".to_string() }
+        LocalTarget {
+            name: "local".to_string(),
+        }
     }
 
     pub fn named(name: &str) -> Self {
-        LocalTarget { name: name.to_string() }
+        LocalTarget {
+            name: name.to_string(),
+        }
     }
 }
 
@@ -36,7 +40,10 @@ impl Target for LocalTarget {
     fn profile(&self) -> Result<TargetProfile, TargetError> {
         let platform = Platform::current();
         let caps = detect_capabilities();
-        Ok(TargetProfile { platform, capabilities: caps })
+        Ok(TargetProfile {
+            platform,
+            capabilities: caps,
+        })
     }
 
     fn exec(&self, cmd: &str, env: &[(&str, &str)]) -> Result<(String, String), TargetError> {
@@ -75,7 +82,12 @@ fn detect_capabilities() -> Capabilities {
     let has_docker = crate::traits::which("docker").is_some();
     let has_sudo = crate::traits::which("sudo").is_some();
     let shell = std::env::var("SHELL").ok();
-    Capabilities { system_package_manager: system_pm, has_docker, has_sudo, shell }
+    Capabilities {
+        system_package_manager: system_pm,
+        has_docker,
+        has_sudo,
+        shell,
+    }
 }
 
 fn detect_system_pm() -> Option<String> {
