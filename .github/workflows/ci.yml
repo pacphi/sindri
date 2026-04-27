@@ -7,8 +7,23 @@ name: "v3: CI (shim)"
 on:
   push:
     branches: [v3]
+    paths:
+      - 'v3/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/ci.yml'
+      - '.dockerignore'
+      - '.npmrc'
+      - '.shellcheckrc'
+      - '.yamllint.yml'
+      - 'Makefile'
   pull_request:
     branches: [v3]
+    paths-ignore:
+      - 'CHANGELOG.md'
+      - 'RELEASE_NOTES*.md'
+      - '**/*.md'
   workflow_dispatch:
 
 # Permissions must be a SUPERSET of every nested permission the called
