@@ -41,7 +41,17 @@ impl AuthValue {
                 detail: format!("env var {} is not set", var),
             }),
             AuthValue::File(path) => {
-                let expanded = path.replace('~', &home_str());
+                // Tilde expansion: only at the beginning of the path, per
+                // shell convention. A naïve `replace('~', …)` mangles
+                // Windows 8.3 short filenames like `RUNNER~1` that contain
+                // a tilde mid-path.
+                let expanded = if let Some(rest) = path.strip_prefix("~/") {
+                    format!("{}/{}", home_str(), rest)
+                } else if path == "~" {
+                    home_str()
+                } else {
+                    path.clone()
+                };
                 std::fs::read_to_string(&expanded)
                     .map(|s| s.trim().to_string())
                     .map_err(|e| TargetError::AuthFailed {
