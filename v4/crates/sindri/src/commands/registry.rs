@@ -1,10 +1,12 @@
 use sindri_core::component::ComponentManifest;
 use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
+use sindri_registry::signing::TrustedKey;
 
 pub enum RegistryCmd {
     Refresh { name: String, url: String },
     Lint { path: String, json: bool },
     Trust { name: String, signer: String },
+    Verify { name: String },
     FetchChecksums { path: String },
 }
 
@@ -13,6 +15,7 @@ pub fn run(cmd: RegistryCmd) -> i32 {
         RegistryCmd::Refresh { name, url } => refresh(&name, &url),
         RegistryCmd::Lint { path, json } => lint(&path, json),
         RegistryCmd::Trust { name, signer } => trust(&name, &signer),
+        RegistryCmd::Verify { name } => verify(&name),
         RegistryCmd::FetchChecksums { path } => fetch_checksums(&path),
     }
 }
@@ -223,34 +226,87 @@ fn lint_dir(dir: &std::path::Path, json: bool) -> i32 {
     }
 }
 
+/// Trust a cosign public key for a registry (ADR-014).
+///
+/// `signer` accepts the form `cosign:key=<path>` (the canonical syntax in
+/// ADR-014) or a bare path. The key is read, parsed as a P-256 SPKI PEM, and
+/// copied to `~/.sindri/trust/<name>/cosign-<short-key-id>.pub`.
+///
+/// Wave 3A.1 lands the actual copy + parse step (the audit flagged the
+/// previous behaviour — writing a JSON sidecar with the raw path — as
+/// security theatre). Wave 3A.2 wires the loaded keys into
+/// `RegistryClient::verify`.
 fn trust(name: &str, signer: &str) -> i32 {
-    let trust_dir = dirs_next::home_dir()
-        .unwrap_or_default()
-        .join(".sindri")
-        .join("trust");
-
-    if let Err(e) = std::fs::create_dir_all(&trust_dir) {
-        eprintln!("Cannot create trust dir: {}", e);
+    // Accept either `cosign:key=<path>` or a bare path.
+    let path_str = signer.strip_prefix("cosign:key=").unwrap_or(signer).trim();
+    if path_str.is_empty() {
+        eprintln!("Empty signer; expected `cosign:key=<path>` or a path to a P-256 PEM public key");
         return EXIT_SCHEMA_OR_RESOLVE_ERROR;
     }
 
-    let entry = format!(
-        r#"{{"registry":"{}","signer":"{}","stored_at":"{}"}}"#,
-        name,
-        signer,
-        chrono_now()
-    );
-
-    match std::fs::write(trust_dir.join(format!("{}.json", name)), entry) {
-        Ok(_) => {
-            println!("Stored trust config for '{}' (signer: {})", name, signer);
-            EXIT_SUCCESS
-        }
+    let src = std::path::Path::new(path_str);
+    let pem = match std::fs::read_to_string(src) {
+        Ok(s) => s,
         Err(e) => {
-            eprintln!("Cannot store trust config: {}", e);
-            EXIT_SCHEMA_OR_RESOLVE_ERROR
+            eprintln!("Cannot read signer key '{}': {}", path_str, e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
         }
+    };
+
+    let key = match TrustedKey::from_pem(&pem) {
+        Ok(k) => k,
+        Err(e) => {
+            eprintln!("Invalid cosign public key at '{}': {}", path_str, e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+
+    let trust_dir = dirs_next::home_dir()
+        .unwrap_or_default()
+        .join(".sindri")
+        .join("trust")
+        .join(name);
+
+    if let Err(e) = std::fs::create_dir_all(&trust_dir) {
+        eprintln!("Cannot create trust dir '{}': {}", trust_dir.display(), e);
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
     }
+
+    let target = trust_dir.join(format!("cosign-{}.pub", key.key_id));
+    let tmp = target.with_extension("tmp");
+    if let Err(e) = std::fs::write(&tmp, &pem) {
+        eprintln!("Cannot write trust key '{}': {}", target.display(), e);
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+    if let Err(e) = std::fs::rename(&tmp, &target) {
+        eprintln!("Cannot finalize trust key '{}': {}", target.display(), e);
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+
+    println!(
+        "Trusted cosign key {} for registry '{}' (stored at {})",
+        key.key_id,
+        name,
+        target.display()
+    );
+    EXIT_SUCCESS
+}
+
+/// Verify the cosign signature on a registry's manifest (ADR-014).
+///
+/// **Wave 3A.1 placeholder.** Verification — fetching the cosign signature
+/// manifest, decoding the simple-signing payload, and verifying the
+/// signature bytes against trusted keys — lands in Wave 3A.2. Today this
+/// command exits non-zero with a clear message so callers can wire it into
+/// CI without it silently passing.
+fn verify(name: &str) -> i32 {
+    eprintln!(
+        "registry verify '{}': not yet implemented (deferred to Wave 3A.2). \
+         Trust-key loading is in place; signature verification will be wired \
+         once the live oci-client fetch path lands.",
+        name
+    );
+    EXIT_SCHEMA_OR_RESOLVE_ERROR
 }
 
 fn fetch_checksums(path: &str) -> i32 {
@@ -261,14 +317,4 @@ fn fetch_checksums(path: &str) -> i32 {
         path
     );
     EXIT_SUCCESS
-}
-
-fn chrono_now() -> String {
-    // Simple timestamp without chrono dep
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let secs = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0);
-    format!("{}", secs)
 }
