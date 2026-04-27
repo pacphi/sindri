@@ -16,6 +16,13 @@ pub struct BomManifest {
     pub targets: HashMap<String, TargetConfig>,
     pub preferences: Option<Preferences>,
     pub r#override: Option<Vec<OverrideEntry>>,
+    /// Optional secret references (Sprint 12, Wave 4C).
+    ///
+    /// Map of secret-id → prefixed `AuthValue` string (`env:FOO`,
+    /// `file:~/.token`, `cli:gh`, `plain:…`). Resolved on demand by
+    /// `sindri secrets validate`; values are never persisted.
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub secrets: HashMap<String, String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
