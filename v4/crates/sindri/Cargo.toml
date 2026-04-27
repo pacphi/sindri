@@ -17,6 +17,9 @@ sindri-discovery = { path = "../sindri-discovery" }
 sindri-extensions = { path = "../sindri-extensions" }
 sindri-policy = { path = "../sindri-policy" }
 clap = { workspace = true }
+clap_complete = { workspace = true }
+flate2 = { workspace = true }
+chrono = { workspace = true }
 serde_yaml = { workspace = true }
 serde_json = { workspace = true }
 anyhow = { workspace = true }
