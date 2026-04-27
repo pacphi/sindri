@@ -28,7 +28,8 @@ pub fn resolve_version(
             // Simple semver-like range matching: ">=1.0, <2.0", "^1.2", "~1.2.3"
             // For Sprint 3: match prefix ranges and exact. Full semver in Sprint 3 hardening.
             let matched = available
-                .iter().rfind(|v| version_satisfies_range(&v.0, range)) // take highest satisfying
+                .iter()
+                .rfind(|v| version_satisfies_range(&v.0, range)) // take highest satisfying
                 .cloned();
             matched.ok_or_else(|| {
                 ResolverError::NotFound(format!("No version satisfies range {}", range))
