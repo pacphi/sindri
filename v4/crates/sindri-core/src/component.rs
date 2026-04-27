@@ -1,9 +1,9 @@
 // ADR-002: Atomic Component replaces Extension
 // ADR-004: Backend-addressed manifest syntax
-use serde::{Deserialize, Serialize};
-use schemars::JsonSchema;
-use crate::version::VersionSpec;
 use crate::platform::Platform;
+use crate::version::VersionSpec;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::str::FromStr;
 
@@ -79,7 +79,6 @@ impl Backend {
             Backend::Collection => "collection",
         }
     }
-
 }
 
 impl FromStr for Backend {
@@ -144,6 +143,10 @@ pub struct InstallConfig {
     pub winget: Option<WingetInstallConfig>,
     pub scoop: Option<ScoopInstallConfig>,
     pub npm: Option<NpmInstallConfig>,
+    pub cargo: Option<CargoInstallConfig>,
+    pub pipx: Option<PipxInstallConfig>,
+    #[serde(rename = "go-install")]
+    pub go_install: Option<GoInstallConfig>,
     pub binary: Option<BinaryInstallConfig>,
     pub script: Option<ScriptInstallConfig>,
     pub sdkman: Option<SdkmanInstallConfig>,
@@ -180,6 +183,58 @@ pub struct ScoopInstallConfig {
 pub struct NpmInstallConfig {
     pub package: String,
     pub global: bool,
+}
+
+/// Install a crate via `cargo install`.
+///
+/// Maps to: `cargo install <crate> [--version <v>] [--features ...] [--locked] [--git <url>]`.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+pub struct CargoInstallConfig {
+    /// The crate name (serialized as `crate` since `crate` is a Rust keyword).
+    #[serde(rename = "crate")]
+    pub crate_name: String,
+    /// Optional pinned version (`--version`).
+    pub version: Option<String>,
+    /// Optional Cargo feature flags (`--features ...`).
+    #[serde(default)]
+    pub features: Vec<String>,
+    /// Optional git URL to install from (`--git <url>`).
+    pub git: Option<String>,
+    /// Whether to pass `--locked` (defaults to true for reproducibility).
+    #[serde(default = "default_true")]
+    pub locked: bool,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+/// Install a Python application via `pipx install`.
+///
+/// Maps to: `pipx install <package>[==<version>] [--python <python>]`.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+pub struct PipxInstallConfig {
+    /// The pipx package name (PyPI distribution name).
+    pub package: String,
+    /// Optional pinned version (rendered as `package==version`).
+    pub version: Option<String>,
+    /// Optional Python interpreter to use (`--python <python>`).
+    pub python: Option<String>,
+}
+
+/// Install a Go module via `go install`.
+///
+/// Maps to: `go install <module>@<version>`. `go install` requires an explicit version
+/// (`@latest` or `@vX.Y.Z`), so `version` is non-optional here.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+pub struct GoInstallConfig {
+    /// Fully-qualified module path (e.g. `github.com/foo/bar/cmd/baz`).
+    pub module: String,
+    /// Required version (`latest` or a semver tag like `v1.2.3`).
+    pub version: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

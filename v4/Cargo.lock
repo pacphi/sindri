@@ -1164,6 +1164,7 @@ dependencies = [
  "hex",
  "reqwest",
  "serde_json",
+ "serde_yaml",
  "sha2",
  "sindri-core",
  "sindri-targets",
