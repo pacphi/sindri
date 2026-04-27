@@ -1,6 +1,17 @@
 // ADR-003: OCI-only registry distribution
-use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
+/// Canonical name of the first-party Sindri registry.
+///
+/// Per ADR-008 (Gate 4 — capability trust), only components sourced from this
+/// registry may declare a `:shared` `collision_handling.path_prefix`. All other
+/// registries must declare prefixes scoped to `{component-name}/...`.
+pub const CORE_REGISTRY_NAME: &str = "sindri/core";
+
+/// Sentinel value for the `:shared` collision-handling escape hatch.
+/// Only valid when the owning component is sourced from [`CORE_REGISTRY_NAME`].
+pub const SHARED_PATH_PREFIX: &str = ":shared";
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct RegistryIndex {

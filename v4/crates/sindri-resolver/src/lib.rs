@@ -54,9 +54,16 @@ pub fn resolve(
         capabilities: Capabilities::default(),
     };
     let checker = admission::AdmissionChecker::new(policy, &target_profile);
-    let entries: Vec<&ComponentEntry> =
-        closure_nodes.iter().map(|n| &n.entry).collect();
-    checker.admit_all(&entries)?;
+    // NOTE: until per-component OCI manifest fetch lands (Wave 2 territory),
+    // only the registry-index entry is available. Gates 1 (platform) and 4
+    // (capability trust) record a `Skipped` admission result in that case
+    // rather than silently passing — see ADR-008.
+    let registry_name = sindri_core::registry::CORE_REGISTRY_NAME;
+    let candidates: Vec<admission::CandidateRef<'_>> = closure_nodes
+        .iter()
+        .map(|n| admission::CandidateRef::from_entry(&n.entry, registry_name))
+        .collect();
+    checker.admit_all(&candidates)?;
 
     // 4. Choose backends and build lockfile
     let bom_hash = lockfile_writer::compute_bom_hash(&bom_content);
