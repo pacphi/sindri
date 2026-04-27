@@ -1,18 +1,19 @@
 use crate::error::BackendError;
-use crate::traits::{binary_available, run_command, InstallBackend};
+use crate::traits::{binary_available, target_exec, InstallBackend, InstallContext};
+use async_trait::async_trait;
 use sindri_core::component::Backend;
-use sindri_core::lockfile::ResolvedComponent;
 use sindri_core::platform::Platform;
 
 /// `cargo install` backend — universal Rust toolchain (ADR-009).
 ///
-/// Note: until the [`InstallBackend`] trait is reshaped (Wave 2) to accept the
-/// declarative [`sindri_core::component::CargoInstallConfig`], this backend can
-/// only see a [`ResolvedComponent`] and therefore cannot wire `--features` or
-/// `--git`. It always passes `--locked` for reproducibility and uses
-/// `--version` from the resolved component.
+/// When `ctx.manifest` is provided, the backend honors the declarative
+/// [`sindri_core::component::CargoInstallConfig`]: `--features`, `--git`,
+/// and `--locked` (default true). Without a manifest it falls back to the
+/// minimal `cargo install <name> --version <v> --locked` form and emits a
+/// `tracing::debug!` so the gap is observable.
 pub struct CargoBackend;
 
+#[async_trait]
 impl InstallBackend for CargoBackend {
     fn name(&self) -> Backend {
         Backend::Cargo
@@ -22,42 +23,150 @@ impl InstallBackend for CargoBackend {
         binary_available("cargo")
     }
 
-    fn install(&self, comp: &ResolvedComponent) -> Result<(), BackendError> {
+    async fn install(&self, ctx: &InstallContext<'_>) -> Result<(), BackendError> {
+        let comp = ctx.component;
         tracing::info!("cargo: installing {}@{}", comp.id.name, comp.version);
-        run_command(
-            "cargo",
-            &[
-                "install",
-                &comp.id.name,
-                "--version",
-                &comp.version.0,
-                "--locked",
-            ],
-        )?;
+
+        // Build args. Owned strings, then slice as &[&str] for target_exec.
+        let mut args_owned: Vec<String> = vec!["install".into()];
+        let features_joined: Option<String>;
+
+        if let Some(manifest) = ctx.manifest {
+            if let Some(cfg) = manifest.install.cargo.as_ref() {
+                args_owned.push(cfg.crate_name.clone());
+                if let Some(v) = cfg.version.as_ref() {
+                    args_owned.push("--version".into());
+                    args_owned.push(v.clone());
+                } else {
+                    args_owned.push("--version".into());
+                    args_owned.push(comp.version.0.clone());
+                }
+                if cfg.locked {
+                    args_owned.push("--locked".into());
+                }
+                if !cfg.features.is_empty() {
+                    args_owned.push("--features".into());
+                    features_joined = Some(cfg.features.join(","));
+                    args_owned.push(features_joined.clone().unwrap());
+                }
+                if let Some(git) = cfg.git.as_ref() {
+                    args_owned.push("--git".into());
+                    args_owned.push(git.clone());
+                }
+            } else {
+                tracing::debug!(
+                    "cargo: manifest present but no cargo install block for {}; \
+                     using minimal command",
+                    comp.id.to_address()
+                );
+                push_minimal(&mut args_owned, &comp.id.name, &comp.version.0);
+            }
+        } else {
+            tracing::debug!(
+                "cargo: manifest not yet plumbed; using minimal command for {}",
+                comp.id.to_address()
+            );
+            push_minimal(&mut args_owned, &comp.id.name, &comp.version.0);
+        }
+
+        let args: Vec<&str> = args_owned.iter().map(|s| s.as_str()).collect();
+        target_exec(ctx.target, "cargo", &args).await?;
         Ok(())
     }
 
-    fn remove(&self, comp: &ResolvedComponent) -> Result<(), BackendError> {
+    async fn remove(&self, ctx: &InstallContext<'_>) -> Result<(), BackendError> {
+        let comp = ctx.component;
         tracing::info!("cargo: uninstalling {}", comp.id.name);
-        run_command("cargo", &["uninstall", &comp.id.name])?;
+        target_exec(ctx.target, "cargo", &["uninstall", &comp.id.name]).await?;
         Ok(())
     }
 
-    fn is_installed(&self, comp: &ResolvedComponent) -> bool {
+    async fn is_installed(&self, ctx: &InstallContext<'_>) -> bool {
         // Best-effort: `cargo install --list` lists installed binaries.
-        // Each crate appears as `name vX.Y.Z:` followed by indented binary names.
-        run_command("cargo", &["install", "--list"])
+        target_exec(ctx.target, "cargo", &["install", "--list"])
+            .await
             .map(|(out, _)| {
                 out.lines()
-                    .any(|line| line.starts_with(&format!("{} v", comp.id.name)))
+                    .any(|line| line.starts_with(&format!("{} v", ctx.component.id.name)))
             })
             .unwrap_or(false)
     }
 }
 
+fn push_minimal(args: &mut Vec<String>, name: &str, version: &str) {
+    args.push(name.to_string());
+    args.push("--version".into());
+    args.push(version.to_string());
+    args.push("--locked".into());
+}
+
 #[cfg(test)]
 mod tests {
-    use sindri_core::component::ComponentManifest;
+    use super::*;
+    use crate::traits::test_support::MockTarget;
+    use sindri_core::component::{ComponentId, ComponentManifest};
+    use sindri_core::lockfile::ResolvedComponent;
+    use sindri_core::version::Version;
+    use std::collections::HashMap;
+
+    fn comp() -> ResolvedComponent {
+        ResolvedComponent {
+            id: ComponentId {
+                backend: Backend::Cargo,
+                name: "ripgrep".into(),
+            },
+            version: Version::new("14.1.0"),
+            backend: Backend::Cargo,
+            oci_digest: None,
+            checksums: HashMap::new(),
+            depends_on: vec![],
+        }
+    }
+
+    fn manifest_yaml(yaml: &str) -> ComponentManifest {
+        serde_yaml::from_str(yaml).expect("parse manifest")
+    }
+
+    #[tokio::test]
+    async fn install_with_manifest_features_renders_full_command() {
+        let m = manifest_yaml(
+            r#"
+metadata:
+  name: ripgrep
+  version: 14.1.0
+  description: x
+  license: MIT
+  tags: []
+platforms:
+  - { os: linux, arch: x86_64 }
+install:
+  cargo:
+    crate: ripgrep
+    version: "14.1.0"
+    features: [pcre2, simd]
+    locked: true
+"#,
+        );
+        let mock = MockTarget::new();
+        let c = comp();
+        let ctx = InstallContext::new(&c, Some(&m), &mock);
+        CargoBackend.install(&ctx).await.unwrap();
+        let call = mock.last_call().unwrap();
+        assert!(call.contains("cargo install ripgrep"));
+        assert!(call.contains("--version 14.1.0"));
+        assert!(call.contains("--locked"));
+        assert!(call.contains("--features pcre2,simd"));
+    }
+
+    #[tokio::test]
+    async fn install_without_manifest_falls_back_to_minimal_command() {
+        let mock = MockTarget::new();
+        let c = comp();
+        let ctx = InstallContext::new(&c, None, &mock);
+        CargoBackend.install(&ctx).await.unwrap();
+        let call = mock.last_call().unwrap();
+        assert_eq!(call, "cargo install ripgrep --version 14.1.0 --locked");
+    }
 
     #[test]
     fn deserializes_cargo_install_config() {

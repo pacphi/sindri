@@ -13,6 +13,7 @@ sindri-targets = { path = "../sindri-targets" }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
+async-trait = { workspace = true }
 tracing = { workspace = true }
 sha2 = { workspace = true }
 hex = { workspace = true }

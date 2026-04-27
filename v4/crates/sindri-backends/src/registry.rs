@@ -9,13 +9,14 @@ use crate::pipx::PipxBackend;
 use crate::script::ScriptBackend;
 use crate::sdkman::SdkmanBackend;
 use crate::system_pm::{ApkBackend, AptBackend, DnfBackend, PacmanBackend, ZypperBackend};
-use crate::traits::InstallBackend;
+use crate::traits::{InstallBackend, InstallContext};
 use crate::winget::{ScoopBackend, WingetBackend};
-use sindri_core::component::Backend;
+use sindri_core::component::{Backend, ComponentManifest};
 use sindri_core::lockfile::ResolvedComponent;
 use sindri_core::platform::Platform;
+use sindri_targets::Target;
 
-/// Look up the right backend implementation for a component
+/// Look up the right backend implementation for a component.
 pub fn backend_for(backend: &Backend, _platform: &Platform) -> Option<Box<dyn InstallBackend>> {
     match backend {
         Backend::Mise => Some(Box::new(MiseBackend)),
@@ -38,24 +39,32 @@ pub fn backend_for(backend: &Backend, _platform: &Platform) -> Option<Box<dyn In
     }
 }
 
-/// Install a component using its resolved backend, with fallback messaging
-pub fn install_component(
+/// Install a component using its resolved backend, dispatching all shell
+/// invocations through `target` (Wave 2A, ADR-017).
+///
+/// `manifest` is `Option<&ComponentManifest>` because OCI manifest fetch is
+/// not wired in until Wave 3 — when it is `None`, individual backends fall
+/// back to a minimal `name@version` invocation and emit a `tracing::debug!`.
+pub async fn install_component(
     comp: &ResolvedComponent,
-    platform: &Platform,
+    manifest: Option<&ComponentManifest>,
+    target: &dyn Target,
 ) -> Result<(), BackendError> {
+    let platform = Platform::current();
     let backend =
-        backend_for(&comp.backend, platform).ok_or_else(|| BackendError::Unavailable {
+        backend_for(&comp.backend, &platform).ok_or_else(|| BackendError::Unavailable {
             backend: comp.backend.as_str().to_string(),
         })?;
 
-    if !backend.supports(platform) {
+    if !backend.supports(&platform) {
         return Err(BackendError::Unavailable {
             backend: comp.backend.as_str().to_string(),
         });
     }
 
-    // Skip if already at the correct version
-    if backend.is_installed(comp) {
+    let ctx = InstallContext::new(comp, manifest, target);
+
+    if backend.is_installed(&ctx).await {
         tracing::info!(
             "  {} {} — already installed, skipping",
             comp.id.to_address(),
@@ -64,5 +73,5 @@ pub fn install_component(
         return Ok(());
     }
 
-    backend.install(comp)
+    backend.install(&ctx).await
 }
