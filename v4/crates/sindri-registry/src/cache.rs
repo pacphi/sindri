@@ -231,8 +231,27 @@ mod tests {
             .unwrap();
         assert!(path.ends_with("manifest.json"));
         // Sharded under by-digest/sha256/ab/<rest>/manifest.json.
-        let path_str = path.to_string_lossy();
-        assert!(path_str.contains("by-digest/sha256/ab/"));
+        // Verify via Path::components so the assertion is correct on Windows
+        // (which uses '\\' as the path separator) as well as POSIX.
+        let segments: Vec<String> = path
+            .components()
+            .filter_map(|c| match c {
+                std::path::Component::Normal(s) => Some(s.to_string_lossy().into_owned()),
+                _ => None,
+            })
+            .collect();
+        let by_digest_idx = segments
+            .iter()
+            .position(|s| s == "by-digest")
+            .expect("path should contain a 'by-digest' segment");
+        assert_eq!(
+            segments.get(by_digest_idx + 1).map(String::as_str),
+            Some("sha256")
+        );
+        assert_eq!(
+            segments.get(by_digest_idx + 2).map(String::as_str),
+            Some("ab")
+        );
         let read = cache.get_by_digest(&digest, BlobKind::Manifest).unwrap();
         assert_eq!(read, content);
     }
