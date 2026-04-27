@@ -207,6 +207,9 @@ enum Commands {
         dry_run: bool,
         #[arg(long, default_value = "local")]
         target: String,
+        /// Skip SBOM auto-emit on success (ADR-007).
+        #[arg(long)]
+        no_bom: bool,
     },
     /// Open `$EDITOR` on a sindri config with save-time validation (ADR-011)
     Edit {
@@ -531,10 +534,12 @@ fn main() {
             yes,
             dry_run,
             target,
+            no_bom,
         }) => commands::apply::run(commands::apply::ApplyArgs {
             yes,
             dry_run,
             target,
+            no_bom,
         }),
         Some(Commands::Edit {
             target,

@@ -46,3 +46,8 @@ sigstore = { version = "0.13", default-features = false, features = ["cosign", "
 p256 = { version = "0.13", default-features = false, features = ["ecdsa", "pem", "pkcs8", "std"] }
 ecdsa = { version = "0.16", default-features = false, features = ["pem", "pkcs8"] }
 tempfile = "3"
+# SBOM emission (ADR-007). The CycloneDX Rust crate (cyclonedx-bom 0.8.1) does
+# not yet support spec 1.6, so both SPDX 2.3 and CycloneDX 1.6 are emitted by
+# hand against `serde_json::Value` schemas — see `sindri::commands::bom`.
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }

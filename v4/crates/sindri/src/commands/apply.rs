@@ -36,6 +36,8 @@ pub struct ApplyArgs {
     pub yes: bool,
     pub dry_run: bool,
     pub target: String,
+    /// Skip SBOM auto-emit on success (ADR-007).
+    pub no_bom: bool,
 }
 
 /// Synchronous entry point preserved for the CLI dispatch. Internally we
@@ -237,6 +239,20 @@ async fn run_async(args: ApplyArgs) -> i32 {
     }
 
     println!("\nApplied {} component(s) successfully.", applied.len());
+
+    // ADR-007: auto-emit `sindri.<target>.bom.spdx.json` next to the lockfile
+    // after a successful apply. Disabled by `--no-bom`. Failures here are
+    // logged but do **not** flip the apply exit code: a successful install
+    // followed by a write-permissions error on the SBOM should still be
+    // reported as success.
+    if !args.no_bom {
+        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        match crate::commands::bom::auto_emit_after_apply(&lockfile, &cwd) {
+            Ok(path) => println!("SBOM written to {}", path.display()),
+            Err(e) => eprintln!("warning: failed to auto-emit SBOM: {}", e),
+        }
+    }
+
     EXIT_SUCCESS
 }
 
