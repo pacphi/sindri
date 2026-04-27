@@ -207,6 +207,9 @@ enum Commands {
         dry_run: bool,
         #[arg(long, default_value = "local")]
         target: String,
+        /// Skip SBOM auto-emit on success (ADR-007).
+        #[arg(long)]
+        no_bom: bool,
     },
 }
 
@@ -458,10 +461,12 @@ fn main() {
             yes,
             dry_run,
             target,
+            no_bom,
         }) => commands::apply::run(commands::apply::ApplyArgs {
             yes,
             dry_run,
             target,
+            no_bom,
         }),
         None => {
             use clap::CommandFactory;
