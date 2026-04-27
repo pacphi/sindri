@@ -1,0 +1,470 @@
+name: "v4: registry-core publish"
+
+# Wave 4D — Publish the v4 registry-core registry as a signed OCI artifact.
+#
+# Implements:
+#   - ADR-016: registry tag cadence (monthly drops + immutable tags).
+#   - ADR-014: signed registries via cosign.
+#   - ADR-003: OCI-only registry distribution shape.
+#
+# Lives on `main` (per repo convention for workflow files); operates on the
+# `v4` branch's `v4/registry-core/` tree at checkout time.
+#
+# Failure semantics (intentional):
+#   - Tag already exists on ghcr.io  -> abort BEFORE any mutation.
+#   - Lint fails                     -> abort BEFORE any mutation.
+#   - Smoke install fails (any cell) -> abort BEFORE any mutation.
+#   - Cosign sign fails              -> LOUD failure (never leave a tag pushed
+#                                       but unsigned).
+
+on:
+  push:
+    branches: [v4]
+    paths:
+      - "v4/registry-core/**"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: >-
+          Explicit OCI tag override (e.g. v4.0.0-rc.1). Defaults to a YYYY.MM.DD
+          monthly drop, OR the v4.*.* git tag if HEAD is exactly at one.
+        required: false
+        type: string
+        default: ""
+      dry_run:
+        description: Skip oras push and cosign sign; lint/smoke/index only.
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  packages: write    # needed for `oras push` to ghcr.io
+  id-token: write    # reserved for cosign keyless flow (future migration)
+
+concurrency:
+  group: registry-core-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  REGISTRY_IMAGE: ghcr.io/sindri-dev/registry-core
+  ORAS_VERSION: "1.2.0"
+  COSIGN_VERSION: "v2.4.1"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job 0: derive the publish tag and the dry_run flag for downstream jobs.
+  # ---------------------------------------------------------------------------
+  resolve-tag:
+    name: Resolve publish tag
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.derive.outputs.tag }}
+      dry_run: ${{ steps.derive.outputs.dry_run }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: v4
+          fetch-depth: 0
+      - name: Derive tag and dry_run
+        id: derive
+        shell: bash
+        run: |
+          set -euo pipefail
+          input_tag="${{ github.event.inputs.tag }}"
+          input_dry="${{ github.event.inputs.dry_run }}"
+
+          # On push to v4, default dry_run=false (real publish on file change).
+          # On workflow_dispatch, honor the input (default true).
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            dry_run="${input_dry:-true}"
+          else
+            dry_run="false"
+          fi
+
+          if [[ -n "${input_tag}" ]]; then
+            tag="${input_tag}"
+          else
+            # Prefer a v4.*.* git tag if HEAD is exactly at one.
+            git_tag="$(git tag --points-at HEAD | grep -E '^v4\.[0-9]+\.[0-9]+' | head -n1 || true)"
+            if [[ -n "${git_tag}" ]]; then
+              tag="${git_tag}"
+            else
+              tag="$(date -u +%Y.%m.%d)"
+            fi
+          fi
+
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "dry_run=${dry_run}" >> "$GITHUB_OUTPUT"
+          echo "Resolved tag: ${tag}"
+          echo "dry_run     : ${dry_run}"
+
+  # ---------------------------------------------------------------------------
+  # Job 1: lint. Builds sindri once and runs `sindri registry lint --json`.
+  # ---------------------------------------------------------------------------
+  lint:
+    name: Registry lint
+    runs-on: ubuntu-latest
+    needs: [resolve-tag]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Cache cargo (sindri build)
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            v4/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('v4/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+      - name: Build sindri (release)
+        working-directory: v4
+        run: cargo build --release -p sindri
+      - name: Run sindri registry lint
+        working-directory: v4
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./target/release/sindri registry lint registry-core/components/ --json | tee lint-report.json
+          # Fail if any error-severity entries exist.
+          if jq -e '.. | objects | select(.severity? == "error")' lint-report.json >/dev/null; then
+            echo "::error::sindri registry lint reported errors"
+            exit 1
+          fi
+      - name: Upload lint report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: registry-lint-report
+          path: v4/lint-report.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # Job 2: smoke-install. Cross-OS x backend canonical-component install test
+  # against the local on-disk registry-core (offline resolve).
+  # ---------------------------------------------------------------------------
+  smoke-install:
+    name: Smoke install (${{ matrix.runner }} / ${{ matrix.sample-component }})
+    needs: [resolve-tag]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest,    runner: linux,       sample-component: "mise:nodejs" }
+          - { os: ubuntu-24.04-arm, runner: linux-arm,   sample-component: "mise:nodejs" }
+          - { os: macos-14,         runner: macos,       sample-component: "brew:gh" }
+          - { os: windows-latest,   runner: windows,     sample-component: "winget:GitHub.cli" }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Cache cargo (sindri build)
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            v4/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('v4/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+      - name: Build sindri (release)
+        working-directory: v4
+        run: cargo build --release -p sindri
+      - name: Smoke install flow
+        working-directory: v4
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Resolve sindri binary path across OS.
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            SINDRI="$(pwd)/target/release/sindri.exe"
+          else
+            SINDRI="$(pwd)/target/release/sindri"
+          fi
+          test -x "$SINDRI" || { echo "::error::sindri binary not found at $SINDRI"; exit 1; }
+
+          # Skip rows whose component's platforms: list excludes the runner.
+          comp="${{ matrix.sample-component }}"
+          runner_label="${{ matrix.runner }}"
+          comp_dir="registry-core/components/$(echo "$comp" | cut -d: -f1)/$(echo "$comp" | cut -d: -f2)"
+          if [[ -f "$comp_dir/component.yaml" ]]; then
+            if grep -qE '^\s*platforms\s*:' "$comp_dir/component.yaml"; then
+              if ! awk '/^\s*platforms\s*:/{flag=1;next} /^[^[:space:]-]/{flag=0} flag' "$comp_dir/component.yaml" | grep -q "$runner_label"; then
+                echo "Component $comp does not support runner '$runner_label'; skipping cell."
+                exit 0
+              fi
+            fi
+          else
+            echo "::warning::component.yaml not found at $comp_dir; proceeding without platform gate"
+          fi
+
+          workdir="$(mktemp -d)"
+          pushd "$workdir" >/dev/null
+
+          "$SINDRI" init --non-interactive --template minimal --name smoke
+          "$SINDRI" add "$comp"
+          "$SINDRI" resolve --offline --registry "registry:local:${GITHUB_WORKSPACE}/v4/registry-core/"
+          "$SINDRI" apply --yes --target local
+          "$SINDRI" validate --online
+
+          popd >/dev/null
+
+  # ---------------------------------------------------------------------------
+  # Job 3: license-scan. Smoke regex check that every install.{sh,ps1} declares
+  # a license. (Full scancode is deferred — see PR body.)
+  # ---------------------------------------------------------------------------
+  license-scan:
+    name: License smoke scan
+    runs-on: ubuntu-latest
+    needs: [resolve-tag]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: v4
+      - name: Scan install scripts for SPDX/License declarations
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          shopt -s nullglob
+          for script in v4/registry-core/components/*/*/install.sh v4/registry-core/components/*/*/install.ps1; do
+            if ! grep -qE 'License|SPDX-License-Identifier' "$script"; then
+              echo "::error file=$script::No License or SPDX-License-Identifier found"
+              missing=$((missing + 1))
+            fi
+          done
+          if (( missing > 0 )); then
+            echo "::error::$missing install script(s) missing license declarations"
+            exit 1
+          fi
+          echo "License smoke scan OK."
+
+  # ---------------------------------------------------------------------------
+  # Job 4: generate-index. Aggregates per-component component.yaml into
+  # v4/registry-core/index.yaml. Uses sindri's own index path if available;
+  # otherwise falls back to a small inline yq script.
+  # ---------------------------------------------------------------------------
+  generate-index:
+    name: Generate registry index
+    runs-on: ubuntu-latest
+    needs: [lint, smoke-install, license-scan]
+    outputs:
+      index-path: ${{ steps.gen.outputs.index-path }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Cache cargo (sindri build)
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            v4/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('v4/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+      - name: Build sindri (release)
+        working-directory: v4
+        run: cargo build --release -p sindri
+      - name: Install yq (fallback aggregator)
+        run: sudo snap install yq || (sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && sudo chmod +x /usr/local/bin/yq)
+      - name: Generate index.yaml
+        id: gen
+        working-directory: v4
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="registry-core/index.yaml"
+
+          # Prefer the sindri binary's own index-generation path if it exists.
+          if ./target/release/sindri registry build-index --help >/dev/null 2>&1; then
+            ./target/release/sindri registry build-index registry-core/components/ --output "$out"
+          else
+            echo "sindri registry build-index unavailable; falling back to yq aggregator"
+            {
+              echo "# Auto-generated by .github/workflows/registry-core-publish.yml"
+              echo "schema: sindri.registry.index/v1"
+              echo "generated_at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+              echo "components:"
+              for cy in registry-core/components/*/*/component.yaml; do
+                name="$(yq '.name // ""' "$cy")"
+                version="$(yq '.version // ""' "$cy")"
+                license="$(yq '.license // ""' "$cy")"
+                printf '  - name: %s\n    version: %s\n    license: %s\n    path: %s\n' \
+                  "$name" "$version" "$license" "$(dirname "$cy")"
+              done
+            } > "$out"
+          fi
+
+          test -s "$out" || { echo "::error::index.yaml is empty"; exit 1; }
+          echo "index-path=v4/$out" >> "$GITHUB_OUTPUT"
+      - name: Upload generated index
+        uses: actions/upload-artifact@v7
+        with:
+          name: registry-core-index
+          path: v4/registry-core/index.yaml
+          if-no-files-found: error
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # Job 5: tag-immutability-check. Refuses to overwrite an existing tag.
+  # Runs only when not dry_run; gates the publish job.
+  # ---------------------------------------------------------------------------
+  tag-immutability-check:
+    name: Tag immutability check
+    runs-on: ubuntu-latest
+    needs: [resolve-tag, generate-index]
+    if: ${{ needs.resolve-tag.outputs.dry_run == 'false' }}
+    steps:
+      - name: Install oras
+        uses: oras-project/setup-oras@v1
+        with:
+          version: ${{ env.ORAS_VERSION }}
+      - name: Login to ghcr.io (read)
+        run: oras login ghcr.io --username "${{ github.actor }}" --password "${{ secrets.GITHUB_TOKEN }}"
+      - name: Verify tag does not already exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ needs.resolve-tag.outputs.tag }}"
+          ref="${REGISTRY_IMAGE}:${tag}"
+          if oras manifest fetch "$ref" >/dev/null 2>&1; then
+            echo "::error::Tag '$tag' already exists at ${ref}. Tags are immutable (ADR-016)."
+            echo "::error::Re-run via workflow_dispatch with the 'tag' input set to the next version."
+            exit 1
+          fi
+          echo "Tag '$tag' is free; proceeding."
+
+  # ---------------------------------------------------------------------------
+  # Job 6: publish. oras push the index.yaml as a typed OCI artifact.
+  # ---------------------------------------------------------------------------
+  publish:
+    name: Publish OCI artifact
+    runs-on: ubuntu-latest
+    needs: [resolve-tag, generate-index, tag-immutability-check]
+    if: ${{ needs.resolve-tag.outputs.dry_run == 'false' }}
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+      reference: ${{ steps.push.outputs.reference }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: v4
+      - name: Download generated index
+        uses: actions/download-artifact@v5
+        with:
+          name: registry-core-index
+          path: v4/registry-core/
+      - name: Install oras
+        uses: oras-project/setup-oras@v1
+        with:
+          version: ${{ env.ORAS_VERSION }}
+      - name: Login to ghcr.io
+        run: oras login ghcr.io --username "${{ github.actor }}" --password "${{ secrets.GITHUB_TOKEN }}"
+      - name: oras push
+        id: push
+        working-directory: v4/registry-core
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ needs.resolve-tag.outputs.tag }}"
+          ref="${REGISTRY_IMAGE}:${tag}"
+          # Push and capture full output so we can extract the manifest digest.
+          oras push "$ref" \
+            --artifact-type "application/vnd.sindri.registry.index.v1+yaml" \
+            "index.yaml:application/vnd.sindri.registry.index.v1+yaml" \
+            | tee oras-push.log
+          digest="$(grep -Eo 'sha256:[a-f0-9]{64}' oras-push.log | head -n1 || true)"
+          if [[ -z "$digest" ]]; then
+            # Fallback: resolve via discover.
+            digest="$(oras manifest fetch --descriptor "$ref" | jq -r '.digest')"
+          fi
+          test -n "$digest" || { echo "::error::Could not determine pushed manifest digest"; exit 1; }
+          echo "Pushed: ${ref}@${digest}"
+          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
+          echo "reference=${REGISTRY_IMAGE}@${digest}" >> "$GITHUB_OUTPUT"
+
+  # ---------------------------------------------------------------------------
+  # Job 7: sign. Cosign sign the manifest by digest. LOUD failure on any error.
+  # ---------------------------------------------------------------------------
+  sign:
+    name: Cosign sign
+    runs-on: ubuntu-latest
+    needs: [resolve-tag, publish]
+    if: ${{ needs.resolve-tag.outputs.dry_run == 'false' }}
+    outputs:
+      signed-reference: ${{ steps.sign.outputs.signed-reference }}
+    steps:
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: ${{ env.COSIGN_VERSION }}
+      - name: Login to ghcr.io (cosign uploads sig as OCI ref)
+        run: cosign login ghcr.io --username "${{ github.actor }}" --password "${{ secrets.GITHUB_TOKEN }}"
+      - name: Sign by digest
+        id: sign
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ref="${{ needs.publish.outputs.reference }}"
+          if [[ -z "${COSIGN_PRIVATE_KEY:-}" ]]; then
+            echo "::error::COSIGN_PRIVATE_KEY secret is not set; refusing to leave artifact unsigned."
+            exit 1
+          fi
+          cosign sign --yes --key env://COSIGN_PRIVATE_KEY "$ref"
+          echo "signed-reference=${ref}" >> "$GITHUB_OUTPUT"
+      # TODO(wave-4d-followup): SLSA provenance attestation (cosign attest
+      # --predicate slsa-provenance.json --type slsaprovenance) once we have a
+      # blessed predicate generator wired into the pipeline.
+
+  # ---------------------------------------------------------------------------
+  # Job 8: summary. Always-runs markdown summary.
+  # ---------------------------------------------------------------------------
+  summary:
+    name: Workflow summary
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [resolve-tag, lint, smoke-install, license-scan, generate-index, tag-immutability-check, publish, sign]
+    steps:
+      - name: Emit GitHub step summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ needs.resolve-tag.outputs.tag }}"
+          dry="${{ needs.resolve-tag.outputs.dry_run }}"
+          digest="${{ needs.publish.outputs.digest }}"
+          signed_ref="${{ needs.sign.outputs.signed-reference }}"
+          {
+            echo "# v4 registry-core publish"
+            echo ""
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Tag | \`${tag:-<unresolved>}\` |"
+            echo "| Dry run | \`${dry}\` |"
+            echo "| Image | \`${REGISTRY_IMAGE}\` |"
+            echo "| Manifest digest | \`${digest:-<not pushed>}\` |"
+            echo "| Signed reference | \`${signed_ref:-<not signed>}\` |"
+            echo ""
+            echo "## Job outcomes"
+            echo "| Job | Result |"
+            echo "|---|---|"
+            echo "| lint | ${{ needs.lint.result }} |"
+            echo "| smoke-install | ${{ needs.smoke-install.result }} |"
+            echo "| license-scan | ${{ needs.license-scan.result }} |"
+            echo "| generate-index | ${{ needs.generate-index.result }} |"
+            echo "| tag-immutability-check | ${{ needs.tag-immutability-check.result }} |"
+            echo "| publish | ${{ needs.publish.result }} |"
+            echo "| sign | ${{ needs.sign.result }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
