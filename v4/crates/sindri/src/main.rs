@@ -208,6 +208,56 @@ enum Commands {
         #[arg(long, default_value = "local")]
         target: String,
     },
+    /// Open `$EDITOR` on a sindri config with save-time validation (ADR-011)
+    Edit {
+        /// `policy` to edit `sindri.policy.yaml`. Omit to edit `sindri.yaml`.
+        target: Option<String>,
+        /// Print the local JSON-schema path and exit.
+        #[arg(long)]
+        schema: bool,
+        /// Skip the interactive re-open prompt on validation failure.
+        #[arg(long)]
+        no_prompt: bool,
+    },
+    /// Roll one component back to its previous pinned version (ADR-011)
+    Rollback {
+        component: String,
+        #[arg(long, default_value = "sindri.lock")]
+        lockfile: String,
+        #[arg(long)]
+        reason: Option<String>,
+    },
+    /// Self-update the `sindri` CLI binary (ADR-011)
+    SelfUpgrade {
+        /// Detect the install method and print what would run, but do not execute.
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Emit a shell-completion script (ADR-011).
+    ///
+    /// Suggested install paths:
+    ///   bash       — ~/.local/share/bash-completion/completions/sindri
+    ///   zsh        — a directory in $fpath, e.g. ~/.zsh/completions/_sindri
+    ///   fish       — ~/.config/fish/completions/sindri.fish
+    ///   powershell — source the output from your $PROFILE
+    Completions {
+        /// One of: bash | zsh | fish | powershell
+        shell: String,
+    },
+    /// Write a per-OS backend preference into sindri.yaml (ADR-011)
+    Prefer {
+        /// One of: linux | macos | windows
+        os: String,
+        /// Comma-separated backend list, e.g. `brew,mise,binary,script`
+        order: String,
+        #[arg(short, long, default_value = "sindri.yaml")]
+        manifest: String,
+    },
+    /// StatusLedger maintenance (ADR-007)
+    Ledger {
+        #[command(subcommand)]
+        cmd: LedgerSubcmds,
+    },
 }
 
 #[derive(Subcommand)]
@@ -254,6 +304,29 @@ enum TargetSubcmds {
     Doctor { name: Option<String> },
     /// Open an interactive shell on the target
     Shell { name: String },
+}
+
+#[derive(Subcommand)]
+enum LedgerSubcmds {
+    /// Print install/upgrade/remove/rollback counts.
+    Stats {
+        #[arg(long)]
+        since: Option<String>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Export ledger entries (jsonl pass-through or csv with header).
+    Export {
+        #[arg(long, default_value = "jsonl")]
+        format: String,
+        #[arg(short, long)]
+        output: Option<String>,
+    },
+    /// Archive older entries to a gzip file, keeping only the most recent.
+    Compact {
+        #[arg(long, default_value_t = 1000)]
+        keep_last: usize,
+    },
 }
 
 #[derive(Subcommand)]
@@ -463,6 +536,73 @@ fn main() {
             dry_run,
             target,
         }),
+        Some(Commands::Edit {
+            target,
+            schema,
+            no_prompt,
+        }) => commands::edit::run(commands::edit::EditArgs {
+            target,
+            schema,
+            editor_override: None,
+            non_interactive: no_prompt,
+            path_override: None,
+        }),
+        Some(Commands::Rollback {
+            component,
+            lockfile,
+            reason,
+        }) => commands::rollback::run(commands::rollback::RollbackArgs {
+            component,
+            lockfile: Some(lockfile),
+            history_root: None,
+            reason,
+        }),
+        Some(Commands::SelfUpgrade { dry_run }) => {
+            commands::self_upgrade::run(commands::self_upgrade::SelfUpgradeArgs {
+                dry_run,
+                binary_path_override: None,
+            })
+        }
+        Some(Commands::Completions { shell }) => {
+            use clap::CommandFactory;
+            commands::completions::run(
+                commands::completions::CompletionsArgs { shell },
+                Cli::command,
+            )
+        }
+        Some(Commands::Prefer {
+            os,
+            order,
+            manifest,
+        }) => commands::prefer::run(commands::prefer::PreferArgs {
+            os,
+            order,
+            manifest,
+        }),
+        Some(Commands::Ledger { cmd }) => match cmd {
+            LedgerSubcmds::Stats { since, json } => {
+                commands::ledger::run_stats(commands::ledger::StatsArgs {
+                    since,
+                    json,
+                    path_override: None,
+                })
+            }
+            LedgerSubcmds::Export { format, output } => {
+                commands::ledger::run_export(commands::ledger::ExportArgs {
+                    format,
+                    output,
+                    path_override: None,
+                })
+            }
+            LedgerSubcmds::Compact { keep_last } => {
+                commands::ledger::run_compact(commands::ledger::CompactArgs {
+                    keep_last,
+                    path_override: None,
+                    archive_dir_override: None,
+                    timestamp_override: None,
+                })
+            }
+        },
         None => {
             use clap::CommandFactory;
             Cli::command().print_help().ok();
