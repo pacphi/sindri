@@ -9,6 +9,10 @@ pub mod ssh;
 pub mod traits;
 
 pub use auth::AuthValue;
+pub use cloud::{
+    DevPodKind, DevPodTarget, E2bTarget, FlyTarget, KubernetesTarget, NorthflankTarget,
+    RunPodTarget, WslTarget,
+};
 pub use docker::DockerTarget;
 pub use error::TargetError;
 pub use local::LocalTarget;

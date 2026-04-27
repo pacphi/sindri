@@ -51,6 +51,26 @@ pub trait Target: Send + Sync {
         })
     }
 
+    /// Start a previously-created target resource.
+    ///
+    /// Default impl returns `Unavailable` so kinds without an
+    /// independent run-time lifecycle (the host machine, for example)
+    /// can simply opt out.
+    fn start(&self) -> Result<(), TargetError> {
+        Err(TargetError::Unavailable {
+            name: self.name().to_string(),
+            reason: "start not supported for this target kind".into(),
+        })
+    }
+
+    /// Stop a target resource without destroying it.
+    fn stop(&self) -> Result<(), TargetError> {
+        Err(TargetError::Unavailable {
+            name: self.name().to_string(),
+            reason: "stop not supported for this target kind".into(),
+        })
+    }
+
     /// Check prerequisites (docker installed, ssh key exists, etc.)
     fn check_prerequisites(&self) -> Vec<PrereqCheck>;
 }
