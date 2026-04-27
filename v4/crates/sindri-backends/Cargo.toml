@@ -19,3 +19,6 @@ hex = { workspace = true }
 reqwest = { workspace = true }
 serde_json = { workspace = true }
 dirs-next = { workspace = true }
+
+[dev-dependencies]
+serde_yaml = { workspace = true }

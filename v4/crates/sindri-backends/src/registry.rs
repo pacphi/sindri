@@ -1,17 +1,19 @@
+use crate::binary::BinaryBackend;
+use crate::brew::BrewBackend;
+use crate::cargo::CargoBackend;
+use crate::error::BackendError;
+use crate::go_install::GoInstallBackend;
+use crate::mise::MiseBackend;
+use crate::npm::NpmBackend;
+use crate::pipx::PipxBackend;
+use crate::script::ScriptBackend;
+use crate::sdkman::SdkmanBackend;
+use crate::system_pm::{ApkBackend, AptBackend, DnfBackend, PacmanBackend, ZypperBackend};
+use crate::traits::InstallBackend;
+use crate::winget::{ScoopBackend, WingetBackend};
 use sindri_core::component::Backend;
 use sindri_core::lockfile::ResolvedComponent;
 use sindri_core::platform::Platform;
-use crate::error::BackendError;
-use crate::traits::InstallBackend;
-use crate::brew::BrewBackend;
-use crate::binary::BinaryBackend;
-use crate::mise::MiseBackend;
-use crate::npm::NpmBackend;
-use crate::script::ScriptBackend;
-use crate::sdkman::SdkmanBackend;
-use crate::system_pm::{AptBackend, ApkBackend, DnfBackend, PacmanBackend, ZypperBackend};
-use crate::universal::{CargoBackend, GoInstallBackend, PipxBackend};
-use crate::winget::{ScoopBackend, WingetBackend};
 
 /// Look up the right backend implementation for a component
 pub fn backend_for(backend: &Backend, _platform: &Platform) -> Option<Box<dyn InstallBackend>> {
@@ -37,12 +39,14 @@ pub fn backend_for(backend: &Backend, _platform: &Platform) -> Option<Box<dyn In
 }
 
 /// Install a component using its resolved backend, with fallback messaging
-pub fn install_component(comp: &ResolvedComponent, platform: &Platform) -> Result<(), BackendError> {
-    let backend = backend_for(&comp.backend, platform).ok_or_else(|| {
-        BackendError::Unavailable {
+pub fn install_component(
+    comp: &ResolvedComponent,
+    platform: &Platform,
+) -> Result<(), BackendError> {
+    let backend =
+        backend_for(&comp.backend, platform).ok_or_else(|| BackendError::Unavailable {
             backend: comp.backend.as_str().to_string(),
-        }
-    })?;
+        })?;
 
     if !backend.supports(platform) {
         return Err(BackendError::Unavailable {
