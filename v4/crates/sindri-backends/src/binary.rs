@@ -1,14 +1,21 @@
 use crate::error::BackendError;
-use crate::traits::InstallBackend;
+use crate::traits::{InstallBackend, InstallContext};
+use async_trait::async_trait;
 use sindri_core::component::Backend;
-use sindri_core::lockfile::ResolvedComponent;
 use sindri_core::platform::Platform;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-/// Direct binary download backend (ADR-010: central platform-matrix resolver)
+/// Direct binary download backend (ADR-010: central platform-matrix resolver).
+///
+/// Wave 2A: this backend is still a Sprint 4 stub for the actual download
+/// path — full URL fetch + sha256 verify lands with OCI manifest plumbing
+/// (Wave 3). What changed in Wave 2A is the trait surface: it is now async
+/// and target-aware, so when the download is implemented it can stream the
+/// asset onto a remote target via [`sindri_targets::Target::upload`].
 pub struct BinaryBackend;
 
+#[async_trait]
 impl InstallBackend for BinaryBackend {
     fn name(&self) -> Backend {
         Backend::Binary
@@ -18,12 +25,10 @@ impl InstallBackend for BinaryBackend {
         true // available on all platforms; individual components list their platforms
     }
 
-    fn install(&self, comp: &ResolvedComponent) -> Result<(), BackendError> {
+    async fn install(&self, ctx: &InstallContext<'_>) -> Result<(), BackendError> {
+        let comp = ctx.component;
         tracing::info!("binary: installing {}@{}", comp.id.name, comp.version);
 
-        // The oci_digest field in Sprint 3 holds the OCI ref (url template in real impl)
-        // For Sprint 4: stub that verifies the checksum map is non-empty, then no-op
-        // Full download + verify in Sprint 6 hardening
         if comp.checksums.is_empty() {
             tracing::warn!(
                 "binary: no checksums for {} — install skipped (run sindri registry fetch-checksums)",
@@ -32,6 +37,9 @@ impl InstallBackend for BinaryBackend {
             return Ok(());
         }
 
+        // For local target use the host platform; for remote targets we
+        // would query target.profile() — that path will be exercised once
+        // the actual download lands (Wave 3).
         let platform = Platform::current();
         let platform_key = format!(
             "{}-{}",
@@ -46,7 +54,7 @@ impl InstallBackend for BinaryBackend {
             )
         })?;
 
-        // Sprint 4 stub: just log the checksum verification step
+        // Sprint 4 stub: just log the checksum verification step.
         tracing::info!(
             "binary: would verify sha256 {} for {}",
             expected_checksum,
@@ -56,9 +64,16 @@ impl InstallBackend for BinaryBackend {
         Ok(())
     }
 
-    fn remove(&self, comp: &ResolvedComponent) -> Result<(), BackendError> {
-        // Determine install path and remove the binary
-        let install_path = expand_install_path("~/.local/bin", &comp.id.name);
+    async fn remove(&self, ctx: &InstallContext<'_>) -> Result<(), BackendError> {
+        // reason: binary remove inspects/mutates the local filesystem; remote
+        // remove requires Target::exec("rm ...") and lands with Wave 3+.
+        if ctx.target.kind() != "local" {
+            return Err(BackendError::RemoveFailed {
+                component: ctx.component.id.to_address(),
+                detail: "binary remove on remote targets lands with Wave 3+ remote work".into(),
+            });
+        }
+        let install_path = expand_install_path("~/.local/bin", &ctx.component.id.name);
         if install_path.exists() {
             fs::remove_file(&install_path)?;
             tracing::info!("binary: removed {}", install_path.display());
@@ -66,8 +81,11 @@ impl InstallBackend for BinaryBackend {
         Ok(())
     }
 
-    fn is_installed(&self, comp: &ResolvedComponent) -> bool {
-        let path = expand_install_path("~/.local/bin", &comp.id.name);
+    async fn is_installed(&self, ctx: &InstallContext<'_>) -> bool {
+        if ctx.target.kind() != "local" {
+            return false; // conservative; full impl arrives with Wave 3
+        }
+        let path = expand_install_path("~/.local/bin", &ctx.component.id.name);
         path.exists()
     }
 }
@@ -95,5 +113,36 @@ fn platform_arch_str(p: &Platform) -> &'static str {
     match p.arch {
         sindri_core::platform::Arch::X86_64 => "x86_64",
         sindri_core::platform::Arch::Aarch64 => "aarch64",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::traits::test_support::MockTarget;
+    use sindri_core::component::ComponentId;
+    use sindri_core::lockfile::ResolvedComponent;
+    use sindri_core::version::Version;
+    use std::collections::HashMap;
+
+    #[tokio::test]
+    async fn install_without_checksums_returns_ok_and_does_not_exec() {
+        let mock = MockTarget::new();
+        let c = ResolvedComponent {
+            id: ComponentId {
+                backend: Backend::Binary,
+                name: "ripgrep".into(),
+            },
+            version: Version::new("14.1.0"),
+            backend: Backend::Binary,
+            oci_digest: None,
+            checksums: HashMap::new(),
+            depends_on: vec![],
+        };
+        let ctx = InstallContext::new(&c, None, &mock);
+        // Empty-checksum path: backend logs a warn and returns Ok without
+        // invoking `target.exec` (download is Wave 3 work).
+        BinaryBackend.install(&ctx).await.unwrap();
+        assert!(mock.last_call().is_none());
     }
 }

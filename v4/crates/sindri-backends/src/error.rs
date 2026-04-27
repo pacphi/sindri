@@ -16,6 +16,8 @@ pub enum BackendError {
     },
     #[error("Command failed: {cmd} — {detail}")]
     CommandFailed { cmd: String, detail: String },
+    #[error("Target error: {0}")]
+    Target(#[from] sindri_targets::error::TargetError),
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 }
