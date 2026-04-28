@@ -68,3 +68,10 @@ Each ADR states what was decided, why, and what is explicitly rejected.
 | [021](021-drop-k8s-vm-image-commands.md)    | Drop `k8s`/`vm`/`image` from core CLI surface | Accepted |
 | [022](022-drop-hybrid-install-method.md)    | Drop `InstallMethod::Hybrid`                  | Accepted |
 | [023](023-implicit-local-default-target.md) | Implicit `local` as default target            | Accepted |
+
+### Source Modes
+
+| #                                          | Title                                                | Status   |
+| ------------------------------------------ | ---------------------------------------------------- | -------- |
+| [024](024-script-component-lifecycle-contract.md) | Script component lifecycle contract            | Accepted |
+| [025](025-component-source-modes.md)       | Component source modes for development and air-gap   | Proposed |

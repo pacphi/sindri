@@ -1,0 +1,267 @@
+## Sindri v4 — Source Modes Implementation Plan
+
+**Status:** Draft
+**Date:** 2026-04-28
+**Implements:** ADR-025, DDD-07
+**Amends:** `implementation-plan.md` Sprint 2 (registry) and Sprint 7 (CLI verbs)
+
+This is a focused addendum to the v4 implementation plan covering the work to ship
+ADR-025 (component source modes) and DDD-07 (registry source domain). It assumes the
+existing Sprint 2 deliverables (OCI client, cache, lint, signing) are in place; the
+existing `LocalRegistry` becomes the seed of the `LocalPath` source.
+
+The work is sized as roughly **two sprints (≈4 weeks)** for one engineer, plus one
+additional sprint of polish and CI integration that runs concurrently with other v4 work.
+
+---
+
+## Principles
+
+- **No production behavior change without `--strict-oci` opt-out.** Default sindri.yaml
+  scaffolding stays single-OCI; users opt in to other sources deliberately.
+- **Source trait first, source variants second.** The trait contract is the design
+  surface; concrete sources are conformance tests.
+- **Lockfile is the contract.** Apply-time refetch reads `SourceDescriptor` only; if a
+  descriptor cannot be re-resolved, apply fails loudly.
+- **Refactor existing `LocalRegistry` rather than re-implement.** The work is mostly
+  shaping current code into the new trait, not green-field writing.
+
+---
+
+## Phase 1 — Trait surface and refactor (Sprint A, week 1)
+
+**Goal:** `Source` trait defined, `LocalPathSource` implemented as a refactor of
+existing `LocalRegistry`, resolver consults a `Vec<RegistrySource>`. No behavior change
+for existing users.
+
+### Tasks
+
+#### 1.1 Define the `Source` trait and `RegistrySource` enum
+
+- [ ] Create `sindri-registry/src/source/mod.rs` with the `Source` trait, `RegistrySource`
+  enum, `SourceContext`, `SourceError`, and `SourceDescriptor` types from DDD-07.
+- [ ] Add `scope: Option<Vec<ComponentName>>` to every variant; centralize the scope-check
+  helper.
+- [ ] Implement `RegistrySource::dispatch_*` (one per trait method) so the resolver can
+  call through the enum without importing every variant.
+- [ ] Add `schemars` derives so the new YAML shape lands in `v4/schemas/registry-source.json`.
+
+#### 1.2 Refactor `LocalRegistry` into `LocalPathSource`
+
+- [ ] Move `sindri-registry/src/local.rs` to `sindri-registry/src/source/local_path.rs`.
+- [ ] Implement `Source` for `LocalPathSource`. `fetch_index` walks the path, reads
+  `component.yaml` files, builds an in-memory `RegistryIndex`.
+- [ ] Add a deprecation type alias `pub type LocalRegistry = LocalPathSource;` retained
+  for one release.
+- [ ] Tests: re-target the existing `LocalRegistry` test suite at the new type via the
+  alias; add three new tests covering the scope filter.
+
+#### 1.3 Resolver wiring
+
+- [ ] `sindri-resolver/src/lib.rs` accepts `&[RegistrySource]` instead of a single
+  registry handle. Use the existing first-match-wins helper from DDD-03 with the
+  scope filter from §1.1.
+- [ ] Lockfile gains `source: SourceDescriptor` per resolved component (DDD-07
+  §"Lockfile descriptor"). Backfill via `From<old-shape>` for one release: read an
+  absent `source:` as `SourceDescriptor::Oci { ... }` reconstructed from the
+  pre-existing `registry:` field.
+- [ ] Update `sindri-resolver/tests/` fixtures to assert the new field is populated.
+
+### Acceptance criteria
+
+- `cargo build --workspace` clean.
+- `cargo clippy --workspace --all-targets -- -D warnings` clean.
+- Existing v4 resolve fixtures pass unchanged.
+- A new test resolves a single component from `LocalPathSource` and asserts the
+  lockfile descriptor is `LocalPath { path }`.
+
+---
+
+## Phase 2 — `OciSource` and `LocalOciSource` (Sprint A, week 2)
+
+**Goal:** Production OCI source is reachable via the new trait; `local-oci` reads OCI
+image layouts on disk.
+
+### Tasks
+
+#### 2.1 Implement `OciSource`
+
+- [ ] Create `sindri-registry/src/source/oci.rs` wrapping the existing
+  `RegistryClient`/`CosignVerifier`/`RegistryCache`.
+- [ ] `fetch_index` reuses cache-with-TTL semantics (DDD-02 §Cache Model).
+- [ ] `supports_strict_oci()` returns `true` iff the trust config is satisfied — i.e.
+  cosign signature verifies for `sindri/core` or for explicitly-trusted third parties.
+- [ ] `lockfile_descriptor()` records `tag` + `manifest_digest`.
+- [ ] Migrate two existing OCI integration tests from `sindri-registry/tests/` to
+  exercise the trait surface; keep one direct-client test for the underlying client.
+
+#### 2.2 Implement `LocalOciSource`
+
+- [ ] Create `sindri-registry/src/source/local_oci.rs`. Use `oci-spec` for layout
+  parsing; reuse `sigstore-rs` for embedded signature verification.
+- [ ] `fetch_index` reads the layout's `index.json`, finds the registry-core artifact,
+  unpacks the layers, parses `index.yaml`.
+- [ ] `fetch_component_blob` reads layer blobs by digest from the layout.
+- [ ] Tests: a fixture OCI layout under `v4/crates/sindri-registry/tests/fixtures/oci-layout/`
+  (small but realistic — three components, signed and unsigned variants).
+
+#### 2.3 `--strict-oci` gate
+
+- [ ] Add `strict_oci: bool` to the resolver config; default `false`.
+- [ ] After resolution, walk `Lockfile.components`; if any `source.supports_strict_oci()`
+  is `false`, return `AdmissionCode::SourceNotProductionGrade`.
+- [ ] Surface `--strict-oci` as a flag on `sindri lock` and `sindri resolve`; surface
+  `registry.policy.strict_oci: true` in `sindri.yaml` (Q3 from ADR-025 — both).
+- [ ] Loud warning at the top of every non-strict resolve report listing which sources
+  produced which components.
+
+### Acceptance criteria
+
+- `--strict-oci` rejects a lockfile that contains a `LocalPath` source.
+- `--strict-oci` accepts a lockfile that contains only verified `Oci` and `LocalOci`
+  sources.
+- `LocalOciSource` produces byte-for-byte the same component blob digests as the `OciSource`
+  it was prefetched from (regression test).
+
+---
+
+## Phase 3 — `GitSource` and CLI verbs (Sprint B, week 1)
+
+**Goal:** Git source resolves; `sindri registry serve` and `sindri registry prefetch`
+exist.
+
+### Tasks
+
+#### 3.1 Implement `GitSource`
+
+- [ ] Decision (recorded in this plan, not in the ADR): use `git2` (libgit2 bindings)
+  rather than shelling out. Rationale: deterministic across user installs, no PATH
+  dependence, supports sparse checkout for `subdir`.
+- [ ] Cache layout: `~/.sindri/cache/git/<sha256(url)>/<commit-sha>/`.
+- [ ] `fetch_index`: resolve `ref` to a commit sha, sparse-checkout `subdir` if set,
+  walk `component.yaml` files.
+- [ ] `lockfile_descriptor()` records the resolved commit sha — never the ref.
+- [ ] `require_signed: true` rejects unverified commits; verification uses `gpgme` or
+  shelled `git verify-commit` (TBD; add to Q-list if blocked).
+- [ ] Tests: fixture local git repo (using `git2`'s in-memory repo helpers) with three
+  components; resolve, then re-resolve to assert sha is recorded and reused.
+
+#### 3.2 `sindri registry serve`
+
+- [ ] New CLI verb in `sindri/src/commands/registry/serve.rs`.
+- [ ] Spins up an ephemeral OCI registry over a components directory using
+  `oci-distribution-spec` v1.1. (Implementation: a small embedded HTTP server using
+  `axum` + `oci-distribution`.)
+- [ ] Honors `--addr`, `--root`, `--sign-with` (optional cosign key for full-fidelity
+  trust testing).
+- [ ] Logs every push/pull to stdout; exits cleanly on SIGINT.
+
+#### 3.3 `sindri registry prefetch`
+
+- [ ] New CLI verb in `sindri/src/commands/registry/prefetch.rs`.
+- [ ] Resolves the closure of one OCI ref into either a tarball (`--target air-gap.tar`)
+  or an OCI image layout (`--layout ./vendor/registry-core`).
+- [ ] Reuses `OciSource` for fetch; uses `oci-spec` to write the layout.
+- [ ] Q1 from ADR-025 (`--with-binaries`) is **deferred**; this phase does registry
+  artifact only.
+
+### Acceptance criteria
+
+- `sindri lock` resolves a component from a `GitSource` pointing at a feature branch
+  and records the commit sha in the lockfile.
+- `sindri registry serve --root ./components` is reachable from `oras pull`.
+- `sindri registry prefetch oci://… --layout ./out` produces a directory that
+  `LocalOciSource` reads identically to the original OCI source.
+
+---
+
+## Phase 4 — Config, docs, CI templates (Sprint B, week 2)
+
+**Goal:** Users can express the new shape; CI templates ship; docs are honest.
+
+### Tasks
+
+#### 4.1 sindri.yaml schema and merge semantics
+
+- [ ] Update `v4/schemas/bom.json` to allow `registry.sources: [...]` with the four
+  variants. Keep the legacy single-OCI shape valid for one release; warn on use.
+- [ ] Update the `init` template to write the new shape (single `oci` source).
+- [ ] Document merge semantics: project sources prepend to global sources by default;
+  `registry.replace_global: true` overrides.
+
+#### 4.2 `--explain` for sources
+
+- [ ] Extend `sindri lock --explain <component>` to show every source that was
+  consulted, whether it matched, why it was skipped (out of scope, not found),
+  and what descriptor was recorded.
+- [ ] Match output style to existing `BackendChooser --explain` output.
+
+#### 4.3 CI template
+
+- [ ] Add `v4/docs/ci/strict-oci.yml` — a GitHub Actions snippet enabling
+  `--strict-oci` on every `sindri lock` invocation in CI.
+- [ ] Reference it from the v4 user-facing docs alongside the existing CI guidance.
+
+#### 4.4 Migration note
+
+- [ ] Append a section to `v4/docs/MIGRATION_FROM_V3.md` (or seed the file) explaining
+  how v3's "resolve from GitHub" maps to a v4 `git` source, and how v3's bundled
+  registry pattern maps to `local-oci`.
+- [ ] Cross-link from ADR-003 §"Air-gapped / offline" once the migration doc lands.
+
+### Acceptance criteria
+
+- `cargo run -p sindri -- lock --explain mise:nodejs` prints source consultation order.
+- `cargo run -p sindri -- init` writes a sindri.yaml that uses the new `sources:` shape.
+- A user pasting the strict-oci CI snippet into a fresh repo gets a passing run that
+  fails the moment a `LocalPath` source is introduced.
+
+---
+
+## Phase 5 — Optional polish (concurrent with later sprints)
+
+These are improvements that should not block the v4.0 RC but should be tracked.
+
+- [ ] **`--with-binaries`** for `sindri registry prefetch` (ADR-025 Q1).
+  Requires the prefetch step to know target platforms; coordinate with Sprint 9
+  (Target subsystem).
+- [ ] **HTTPS tarball source** (`type: http-tarball`) — natural extension of the
+  trait; useful for legacy distribution channels. Defer until a real user asks.
+- [ ] **`s3://` source** — for organizations that already have S3-backed mirrors but
+  not OCI. Same trait, new variant.
+- [ ] **Source-level cache eviction policy** in `~/.sindri/cache/git/`. Currently
+  unbounded; needs an LRU policy in line with the OCI cache TTL.
+
+---
+
+## Risk register
+
+| Risk | Mitigation |
+| ---- | ---------- |
+| `git2` build complexity on Windows runners | Pin libgit2 system feature off; ship vendored libgit2 by default. |
+| `oci-distribution-spec` server library is immature | If `axum` + `oci-distribution` is too thin, fall back to shelling out to `zot` for `registry serve`; the verb is a developer convenience, not a production path. |
+| Lockfile schema churn alarms users | Backfill is implemented in Phase 1.3; add a one-line warning on first read of a legacy lockfile. |
+| `--strict-oci` not noticed in CI templates | Loud warning in non-strict mode listing source mix; ship the CI template; mention in release notes. |
+| Source-trait surface grows uncontrolled as more variants land | Conformance test crate that every new source must pass; review at ADR level for any new variant beyond the four in ADR-025. |
+
+---
+
+## Out of scope
+
+- Discovery (`sindri ls`, `sindri search`) source attribution. The discovery domain
+  (DDD-06) reads a merged `RegistryIndex` and does not need to know which source it
+  came from.
+- Per-source rate limiting, retry, or circuit-breaking. Each source's transport
+  concerns are local; cross-source policy is a v4.1 problem.
+- Dynamic source registration via plugin. The four source types are baked in; new
+  types require an ADR.
+
+---
+
+## References
+
+- ADR-025 — Component source modes for development and air-gap
+- ADR-003, ADR-014, ADR-016 — context this plan respects
+- DDD-02, DDD-03, DDD-07 — domain model
+- `implementation-plan.md` Sprint 2 (registry) — extended by Phase 1–2 here
+- `implementation-plan.md` Sprint 7 (CLI verbs) — extended by Phase 3 here
