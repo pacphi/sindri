@@ -345,14 +345,25 @@ impl Drop for StateLock {
 pub fn try_lock_state_file(path: &Path) -> Result<StateLock, StateError> {
     use fs4::fs_std::FileExt;
 
-    let file = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(path)
-        .map_err(|e| StateError::Io {
-            path: path.to_path_buf(),
-            source: e,
-        })?;
+    let mut opts = OpenOptions::new();
+    opts.create(true).append(true);
+
+    // On Windows, the default share mode is 0, which prevents a second process
+    // from even opening the file once we hold a write handle — the open itself
+    // fails with "Access is denied" before `LockFileEx` ever runs.  Allow
+    // concurrent reads/writes/deletes (FILE_SHARE_READ | FILE_SHARE_WRITE |
+    // FILE_SHARE_DELETE = 0x07) so the advisory lock is what arbitrates
+    // exclusive access, matching the POSIX `flock` semantics on Unix.
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::OpenOptionsExt;
+        opts.share_mode(0x00000007);
+    }
+
+    let file = opts.open(path).map_err(|e| StateError::Io {
+        path: path.to_path_buf(),
+        source: e,
+    })?;
 
     match file.try_lock_exclusive() {
         Ok(()) => Ok(StateLock {
