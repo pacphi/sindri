@@ -36,7 +36,7 @@ tracing = "0.1"
 sha2 = "0.11"
 hex = "0.4"
 dirs-next = "2"
-reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+reqwest = { version = "0.12", features = ["json", "rustls-tls", "blocking"], default-features = false }
 semver = "1"
 # OCI client (successor to oci-distribution; ADR-003). Wired into sindri-registry
 # scaffold in Wave 3A.1; live OCI fetch lands in Wave 3A.2.
@@ -57,3 +57,5 @@ tempfile = "3"
 uuid = { version = "1", features = ["v4"] }
 # Tarball backup/restore (`sindri backup` / `sindri restore`).
 tar = "0.4"
+# zstd compression for `sindri backup --compression zstd` (D9).
+zstd = "0.13"

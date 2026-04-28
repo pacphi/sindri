@@ -215,6 +215,10 @@ enum Commands {
         /// Include `~/.sindri/cache/registries/` (large; off by default).
         #[arg(long)]
         include_cache: bool,
+        /// Compression algorithm: `gzip` (default, `.tar.gz`) or `zstd` (`.tar.zst`).
+        /// Restore auto-detects by magic bytes regardless of this flag.
+        #[arg(long, default_value = "gzip")]
+        compression: String,
     },
     /// Restore a `sindri backup` archive
     Restore {
@@ -624,10 +628,21 @@ fn main() {
         Some(Commands::Backup {
             output,
             include_cache,
-        }) => commands::backup::run_backup(commands::backup::BackupArgs {
-            output,
-            include_cache,
-        }),
+            compression,
+        }) => {
+            let algo = commands::backup::Compression2::parse(&compression).unwrap_or_else(|| {
+                eprintln!(
+                    "warning: unknown --compression `{}`; defaulting to gzip",
+                    compression
+                );
+                commands::backup::Compression2::Gzip
+            });
+            commands::backup::run_backup(commands::backup::BackupArgs {
+                output,
+                include_cache,
+                compression: algo,
+            })
+        }
         Some(Commands::Restore {
             archive,
             dry_run,
