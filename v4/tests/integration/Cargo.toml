@@ -47,5 +47,10 @@ predicates = "3"
 tempfile = { workspace = true }
 serde_yaml = { workspace = true }
 serde_json = { workspace = true }
-# Used by apply_resume integration tests for in-process state-file assertions.
+# Used by apply_resume integration tests for in-process state-file assertions
+# and by Wave 5G (D12) admission_gate_denies_unsupported_platform — that test
+# now exercises the resolver library directly so Gate 1 runs against a full
+# ComponentManifest instead of skipping because no OCI manifest fetch occurs
+# in offline mode.
+sindri-resolver = { path = "../../crates/sindri-resolver" }
 sindri-core = { path = "../../crates/sindri-core" }

@@ -1666,6 +1666,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sindri-core",
+ "sindri-resolver",
  "tempfile",
 ]
 
