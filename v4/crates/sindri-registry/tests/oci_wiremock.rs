@@ -346,6 +346,75 @@ async fn manifest_404_maps_to_oci_fetch_error() {
 }
 
 #[tokio::test]
+async fn fetch_component_layer_digest_returns_descriptor_digest() {
+    // Wave 5F — D5: the resolver pre-fetches per-component layer digests
+    // and writes them into the lockfile. This test exercises the manifest-
+    // only fetch path (no blob pull).
+    let server = MockServer::start().await;
+    let layer = b"opaque-component-payload";
+    let layer_digest = format!("sha256:{}", sha256_hex(layer));
+    let manifest = serde_json::json!({
+        "schemaVersion": 2,
+        "mediaType": "application/vnd.oci.image.manifest.v1+json",
+        "config": {
+            "mediaType": "application/vnd.oci.image.config.v1+json",
+            "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+            "size": 0
+        },
+        "layers": [{
+            "mediaType": OCI_TAR_GZIP_MEDIA_TYPE,
+            "digest": layer_digest,
+            "size": layer.len()
+        }]
+    })
+    .to_string();
+
+    Mock::given(method("GET"))
+        .and(path(format!("/v2/{}/manifests/{}", REPO, TAG)))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .insert_header("Content-Type", "application/vnd.oci.image.manifest.v1+json")
+                .set_body_string(manifest),
+        )
+        .mount(&server)
+        .await;
+
+    let (_endpoint, registry_url) = registry_url_for(&server);
+    let oci = http_oci_client();
+    let (_t, client) = temp_client(oci);
+    let returned = client
+        .fetch_component_layer_digest(&registry_url)
+        .await
+        .expect("manifest-only fetch should succeed");
+    assert_eq!(returned, layer_digest);
+}
+
+#[tokio::test]
+async fn fetch_component_layer_digest_404_surfaces_oci_fetch_error() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path_regex(r"^/v2/.*/manifests/.*$"))
+        .respond_with(ResponseTemplate::new(404))
+        .mount(&server)
+        .await;
+    let (_endpoint, registry_url) = registry_url_for(&server);
+    let oci = http_oci_client();
+    let (_t, client) = temp_client(oci);
+    let err = client
+        .fetch_component_layer_digest(&registry_url)
+        .await
+        .expect_err("404 must surface");
+    let msg = format!("{}", err).to_ascii_lowercase();
+    assert!(
+        msg.contains("404") || msg.contains("not found") || msg.contains("oci fetch"),
+        "expected fetch error, got: {}",
+        msg
+    );
+}
+
+const OCI_TAR_GZIP_MEDIA_TYPE: &str = "application/vnd.oci.image.layer.v1.tar+gzip";
+
+#[tokio::test]
 async fn manifest_500_maps_to_oci_fetch_error() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))

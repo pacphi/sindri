@@ -284,6 +284,65 @@ impl RegistryClient {
         Ok((index, Some(digest)))
     }
 
+    /// Fetch the SHA-256 digest of a *component's* primary OCI layer.
+    ///
+    /// Wave 5F — D5 (carry-over from PR #228): the resolver populates the
+    /// per-component `component_digest` lockfile field via this helper so
+    /// that `sindri apply`'s cosign pre-flight (added in #228) can verify a
+    /// per-component signature before the install backend runs.
+    ///
+    /// Returns the layer descriptor digest (e.g. `"sha256:…"`) of the
+    /// manifest's first layer. Unlike [`Self::fetch_index`], this does *not*
+    /// pull the layer blob — only the manifest — because the layer
+    /// descriptor digest is what cosign needs and the apply pipeline does
+    /// the full layer pull lazily.
+    ///
+    /// `oci_ref_str` accepts the same forms as [`OciRef::parse`]. Anonymous
+    /// auth is used unless `~/.docker/config.json` provides credentials, in
+    /// which case the bearer-token flow is delegated to `oci-client`.
+    pub async fn fetch_component_layer_digest(
+        &self,
+        oci_ref_str: &str,
+    ) -> Result<String, RegistryError> {
+        let oci_ref = OciRef::parse(oci_ref_str)?;
+        let reference = oci_reference_for(&oci_ref);
+        let auth = docker_config_auth(&oci_ref.registry).unwrap_or(RegistryAuth::Anonymous);
+
+        tracing::debug!(
+            "fetching component manifest {} for layer digest (Wave 5F D5)",
+            oci_ref.to_canonical()
+        );
+
+        let (manifest, _manifest_digest) = self
+            .oci
+            .pull_manifest(&reference, &auth)
+            .await
+            .map_err(|e| RegistryError::OciFetch {
+                reference: oci_ref.to_canonical(),
+                detail: e.to_string(),
+            })?;
+
+        let image_manifest = match manifest {
+            OciManifest::Image(m) => m,
+            OciManifest::ImageIndex(_) => {
+                return Err(RegistryError::OciFetch {
+                    reference: oci_ref.to_canonical(),
+                    detail: "expected image manifest, got image index".into(),
+                });
+            }
+        };
+
+        let layer = image_manifest
+            .layers
+            .first()
+            .ok_or_else(|| RegistryError::OciFetch {
+                reference: oci_ref.to_canonical(),
+                detail: "manifest has no layers".into(),
+            })?;
+
+        Ok(layer.digest.clone())
+    }
+
     // ------------------------------------------------------------------
     // internals
     // ------------------------------------------------------------------
