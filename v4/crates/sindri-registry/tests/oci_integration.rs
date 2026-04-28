@@ -10,11 +10,6 @@
 //! cargo test -p sindri-registry --features live-oci-tests \
 //!     --test oci_integration -- --ignored
 //! ```
-//!
-//! TODO(wave-3a.3): replace these with `wiremock`-backed mock-server tests
-//! that don't require network access. The bearer-token negotiation handshake
-//! made the wiremock setup non-trivial enough that it was scoped out of
-//! Wave 3A.2 — see PR description for the trade-off.
 
 #![cfg(feature = "live-oci-tests")]
 

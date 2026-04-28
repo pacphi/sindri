@@ -8,7 +8,6 @@
 mod helpers;
 
 #[test]
-#[cfg_attr(windows, ignore)] // FIXME(wave-4a-followup): tempdir + path quoting on Windows runners
 fn apply_dry_run_is_idempotent() {
     let tmp = helpers::temp_workdir();
     let workdir = tmp.path();
