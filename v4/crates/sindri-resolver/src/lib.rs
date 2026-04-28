@@ -31,6 +31,34 @@ pub struct ResolveOptions {
     /// entries omit `manifest_digest`. ADR-003 audit-delta tracks moving
     /// this from registry-scoped to per-component when SBOM (Wave 5) lands.
     pub registry_manifest_digest: Option<String>,
+    /// Target *kind* (e.g. `local`, `docker`, `k8s`). Drives the per-target
+    /// backend preference chain (Wave 5F — D18, ADR-018). Defaults to
+    /// `"local"` when unset, preserving pre-5F behaviour.
+    #[doc(hidden)]
+    pub target_kind: Option<String>,
+    /// Pre-fetched per-component OCI layer digests, keyed by component
+    /// address (e.g. `mise:nodejs`). Populated by the CLI's resolve command
+    /// for OCI-backed components (Wave 5F — D5 carry-over from PR #228).
+    /// Components without an entry here serialize `component_digest: None`
+    /// (acceptable for local file / git / http tarball sources).
+    #[doc(hidden)]
+    pub component_digests: HashMap<String, String>,
+}
+
+impl Default for ResolveOptions {
+    fn default() -> Self {
+        Self {
+            manifest_path: PathBuf::new(),
+            lockfile_path: PathBuf::new(),
+            target_name: "local".to_string(),
+            offline: false,
+            strict: false,
+            explain: None,
+            registry_manifest_digest: None,
+            target_kind: None,
+            component_digests: HashMap::new(),
+        }
+    }
 }
 
 /// Main resolution pipeline: manifest → registry → closure → gates → backend → lockfile
@@ -71,6 +99,7 @@ pub fn resolve(
     let bom_hash = lockfile_writer::compute_bom_hash(&bom_content);
     let mut lockfile = Lockfile::new(bom_hash, opts.target_name.clone());
 
+    let target_kind = opts.target_kind.as_deref();
     for node in &closure_nodes {
         // Handle explain flag
         if let Some(ref exp) = opts.explain {
@@ -81,12 +110,16 @@ pub fn resolve(
             }
         }
 
-        let chosen = backend_choice::choose_backend(&node.entry, platform, None);
+        let chosen =
+            backend_choice::choose_backend_for_target(&node.entry, platform, target_kind, None);
+        let address = node.id.to_address();
+        let component_digest = opts.component_digests.get(&address).cloned();
         let resolved = lockfile_writer::resolved_from_entry(
             &node.entry,
             chosen,
-            &node.id.to_address(),
+            &address,
             opts.registry_manifest_digest.as_deref(),
+            component_digest.as_deref(),
         );
         lockfile.components.push(resolved);
     }
