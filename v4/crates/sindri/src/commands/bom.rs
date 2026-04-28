@@ -595,6 +595,7 @@ mod tests {
             manifest,
             manifest_digest: None,
             component_digest: None,
+            platforms: None,
         }
     }
 

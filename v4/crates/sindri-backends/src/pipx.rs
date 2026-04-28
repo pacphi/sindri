@@ -111,6 +111,7 @@ mod tests {
             manifest: None,
             manifest_digest: None,
             component_digest: None,
+            platforms: None,
         }
     }
 

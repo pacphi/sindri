@@ -19,6 +19,7 @@ platforms:
 install:
   binary:
     url_template: "https://github.com/koalaman/shellcheck/releases/download/v{version}/shellcheck-v{version}.{os}.{arch}.tar.xz"
+    checksums: {}
     install_path: "~/.local/bin/shellcheck"
 
 depends_on: []
