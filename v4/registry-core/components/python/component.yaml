@@ -24,3 +24,16 @@ install:
       python: "3.12.0"
 
 depends_on: []
+
+auth:
+  tokens:
+    - name: pypi_registry_token
+      description: "PyPI API token for publishing or installing from private indexes."
+      scope: both
+      optional: true
+      audience: "https://pypi.org"
+      redemption:
+        kind: env-var
+        env-name: PYPI_TOKEN
+      discovery:
+        env-aliases: [PYPI_TOKEN, TWINE_PASSWORD, POETRY_PYPI_TOKEN_PYPI]

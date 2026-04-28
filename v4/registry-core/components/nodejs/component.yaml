@@ -24,3 +24,16 @@ install:
       node: "22.0.0"
 
 depends_on: []
+
+auth:
+  tokens:
+    - name: npm_registry_token
+      description: "npm auth token for private registries (npm publish/install from private packages)."
+      scope: both
+      optional: true
+      audience: "https://registry.npmjs.org"
+      redemption:
+        kind: env-var
+        env-name: NPM_TOKEN
+      discovery:
+        env-aliases: [NPM_TOKEN, NODE_AUTH_TOKEN]

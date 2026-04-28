@@ -15,10 +15,14 @@ Checks
 - Binary components: no placeholder checksums
 - depends_on references resolve against the known component set
 - Warnings: missing metadata.homepage, metadata.description
+- Warnings (--auth): components in credentialed categories (tags: cloud,
+  ai, ai-dev, mcp) without an `auth:` block — opt out per ADR-026 with the
+  comment annotation `# sindri-lint: auth-not-required` at the top of
+  component.yaml
 
 Usage
 -----
-    python3 tools/validate_registry.py [--json]
+    python3 tools/validate_registry.py [--json] [--auth]
 
 Exit code 0 = no errors; 1 = at least one error.
 """
@@ -40,6 +44,11 @@ KNOWN_BACKENDS = {
     "scoop", "npm", "pipx", "cargo", "go-install", "binary", "script",
     "sdkman", "collection",
 }
+
+# ADR-026 Phase 3 — `--auth` lint rule.
+# Tags whose presence indicates a component historically needs credentials.
+AUTH_CREDENTIALED_TAGS = {"cloud", "ai", "ai-dev", "mcp"}
+AUTH_LINT_OPTOUT = "# sindri-lint: auth-not-required"
 
 
 def build_known_addresses() -> dict[str, str]:
@@ -66,17 +75,46 @@ def build_known_addresses() -> dict[str, str]:
     return known
 
 
+def auth_lint_check(raw: str, manifest: dict) -> str | None:
+    """ADR-026 Phase 3 lint: warn on credentialed-category components without `auth:`.
+
+    Returns a warning string, or None if clean (manifest declares `auth:`,
+    component opts out via the marker comment, or the tags don't intersect
+    the credentialed-category set).
+
+    Warning-only by contract — callers must NOT treat the return value as an
+    error condition.
+    """
+    head = "\n".join(raw.splitlines()[:8])
+    if AUTH_LINT_OPTOUT in head:
+        return None
+    if manifest.get("auth"):
+        return None
+    tags = set((manifest.get("metadata") or {}).get("tags") or [])
+    matched = tags & AUTH_CREDENTIALED_TAGS
+    if not matched:
+        return None
+    return (
+        f"AUTH_MISSING: component is in credentialed category "
+        f"(tags: {', '.join(sorted(matched))}) but has no `auth:` block. "
+        f"Either declare credentials per ADR-026 or add `{AUTH_LINT_OPTOUT}` "
+        f"at the top of component.yaml."
+    )
+
+
 def validate_one(
     yf: pathlib.Path,
     expected_name: str,
     is_collection: bool,
     known: dict[str, str],
+    auth_lint: bool = False,
 ) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
 
+    raw = yf.read_text()
     try:
-        m = yaml.safe_load(yf.read_text())
+        m = yaml.safe_load(raw)
     except Exception as e:
         errors.append(f"YAML_PARSE: {e}")
         return errors, warnings
@@ -141,10 +179,16 @@ def validate_one(
         if dep_addr not in known:
             errors.append(f"BROKEN_DEP: '{dep}' not found in registry")
 
+    # ADR-026 Phase 3 — auth-aware lint (warning-only, never errors).
+    if auth_lint and not is_collection:
+        w = auth_lint_check(raw, m)
+        if w:
+            warnings.append(w)
+
     return errors, warnings
 
 
-def run(output_json: bool) -> int:
+def run(output_json: bool, auth_lint: bool = False) -> int:
     known = build_known_addresses()
 
     all_errors: dict[str, list[str]] = defaultdict(list)
@@ -152,7 +196,7 @@ def run(output_json: bool) -> int:
 
     for d in sorted(COMP_DIR.iterdir()):
         if d.is_dir():
-            e, w = validate_one(d / "component.yaml", d.name, is_collection=False, known=known)
+            e, w = validate_one(d / "component.yaml", d.name, is_collection=False, known=known, auth_lint=auth_lint)
             if e:
                 all_errors[f"components/{d.name}"].extend(e)
             if w:
@@ -160,7 +204,7 @@ def run(output_json: bool) -> int:
 
     for d in sorted(COLL_DIR.iterdir()):
         if d.is_dir():
-            e, w = validate_one(COLL_DIR / d.name / "component.yaml", d.name, is_collection=True, known=known)
+            e, w = validate_one(COLL_DIR / d.name / "component.yaml", d.name, is_collection=True, known=known, auth_lint=auth_lint)
             if e:
                 all_errors[f"collections/{d.name}"].extend(e)
             if w:
@@ -211,5 +255,12 @@ def run(output_json: bool) -> int:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Validate sindri v4 registry components")
     parser.add_argument("--json", action="store_true", help="Output JSON instead of text")
+    parser.add_argument(
+        "--auth",
+        action="store_true",
+        help="Enable ADR-026 Phase 3 auth-aware lint rule (warning-only). "
+        "Warns on components in credentialed categories (cloud, ai, ai-dev, "
+        "mcp) without an `auth:` block.",
+    )
     args = parser.parse_args()
-    sys.exit(run(args.json))
+    sys.exit(run(args.json, args.auth))

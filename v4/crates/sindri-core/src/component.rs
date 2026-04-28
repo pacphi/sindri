@@ -907,11 +907,15 @@ options:
     #[test]
     fn existing_registry_components_still_deserialize() {
         // Hard requirement: the 97 component.yaml files in registry-core/components
-        // must all deserialize unchanged. We sample 5 representative components
-        // covering different install backends.
-        let names = ["nodejs", "gh", "claude-code", "clarity", "guacamole"];
+        // must all deserialize. We sample representative components covering
+        // different install backends. After ADR-026 Phase 3 (P2/P3) some
+        // components carry an `auth:` block; others remain empty.
+        // - empty-auth sample: components untouched by any auth-migration phase.
+        // - non-empty-auth sample: P2 component migrated in this branch.
+        let empty_auth = ["clarity", "guacamole"];
+        let with_auth = ["nodejs"]; // P2 — language registry token (optional).
         let root = registry_root();
-        for name in names {
+        for name in empty_auth {
             let path = root.join(name).join("component.yaml");
             let yaml = std::fs::read_to_string(&path)
                 .unwrap_or_else(|e| panic!("read {}: {}", path.display(), e));
@@ -921,8 +925,29 @@ options:
             // New fields default cleanly:
             assert!(m.options.fields.is_empty());
             assert!(m.overrides.is_empty());
-            // Auth may be empty (most components) or populated (Phase 3 migrations);
-            // we only assert successful deserialization here.
+            // ADR-026 Phase 0: untouched components deserialize with an empty
+            // `auth` block (the field is `#[serde(default)]`).
+            assert!(
+                m.auth.is_empty(),
+                "{name}: expected empty auth requirements, got {:?}",
+                m.auth
+            );
+        }
+        for name in with_auth {
+            let path = root.join(name).join("component.yaml");
+            let yaml = std::fs::read_to_string(&path)
+                .unwrap_or_else(|e| panic!("read {}: {}", path.display(), e));
+            let m: ComponentManifest = serde_yaml::from_str(&yaml)
+                .unwrap_or_else(|e| panic!("parse {}: {}", path.display(), e));
+            assert_eq!(m.metadata.name, name, "metadata.name mismatch for {name}");
+            assert!(
+                !m.auth.is_empty(),
+                "{name}: expected non-empty auth requirements after Phase 3 migration"
+            );
+            assert!(
+                !m.auth.tokens.is_empty(),
+                "{name}: expected at least one token requirement"
+            );
         }
     }
 

@@ -329,6 +329,13 @@ enum RegistrySubcmds {
         path: String,
         #[arg(long)]
         json: bool,
+        /// Enable the auth-aware lint rule (ADR-026 Phase 3): warn on
+        /// components in credentialed categories (cloud, ai-dev, mcp) that
+        /// lack an `auth:` block. Warnings only — never fails the build.
+        /// Opt out per-component with the comment
+        /// `# sindri-lint: auth-not-required` at the top of component.yaml.
+        #[arg(long)]
+        auth: bool,
     },
     /// Store a registry signer key (ADR-014)
     Trust {
@@ -550,7 +557,9 @@ fn main() {
                     url,
                     insecure,
                 },
-                RegistrySubcmds::Lint { path, json } => RegistryCmd::Lint { path, json },
+                RegistrySubcmds::Lint { path, json, auth } => {
+                    RegistryCmd::Lint { path, json, auth }
+                }
                 RegistrySubcmds::Trust { name, signer } => RegistryCmd::Trust { name, signer },
                 RegistrySubcmds::Verify { name, url } => RegistryCmd::Verify { name, url },
                 RegistrySubcmds::FetchChecksums { path } => RegistryCmd::FetchChecksums { path },

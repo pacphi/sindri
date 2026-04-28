@@ -24,3 +24,16 @@ install:
       rust: "1.83.0"
 
 depends_on: []
+
+auth:
+  tokens:
+    - name: crates_io_token
+      description: "crates.io API token for `cargo publish` and authenticated registry access."
+      scope: both
+      optional: true
+      audience: "https://crates.io"
+      redemption:
+        kind: env-var
+        env-name: CARGO_REGISTRY_TOKEN
+      discovery:
+        env-aliases: [CARGO_REGISTRY_TOKEN]
