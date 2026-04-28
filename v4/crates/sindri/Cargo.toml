@@ -9,6 +9,7 @@ path = "src/main.rs"
 
 [dependencies]
 sindri-core = { path = "../sindri-core" }
+sindri-secrets = { path = "../sindri-secrets" }
 sindri-registry = { path = "../sindri-registry" }
 sindri-resolver = { path = "../sindri-resolver" }
 sindri-backends = { path = "../sindri-backends" }

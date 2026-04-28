@@ -1,246 +1,27 @@
-//! `sindri secrets *` — secret reference validation, listing, S3 storage
-//! helpers, and native HashiCorp Vault HTTP API client (Sprint 12, Wave 6F / D8).
+//! `sindri secrets *` — secret reference validation, listing, and S3
+//! storage helpers (Sprint 12, Wave 4C).
 //!
-//! # D8 — Vault native HTTP implementation
+//! This module never prints raw secret values. It validates that
+//! configured `AuthValue`-style references resolve, lists their
+//! source-kinds, and shells out to `aws s3` for an S3-backed secrets
+//! store.
 //!
-//! The previous `secrets test-vault` sub-command shelled out to the `vault`
-//! CLI binary. Sprint 12.x (D8) replaces that shell-out with direct HTTP calls
-//! against the Vault KV v2 API using `reqwest`. Architecture choice: **the CLI
-//! shell-out path has been removed entirely** rather than kept behind a
-//! `cli-fallback` Cargo feature. Rationale:
+//! The Vault HTTP client previously inline here has been factored into
+//! [`sindri_secrets::VaultBackend`] (ADR-025, Wave 6F follow-up).
 //!
-//! - A feature flag adds compile-time complexity without runtime benefit on any
-//!   supported deployment (all real Vault instances expose the HTTP API).
-//! - The native path is strictly better: no `vault` binary dependency on the
-//!   host, no PATH sensitivity, richer error classification (403 vs 404 vs 503).
-//! - The removed code was roughly 15 lines — below the "worth keeping" bar.
-//!
-//! The new [`VaultClient`] implements:
-//! - `GET /v1/{mount}/data/{path}` — read secret (KV v2)
-//! - `POST /v1/{mount}/data/{path}` — write secret (KV v2)
-//! - `DELETE /v1/{mount}/data/{path}` — soft-delete latest version
-//! - `GET /v1/sys/health` — used by `secrets test-vault` to probe liveness
-//!
-//! Auth: `VAULT_ADDR` (default `http://127.0.0.1:8200`) + `VAULT_TOKEN` env.
-//! TLS skip-verify: gated behind the `tls_skip_verify` flag on [`VaultClient`].
-//!
-//! # S3 shell-out rationale (unchanged)
-//!
-//! Why shell out to `aws`? Pulling in `aws-sdk-s3` would add a multi-megabyte
-//! dependency for what is, today, a thin convenience over `aws s3 cp/ls`.
+//! Why shell out to `aws`? Pulling in `aws-sdk-s3` would add a multi-
+//! megabyte dependency for what is, today, a thin convenience over
+//! `aws s3 cp/ls`. The simplification is documented in the PR body and
+//! can be revisited when v4 grows a real S3 backend.
 
 use base64::Engine;
-use reqwest::blocking::Client as HttpClient;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
 use sindri_core::manifest::BomManifest;
+use sindri_secrets::{SecretStore, VaultBackend};
 use sindri_targets::auth::AuthValue;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::Duration;
-
-// ---- Vault HTTP client (D8) ---------------------------------------------
-
-/// Error conditions returned by the Vault HTTP API.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum VaultError {
-    /// 403 — token lacks the required capability on the path.
-    MissingCapability { path: String },
-    /// 404 — path not found (secret does not exist or mount is absent).
-    PathNotFound { path: String },
-    /// 503 — Vault is sealed or unavailable.
-    Sealed { detail: String },
-    /// Any other HTTP error.
-    Http { status: u16, body: String },
-    /// Transport-level error (connection refused, TLS failure, etc.).
-    Transport(String),
-}
-
-impl std::fmt::Display for VaultError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            VaultError::MissingCapability { path } => {
-                write!(f, "Vault 403: token lacks capability for `{}`", path)
-            }
-            VaultError::PathNotFound { path } => {
-                write!(f, "Vault 404: path `{}` not found", path)
-            }
-            VaultError::Sealed { detail } => write!(f, "Vault sealed / unavailable: {}", detail),
-            VaultError::Http { status, body } => {
-                write!(f, "Vault HTTP {}: {}", status, body.trim())
-            }
-            VaultError::Transport(e) => write!(f, "Vault transport error: {}", e),
-        }
-    }
-}
-
-/// The KV v2 data envelope returned by `GET /v1/{mount}/data/{path}`.
-#[derive(Debug, Deserialize)]
-pub struct VaultKvData {
-    pub data: serde_json::Value,
-}
-
-/// Thin native HTTP wrapper around the Vault KV v2 API.
-///
-/// Construction:
-/// ```rust,ignore
-/// let client = VaultClient::from_env();
-/// ```
-///
-/// For tests, construct directly with [`VaultClient::new`].
-pub struct VaultClient {
-    /// Base URL, e.g. `http://127.0.0.1:8200`.
-    base_url: String,
-    /// Vault token (`X-Vault-Token` header).
-    token: String,
-    /// When `true`, TLS certificate errors are ignored. **Use only in
-    /// development/test environments.**
-    pub tls_skip_verify: bool,
-    /// Optional URL override for the HTTP client (used in tests to point at
-    /// a wiremock server). When `None` the client builds its own.
-    client_override: Option<HttpClient>,
-}
-
-impl VaultClient {
-    /// Construct from explicit parameters.
-    pub fn new(base_url: impl Into<String>, token: impl Into<String>) -> Self {
-        Self {
-            base_url: base_url.into(),
-            token: token.into(),
-            tls_skip_verify: false,
-            client_override: None,
-        }
-    }
-
-    /// Construct from `VAULT_ADDR` / `VAULT_TOKEN` environment variables.
-    ///
-    /// Defaults to `http://127.0.0.1:8200` when `VAULT_ADDR` is absent.
-    /// Returns `None` when `VAULT_TOKEN` is not set.
-    pub fn from_env() -> Option<Self> {
-        let addr =
-            std::env::var("VAULT_ADDR").unwrap_or_else(|_| "http://127.0.0.1:8200".to_string());
-        let token = std::env::var("VAULT_TOKEN").ok()?;
-        Some(Self::new(addr, token))
-    }
-
-    fn http_client(&self) -> Result<HttpClient, VaultError> {
-        if let Some(ref c) = self.client_override {
-            return Ok(c.clone());
-        }
-        reqwest::blocking::ClientBuilder::new()
-            .timeout(Duration::from_secs(10))
-            .danger_accept_invalid_certs(self.tls_skip_verify)
-            .build()
-            .map_err(|e| VaultError::Transport(e.to_string()))
-    }
-
-    fn map_status(status: u16, path: &str, body: String) -> VaultError {
-        match status {
-            403 => VaultError::MissingCapability {
-                path: path.to_string(),
-            },
-            404 => VaultError::PathNotFound {
-                path: path.to_string(),
-            },
-            503 => VaultError::Sealed { detail: body },
-            other => VaultError::Http {
-                status: other,
-                body,
-            },
-        }
-    }
-
-    /// `GET /v1/{mount}/data/{path}` — read a KV v2 secret.
-    pub fn read_kv2(&self, mount: &str, path: &str) -> Result<VaultKvData, VaultError> {
-        let url = format!("{}/v1/{}/data/{}", self.base_url, mount, path);
-        let client = self.http_client()?;
-        let resp = client
-            .get(&url)
-            .header("X-Vault-Token", &self.token)
-            .send()
-            .map_err(|e| VaultError::Transport(e.to_string()))?;
-        let status = resp.status().as_u16();
-        let body = resp.text().unwrap_or_default();
-        if status == 200 {
-            serde_json::from_str::<VaultKvData>(&body)
-                .map_err(|e| VaultError::Transport(format!("JSON decode: {}", e)))
-        } else {
-            Err(Self::map_status(status, path, body))
-        }
-    }
-
-    /// `POST /v1/{mount}/data/{path}` — write a KV v2 secret.
-    ///
-    /// `data` should be a JSON object of key-value string pairs, e.g.
-    /// `{"key": "value"}`.
-    pub fn write_kv2(
-        &self,
-        mount: &str,
-        path: &str,
-        data: serde_json::Value,
-    ) -> Result<(), VaultError> {
-        let url = format!("{}/v1/{}/data/{}", self.base_url, mount, path);
-        let client = self.http_client()?;
-        let body = serde_json::json!({ "data": data });
-        let resp = client
-            .post(&url)
-            .header("X-Vault-Token", &self.token)
-            .json(&body)
-            .send()
-            .map_err(|e| VaultError::Transport(e.to_string()))?;
-        let status = resp.status().as_u16();
-        if status == 200 || status == 204 {
-            Ok(())
-        } else {
-            let body = resp.text().unwrap_or_default();
-            Err(Self::map_status(status, path, body))
-        }
-    }
-
-    /// `DELETE /v1/{mount}/data/{path}` — soft-delete the latest version.
-    pub fn delete_kv2(&self, mount: &str, path: &str) -> Result<(), VaultError> {
-        let url = format!("{}/v1/{}/data/{}", self.base_url, mount, path);
-        let client = self.http_client()?;
-        let resp = client
-            .delete(&url)
-            .header("X-Vault-Token", &self.token)
-            .send()
-            .map_err(|e| VaultError::Transport(e.to_string()))?;
-        let status = resp.status().as_u16();
-        if status == 200 || status == 204 {
-            Ok(())
-        } else {
-            let body = resp.text().unwrap_or_default();
-            Err(Self::map_status(status, path, body))
-        }
-    }
-
-    /// `GET /v1/sys/health` — probe Vault liveness.
-    ///
-    /// Returns `Ok(())` when Vault is healthy and unsealed.
-    /// Returns `Err(VaultError::Sealed)` on 503 (sealed / standby).
-    pub fn health(&self) -> Result<(), VaultError> {
-        let url = format!("{}/v1/sys/health", self.base_url);
-        let client = self.http_client()?;
-        let resp = client
-            .get(&url)
-            .header("X-Vault-Token", &self.token)
-            .send()
-            .map_err(|e| VaultError::Transport(e.to_string()))?;
-        let status = resp.status().as_u16();
-        match status {
-            200 => Ok(()),
-            503 => {
-                let body = resp.text().unwrap_or_default();
-                Err(VaultError::Sealed { detail: body })
-            }
-            _ => {
-                let body = resp.text().unwrap_or_default();
-                Err(VaultError::Http { status, body })
-            }
-        }
-    }
-}
 
 /// CLI args parsed in `main.rs` for `sindri secrets *`.
 pub enum SecretsCmd {
@@ -403,29 +184,54 @@ fn run_list(json: bool, manifest_path: &Path) -> i32 {
 }
 
 fn run_test_vault() -> i32 {
-    // D8: native HTTP probe via VaultClient; no `vault` CLI binary required.
-    // We look for VAULT_TOKEN; if absent we can still probe the health endpoint
-    // (which does not require auth) to check if Vault is alive and unsealed.
-    let addr = std::env::var("VAULT_ADDR").unwrap_or_else(|_| "http://127.0.0.1:8200".to_string());
-    let token = std::env::var("VAULT_TOKEN").unwrap_or_default();
-    let client = VaultClient::new(&addr, &token);
-    match client.health() {
-        Ok(()) => {
-            println!("OK: Vault at {} is healthy and unsealed", addr);
-            EXIT_SUCCESS
-        }
-        Err(VaultError::Sealed { detail }) => {
-            eprintln!(
-                "error: Vault at {} is sealed or unavailable: {}",
-                addr, detail
-            );
-            EXIT_SCHEMA_OR_RESOLVE_ERROR
-        }
-        Err(e) => {
-            eprintln!("error: Vault health probe failed: {}", e);
-            EXIT_SCHEMA_OR_RESOLVE_ERROR
+    // 1. Try the `sindri-secrets` VaultBackend (HTTP) if VAULT_TOKEN is set.
+    if let Some(backend) = VaultBackend::from_env() {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("tokio runtime");
+        match rt.block_on(backend.list()) {
+            Ok(_) => {
+                println!("OK: vault HTTP API reachable (VaultBackend)");
+                return EXIT_SUCCESS;
+            }
+            Err(e) => {
+                eprintln!("error: VaultBackend list failed: {}", e);
+                return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+            }
         }
     }
+    // 2. Fall back to `vault status` CLI; then `aws secretsmanager`.
+    if let Some(vault) = which("vault") {
+        let status = Command::new(vault).arg("status").status();
+        return match status {
+            Ok(s) if s.success() => {
+                println!("OK: vault status responded successfully");
+                EXIT_SUCCESS
+            }
+            _ => {
+                eprintln!("error: `vault status` did not return success");
+                EXIT_SCHEMA_OR_RESOLVE_ERROR
+            }
+        };
+    }
+    if let Some(aws) = which("aws") {
+        let status = Command::new(aws)
+            .args(["secretsmanager", "list-secrets", "--max-results", "1"])
+            .status();
+        return match status {
+            Ok(s) if s.success() => {
+                println!("OK: aws secretsmanager reachable");
+                EXIT_SUCCESS
+            }
+            _ => {
+                eprintln!("error: aws secretsmanager list-secrets failed");
+                EXIT_SCHEMA_OR_RESOLVE_ERROR
+            }
+        };
+    }
+    eprintln!("error: neither `vault` nor `aws` CLI found on PATH");
+    EXIT_SCHEMA_OR_RESOLVE_ERROR
 }
 
 fn run_encode_file(path: &Path, algorithm: &str, output: Option<&Path>) -> i32 {
@@ -522,6 +328,19 @@ fn exec_status(mut c: Command) -> i32 {
             EXIT_SCHEMA_OR_RESOLVE_ERROR
         }
     }
+}
+
+fn which(name: &str) -> Option<PathBuf> {
+    std::env::var_os("PATH").and_then(|paths| {
+        std::env::split_paths(&paths).find_map(|d| {
+            let c = d.join(name);
+            if c.is_file() {
+                Some(c)
+            } else {
+                None
+            }
+        })
+    })
 }
 
 // ---- tests --------------------------------------------------------------
@@ -645,208 +464,5 @@ mod tests {
             s3_put_argv("b", "k", &f),
             vec!["s3", "cp", "/tmp/payload", "s3://b/k"]
         );
-    }
-
-    // ---- Vault HTTP API tests (D8, wiremock) --------------------------------
-    //
-    // The VaultClient uses reqwest::blocking, which requires that no tokio
-    // runtime exists on the current thread (blocking clients create their own
-    // single-threaded runtime internally). We therefore use plain `#[test]`
-    // plus `tokio::runtime::Runtime::new()` to drive the wiremock MockServer
-    // setup, then call the blocking VaultClient from the same thread after
-    // dropping the tokio handle.
-    //
-    // Alternatively we use `tokio::task::spawn_blocking` from inside a
-    // `#[tokio::test]` to run the blocking call off the async thread.
-
-    fn vault_client_for(base_url: &str) -> VaultClient {
-        VaultClient::new(base_url, "test-token")
-    }
-
-    /// Helper: spin up a wiremock server, register `mock_fn` against it, then
-    /// run `test_fn` with the server URI in a `spawn_blocking` context so the
-    /// reqwest blocking client does not conflict with the tokio runtime.
-    async fn with_mock_server<F, T>(
-        mock_fn: impl Fn(&str) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>>,
-        test_fn: F,
-    ) where
-        F: FnOnce(String) -> T + Send + 'static,
-        T: Send + 'static,
-    {
-        use wiremock::MockServer;
-        let server = MockServer::start().await;
-        let uri = server.uri();
-        // Register mocks via the closure.
-        mock_fn(&uri).await;
-        let uri_clone = uri.clone();
-        tokio::task::spawn_blocking(move || test_fn(uri_clone))
-            .await
-            .expect("spawn_blocking panicked");
-        // Keep server alive until here.
-        drop(server);
-    }
-
-    #[tokio::test]
-    async fn vault_read_kv2_success() {
-        use wiremock::matchers::{header, method, path};
-        use wiremock::{Mock, MockServer, ResponseTemplate};
-
-        let server = MockServer::start().await;
-        Mock::given(method("GET"))
-            .and(path("/v1/secret/data/myapp/config"))
-            .and(header("X-Vault-Token", "test-token"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                "data": { "key": "value" }
-            })))
-            .mount(&server)
-            .await;
-
-        let uri = server.uri();
-        tokio::task::spawn_blocking(move || {
-            let client = vault_client_for(&uri);
-            let kv = client.read_kv2("secret", "myapp/config").unwrap();
-            assert_eq!(kv.data["key"], "value");
-        })
-        .await
-        .unwrap();
-    }
-
-    #[tokio::test]
-    async fn vault_write_kv2_success() {
-        use wiremock::matchers::{header, method, path};
-        use wiremock::{Mock, MockServer, ResponseTemplate};
-
-        let server = MockServer::start().await;
-        Mock::given(method("POST"))
-            .and(path("/v1/secret/data/myapp/config"))
-            .and(header("X-Vault-Token", "test-token"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                "data": {}
-            })))
-            .mount(&server)
-            .await;
-
-        let uri = server.uri();
-        tokio::task::spawn_blocking(move || {
-            let client = vault_client_for(&uri);
-            client
-                .write_kv2(
-                    "secret",
-                    "myapp/config",
-                    serde_json::json!({ "key": "updated" }),
-                )
-                .unwrap();
-        })
-        .await
-        .unwrap();
-    }
-
-    #[tokio::test]
-    async fn vault_read_403_missing_capability() {
-        use wiremock::matchers::{method, path};
-        use wiremock::{Mock, MockServer, ResponseTemplate};
-
-        let server = MockServer::start().await;
-        Mock::given(method("GET"))
-            .and(path("/v1/secret/data/restricted"))
-            .respond_with(
-                ResponseTemplate::new(403).set_body_string(r#"{"errors":["permission denied"]}"#),
-            )
-            .mount(&server)
-            .await;
-
-        let uri = server.uri();
-        tokio::task::spawn_blocking(move || {
-            let client = vault_client_for(&uri);
-            let err = client.read_kv2("secret", "restricted").unwrap_err();
-            assert!(
-                matches!(err, VaultError::MissingCapability { .. }),
-                "expected MissingCapability, got: {}",
-                err
-            );
-            assert!(err.to_string().contains("403"));
-        })
-        .await
-        .unwrap();
-    }
-
-    #[tokio::test]
-    async fn vault_read_404_path_not_found() {
-        use wiremock::matchers::{method, path};
-        use wiremock::{Mock, MockServer, ResponseTemplate};
-
-        let server = MockServer::start().await;
-        Mock::given(method("GET"))
-            .and(path("/v1/secret/data/missing"))
-            .respond_with(ResponseTemplate::new(404).set_body_string(r#"{"errors":[]}"#))
-            .mount(&server)
-            .await;
-
-        let uri = server.uri();
-        tokio::task::spawn_blocking(move || {
-            let client = vault_client_for(&uri);
-            let err = client.read_kv2("secret", "missing").unwrap_err();
-            assert!(
-                matches!(err, VaultError::PathNotFound { .. }),
-                "expected PathNotFound, got: {}",
-                err
-            );
-            assert!(err.to_string().contains("404"));
-        })
-        .await
-        .unwrap();
-    }
-
-    #[tokio::test]
-    async fn vault_health_503_sealed() {
-        use wiremock::matchers::{method, path};
-        use wiremock::{Mock, MockServer, ResponseTemplate};
-
-        let server = MockServer::start().await;
-        Mock::given(method("GET"))
-            .and(path("/v1/sys/health"))
-            .respond_with(
-                ResponseTemplate::new(503).set_body_string(r#"{"initialized":true,"sealed":true}"#),
-            )
-            .mount(&server)
-            .await;
-
-        let uri = server.uri();
-        tokio::task::spawn_blocking(move || {
-            let client = vault_client_for(&uri);
-            let err = client.health().unwrap_err();
-            assert!(
-                matches!(err, VaultError::Sealed { .. }),
-                "expected Sealed, got: {}",
-                err
-            );
-            assert!(err.to_string().to_lowercase().contains("sealed"));
-        })
-        .await
-        .unwrap();
-    }
-
-    #[tokio::test]
-    async fn vault_health_200_ok() {
-        use wiremock::matchers::{method, path};
-        use wiremock::{Mock, MockServer, ResponseTemplate};
-
-        let server = MockServer::start().await;
-        Mock::given(method("GET"))
-            .and(path("/v1/sys/health"))
-            .respond_with(
-                ResponseTemplate::new(200)
-                    .set_body_json(serde_json::json!({"initialized":true,"sealed":false})),
-            )
-            .mount(&server)
-            .await;
-
-        let uri = server.uri();
-        tokio::task::spawn_blocking(move || {
-            let client = vault_client_for(&uri);
-            client.health().unwrap();
-        })
-        .await
-        .unwrap();
     }
 }

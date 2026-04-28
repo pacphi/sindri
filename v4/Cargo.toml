@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/sindri",
     "crates/sindri-core",
+    "crates/sindri-secrets",
     "crates/sindri-registry",
     "crates/sindri-resolver",
     "crates/sindri-policy",
