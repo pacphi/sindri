@@ -379,16 +379,37 @@ pub fn try_lock_state_file(path: &Path) -> Result<StateLock, StateError> {
             _file: file,
             path: path.to_path_buf(),
         }),
-        Err(err) if err.kind() == std::io::ErrorKind::WouldBlock => {
-            Err(StateError::AlreadyRunning {
-                path: path.to_path_buf(),
-            })
-        }
+        Err(err) if is_lock_contention(&err) => Err(StateError::AlreadyRunning {
+            path: path.to_path_buf(),
+        }),
         Err(err) => Err(StateError::Io {
             path: path.to_path_buf(),
             source: err,
         }),
     }
+}
+
+/// Classify whether an `io::Error` from a non-blocking lock attempt indicates
+/// contention (someone else holds the lock) vs a real I/O failure.
+///
+/// On POSIX, `flock(2)` with `LOCK_NB` returns `EWOULDBLOCK`, which `std::io`
+/// surfaces as `ErrorKind::WouldBlock`.
+///
+/// On Windows, `LockFileEx` with `LOCKFILE_FAIL_IMMEDIATELY` returns
+/// `ERROR_LOCK_VIOLATION` (raw OS error 33).  Rust's `std::io` does not map
+/// that to `WouldBlock`, so we have to match on the raw code as well.
+fn is_lock_contention(err: &std::io::Error) -> bool {
+    if err.kind() == std::io::ErrorKind::WouldBlock {
+        return true;
+    }
+    #[cfg(windows)]
+    {
+        // ERROR_LOCK_VIOLATION = 33
+        if err.raw_os_error() == Some(33) {
+            return true;
+        }
+    }
+    false
 }
 
 // ---------------------------------------------------------------------------
