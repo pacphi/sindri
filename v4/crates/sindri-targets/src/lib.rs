@@ -15,6 +15,7 @@ pub mod convergence;
 pub mod docker;
 pub mod error;
 pub mod local;
+pub mod oauth;
 pub mod plugin;
 pub mod ssh;
 pub mod traits;

@@ -331,6 +331,16 @@ fn stop_target(name: &str) -> i32 {
 }
 
 fn auth_target(name: &str, value: Option<&str>) -> i32 {
+    // OAuth Device Authorization Grant short-circuit (Wave 6B / D3).
+    //
+    // If the operator passed the magic value `oauth` we attempt the
+    // device-flow login for the target's kind. On success the access
+    // token is persisted to `targets.<name>.auth.token` as a `plain:`
+    // value; we print a recommendation to move the token to a `file:`
+    // or `env:` reference.
+    if value == Some("oauth") {
+        return auth_target_oauth(name);
+    }
     let raw = match value {
         Some(v) => v.to_string(),
         None => match prompt_for_auth(name) {
@@ -370,10 +380,107 @@ fn auth_target(name: &str, value: Option<&str>) -> i32 {
 fn print_oauth_hint(name: &str) {
     eprintln!(
         "If '{}' uses OAuth (e.g. fly, gcloud, az), run the upstream CLI's auth command \
-         (e.g. `flyctl auth login`, `gcloud auth login`, `az login`) — sindri does not \
-         drive OAuth flows directly.",
+         (e.g. `flyctl auth login`, `gcloud auth login`, `az login`). Sindri now drives \
+         the GitHub device flow directly via `sindri target auth <name> oauth` — see \
+         `target auth --help`.",
         name
     );
+}
+
+/// Drive an OAuth Device Authorization Grant (RFC 8628) login for the
+/// given target. Returns the process exit code.
+///
+/// Only providers in [`sindri_targets::oauth::provider_supports_oauth`]
+/// are wired today; for everything else (fly, northflank, e2b,
+/// kubernetes, …) we keep the upstream-CLI hint path because the
+/// provider does not publish a documented device-flow endpoint.
+fn auth_target_oauth(name: &str) -> i32 {
+    use sindri_targets::oauth;
+
+    // Look at the manifest to figure out what kind this target is.
+    let manifest_path = std::path::PathBuf::from("sindri.yaml");
+    let kind = read_kind_from_manifest(&manifest_path, name).unwrap_or_else(|| "github".into());
+
+    if !oauth::provider_supports_oauth(&kind) {
+        eprintln!(
+            "OAuth device flow is not wired for kind '{}'. Falling back to the upstream-CLI \
+             path — sindri does not drive OAuth for this provider yet.",
+            kind
+        );
+        print_oauth_hint(name);
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+
+    // Today only GitHub is wired. The OAuth client id is sindri's public
+    // device-flow app; operators can override via env.
+    let client_id = std::env::var("SINDRI_GITHUB_CLIENT_ID")
+        .unwrap_or_else(|_| "Iv1.sindri-public-device-flow".to_string());
+    let provider = oauth::OAuthProvider::github(&client_id);
+
+    let rt = match tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+    {
+        Ok(rt) => rt,
+        Err(e) => {
+            eprintln!("Cannot start tokio runtime: {}", e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+    let client = reqwest::Client::new();
+    let device = match rt.block_on(oauth::request_device_code(&client, &provider)) {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("OAuth device-code request failed: {}", e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+    let uri = device
+        .verification_uri_complete
+        .as_deref()
+        .unwrap_or(&device.verification_uri);
+    println!("Visit {} and enter code: {}", uri, device.user_code);
+    println!(
+        "Polling for approval (expires in {}s, interval {}s)…",
+        device.expires_in, device.interval
+    );
+
+    let mut sleeper = oauth::RealSleeper::default();
+    let token = match rt.block_on(oauth::poll_until_done(
+        &client,
+        &provider,
+        &device,
+        &mut sleeper,
+    )) {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("OAuth login failed: {}", e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+
+    // Persist as a `plain:` value so AuthValue::parse roundtrips it.
+    let stored = format!("plain:{}", token.access_token);
+    if let Err(e) = persist_auth(&manifest_path, name, &stored) {
+        eprintln!("Cannot update sindri.yaml: {}", e);
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+    println!(
+        "Auth token stored for target '{}' (auth.token, plain:). \
+         Recommended: move to file: or env: reference for at-rest safety.",
+        name
+    );
+    EXIT_SUCCESS
+}
+
+fn read_kind_from_manifest(manifest_path: &Path, name: &str) -> Option<String> {
+    let content = std::fs::read_to_string(manifest_path).ok()?;
+    let doc: serde_yaml::Value = serde_yaml::from_str(&content).ok()?;
+    doc.get("targets")
+        .and_then(|t| t.get(name))
+        .and_then(|t| t.get("kind"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
 }
 
 fn prompt_for_auth(name: &str) -> Option<String> {
@@ -558,7 +665,11 @@ pub fn update_target_at(
         return EXIT_SUCCESS;
     }
 
-    let mut applier = StubApplier;
+    // Build a per-kind Applier from the manifest's `targets.<name>` block.
+    // For built-in cloud kinds this dispatches to the real provider HTTP
+    // APIs (`runpod`, `northflank`, `fly`, `e2b`, `kubernetes/k8s`); the
+    // `local` kind (and unknown kinds) get the no-op StubApplier.
+    let mut applier = KindApplier::new(name, &kind, &target_node);
     let result = if auto_approve {
         let mut confirm = AlwaysYesConfirm;
         apply_plan(&plan, &recorded_lock, &mut applier, &mut confirm, true)
@@ -592,10 +703,10 @@ pub fn update_target_at(
     EXIT_SUCCESS
 }
 
-/// No-op Applier that copies desired → recorded (stamping a `_managed`
-/// marker so the lock reflects "we owned this resource"). Real provider
-/// mutations are wired per-kind via `dispatch_create_async` (PR #227)
-/// and land in subsequent waves.
+/// No-op Applier — used by the `local` kind and as a fallback when the
+/// manifest references a built-in kind we have not yet wired to a real
+/// provider API. Stamps `_managed: true` so the lock reflects "we owned
+/// this resource" without making any HTTP calls.
 struct StubApplier;
 
 impl sindri_targets::convergence::Applier for StubApplier {
@@ -632,6 +743,214 @@ impl sindri_targets::convergence::Applier for StubApplier {
             }
         }
         Ok(state)
+    }
+}
+
+/// Per-kind Applier that dispatches to real provider HTTP APIs (Wave 6B).
+///
+/// Wraps a one-shot tokio runtime so the synchronous [`Applier`] trait
+/// can call `async` provider methods. Each call gets a fresh
+/// `current_thread` runtime — the cost is negligible relative to the
+/// HTTP round trip.
+struct KindApplier {
+    target_name: String,
+    kind: String,
+    target_node: serde_yaml::Value,
+}
+
+impl KindApplier {
+    fn new(target_name: &str, kind: &str, target_node: &serde_yaml::Value) -> Self {
+        Self {
+            target_name: target_name.to_string(),
+            kind: kind.to_string(),
+            target_node: target_node.clone(),
+        }
+    }
+
+    /// Resolve `targets.<name>.auth.token` into an `AuthValue`.
+    fn auth(&self) -> Option<sindri_targets::AuthValue> {
+        self.target_node
+            .get("auth")
+            .and_then(|a| a.get("token"))
+            .and_then(|v| v.as_str())
+            .and_then(sindri_targets::AuthValue::parse)
+    }
+
+    fn read_str(&self, path: &[&str], fallback: &str) -> String {
+        let mut cur = &self.target_node;
+        for p in path {
+            match cur.get(p) {
+                Some(v) => cur = v,
+                None => return fallback.to_string(),
+            }
+        }
+        cur.as_str().unwrap_or(fallback).to_string()
+    }
+
+    fn block_on<F: std::future::Future<Output = T>, T>(
+        &self,
+        f: F,
+    ) -> Result<T, sindri_targets::TargetError> {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .map_err(|e| sindri_targets::TargetError::Http {
+                target: self.target_name.clone(),
+                detail: format!("failed to build tokio runtime: {}", e),
+            })
+            .map(|rt| rt.block_on(f))
+    }
+
+    fn record_id(&self, id: String) -> sindri_targets::convergence::ResourceState {
+        serde_json::json!({"id": id, "_managed": true})
+    }
+}
+
+impl sindri_targets::convergence::Applier for KindApplier {
+    fn create(
+        &mut self,
+        _name: &str,
+        desired: &serde_json::Value,
+    ) -> Result<sindri_targets::convergence::ResourceState, sindri_targets::TargetError> {
+        match self.kind.as_str() {
+            "runpod" => {
+                let gpu = desired
+                    .get("gpuTypeId")
+                    .or_else(|| desired.get("gpu_type_id"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("RTX 4090");
+                let mut t = sindri_targets::RunPodTarget::new(&self.target_name, gpu);
+                t.auth = self.auth();
+                let id = self.block_on(t.dispatch_create_async())??;
+                Ok(self.record_id(id))
+            }
+            "northflank" => {
+                let project = self.read_str(&["infra", "project"], "default");
+                let service = self.read_str(&["infra", "service"], &self.target_name);
+                let mut t =
+                    sindri_targets::NorthflankTarget::new(&self.target_name, &project, &service);
+                t.auth = self.auth();
+                let id = self.block_on(t.dispatch_create_async())??;
+                Ok(self.record_id(id))
+            }
+            "fly" => {
+                let app = self.read_str(&["infra", "app"], &self.target_name);
+                let mut t = sindri_targets::FlyTarget::new(&self.target_name, &app);
+                t.auth = self.auth();
+                let id = self.block_on(t.dispatch_create_async(Some(desired)))??;
+                Ok(self.record_id(id))
+            }
+            "e2b" => {
+                let template = self.read_str(&["infra", "template"], "base");
+                let mut t = sindri_targets::E2bTarget::new(&self.target_name, &template);
+                t.auth = self.auth();
+                let id = self.block_on(t.dispatch_create_async(Some(desired)))??;
+                Ok(self.record_id(id))
+            }
+            "kubernetes" | "k8s" => {
+                let ns = self.read_str(&["infra", "namespace"], "default");
+                let t = sindri_targets::KubernetesTarget::new(&self.target_name, &ns);
+                let pod_name = t.dispatch_apply(Some(desired))?;
+                Ok(self.record_id(pod_name))
+            }
+            _ => StubApplier.create(_name, desired),
+        }
+    }
+
+    fn destroy(
+        &mut self,
+        _name: &str,
+        recorded: &sindri_targets::convergence::ResourceState,
+    ) -> Result<(), sindri_targets::TargetError> {
+        let id = recorded
+            .get("id")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string();
+        match self.kind.as_str() {
+            "runpod" => {
+                let mut t = sindri_targets::RunPodTarget::new(&self.target_name, "RTX 4090");
+                t.auth = self.auth();
+                self.block_on(t.dispatch_destroy_async(&id))?
+            }
+            "northflank" => {
+                let project = self.read_str(&["infra", "project"], "default");
+                let service = self.read_str(&["infra", "service"], &self.target_name);
+                let mut t =
+                    sindri_targets::NorthflankTarget::new(&self.target_name, &project, &service);
+                t.auth = self.auth();
+                self.block_on(t.dispatch_destroy_async())?
+            }
+            "fly" => {
+                let app = self.read_str(&["infra", "app"], &self.target_name);
+                let mut t = sindri_targets::FlyTarget::new(&self.target_name, &app);
+                t.auth = self.auth();
+                self.block_on(t.dispatch_destroy_async(&id))?
+            }
+            "e2b" => {
+                let template = self.read_str(&["infra", "template"], "base");
+                let mut t = sindri_targets::E2bTarget::new(&self.target_name, &template);
+                t.auth = self.auth();
+                self.block_on(t.dispatch_destroy_async(&id))?
+            }
+            "kubernetes" | "k8s" => {
+                let ns = self.read_str(&["infra", "namespace"], "default");
+                let t = sindri_targets::KubernetesTarget::new(&self.target_name, &ns);
+                t.dispatch_delete()
+            }
+            _ => StubApplier.destroy(_name, recorded),
+        }
+    }
+
+    fn update_in_place(
+        &mut self,
+        _name: &str,
+        recorded: &sindri_targets::convergence::ResourceState,
+        desired: &serde_json::Value,
+    ) -> Result<sindri_targets::convergence::ResourceState, sindri_targets::TargetError> {
+        let id = recorded
+            .get("id")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string();
+        match self.kind.as_str() {
+            "runpod" => {
+                let mut t = sindri_targets::RunPodTarget::new(&self.target_name, "RTX 4090");
+                t.auth = self.auth();
+                let _ = self.block_on(t.dispatch_update_async(&id, desired))??;
+                Ok(self.record_id(id))
+            }
+            "northflank" => {
+                let project = self.read_str(&["infra", "project"], "default");
+                let service = self.read_str(&["infra", "service"], &self.target_name);
+                let mut t =
+                    sindri_targets::NorthflankTarget::new(&self.target_name, &project, &service);
+                t.auth = self.auth();
+                let _ = self.block_on(t.dispatch_update_async(desired))??;
+                Ok(self.record_id(id))
+            }
+            "fly" => {
+                let app = self.read_str(&["infra", "app"], &self.target_name);
+                let mut t = sindri_targets::FlyTarget::new(&self.target_name, &app);
+                t.auth = self.auth();
+                let _ = self.block_on(t.dispatch_update_async(&id, desired))??;
+                Ok(self.record_id(id))
+            }
+            "e2b" => {
+                // E2B sandboxes are immutable beyond their template; if
+                // the schema routes an update here it's because only
+                // bookkeeping fields changed. Treat as a metadata-only
+                // update by carrying the recorded id forward.
+                Ok(self.record_id(id))
+            }
+            "kubernetes" | "k8s" => {
+                let ns = self.read_str(&["infra", "namespace"], "default");
+                let t = sindri_targets::KubernetesTarget::new(&self.target_name, &ns);
+                let pod_name = t.dispatch_apply(Some(desired))?;
+                Ok(self.record_id(pod_name))
+            }
+            _ => StubApplier.update_in_place(_name, recorded, desired),
+        }
     }
 }
 

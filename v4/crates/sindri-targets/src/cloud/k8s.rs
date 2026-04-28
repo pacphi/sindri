@@ -1,4 +1,15 @@
 //! Kubernetes target.
+//!
+//! Wave 6B (audit D2) wires the convergence engine to drive
+//! `kubectl apply -f` / `kubectl delete -f` against a generated
+//! Pod manifest. We deliberately do NOT pull in `kube-rs` — the simpler
+//! shell-out keeps the dep graph small and re-uses whatever auth
+//! kubectl already has in `~/.kube/config`. Callers that need a
+//! richer client can swap this for `kube-rs` in a later wave.
+//!
+//! Auth: kubectl's existing config (`~/.kube/config`); sindri does not
+//! drive Kubernetes OAuth flows. The `target auth` wizard preserves
+//! the upstream-CLI hint path for k8s.
 use crate::error::TargetError;
 use crate::traits::{PrereqCheck, Target};
 use sindri_core::platform::{Arch, Capabilities, Os, Platform, TargetProfile};
@@ -20,6 +31,97 @@ impl KubernetesTarget {
             namespace: namespace.to_string(),
             pod_name: format!("sindri-{}", name),
         }
+    }
+
+    /// Render a minimal Pod manifest for this target. The image and
+    /// command come from `desired` if present, otherwise sensible
+    /// defaults (`alpine:latest`, `sleep infinity`).
+    pub fn render_manifest(&self, desired: Option<&serde_json::Value>) -> String {
+        let image = desired
+            .and_then(|d| d.get("image"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("alpine:latest");
+        let command = desired
+            .and_then(|d| d.get("command"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("sleep infinity");
+        format!(
+            "apiVersion: v1\nkind: Pod\nmetadata:\n  name: {}\n  namespace: {}\n  labels:\n    app.kubernetes.io/managed-by: sindri\n    sindri.io/target: {}\nspec:\n  containers:\n  - name: main\n    image: {}\n    command: [\"sh\", \"-c\", {:?}]\n",
+            self.pod_name, self.namespace, self.name, image, command
+        )
+    }
+
+    /// Apply (create-or-update) the Pod via `kubectl apply -f -` with
+    /// the rendered manifest piped on stdin. Returns the pod name.
+    pub fn dispatch_apply(
+        &self,
+        desired: Option<&serde_json::Value>,
+    ) -> Result<String, TargetError> {
+        let manifest = self.render_manifest(desired);
+        let mut child = std::process::Command::new("kubectl")
+            .args(["apply", "-f", "-", "-n", &self.namespace])
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .map_err(|e| TargetError::Prerequisites {
+                target: self.name.clone(),
+                detail: format!("kubectl not found: {}", e),
+            })?;
+        if let Some(mut stdin) = child.stdin.take() {
+            use std::io::Write;
+            stdin
+                .write_all(manifest.as_bytes())
+                .map_err(|e| TargetError::ExecFailed {
+                    target: self.name.clone(),
+                    detail: format!("kubectl stdin write failed: {}", e),
+                })?;
+        }
+        let output = child
+            .wait_with_output()
+            .map_err(|e| TargetError::ExecFailed {
+                target: self.name.clone(),
+                detail: format!("kubectl wait failed: {}", e),
+            })?;
+        if !output.status.success() {
+            return Err(TargetError::ExecFailed {
+                target: self.name.clone(),
+                detail: format!(
+                    "kubectl apply failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                ),
+            });
+        }
+        Ok(self.pod_name.clone())
+    }
+
+    /// Delete the Pod via `kubectl delete pod`. Idempotent: a
+    /// `NotFound` error from kubectl is treated as success.
+    pub fn dispatch_delete(&self) -> Result<(), TargetError> {
+        let output = std::process::Command::new("kubectl")
+            .args([
+                "delete",
+                "pod",
+                &self.pod_name,
+                "-n",
+                &self.namespace,
+                "--ignore-not-found=true",
+            ])
+            .output()
+            .map_err(|e| TargetError::Prerequisites {
+                target: self.name.clone(),
+                detail: format!("kubectl not found: {}", e),
+            })?;
+        if !output.status.success() {
+            return Err(TargetError::ExecFailed {
+                target: self.name.clone(),
+                detail: format!(
+                    "kubectl delete failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                ),
+            });
+        }
+        Ok(())
     }
 }
 
@@ -110,5 +212,30 @@ impl Target for KubernetesTarget {
                 "Install kubectl: https://kubernetes.io/docs/tasks/tools/",
             )
         }]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn render_manifest_uses_defaults_when_desired_missing() {
+        let t = KubernetesTarget::new("dev", "default");
+        let m = t.render_manifest(None);
+        assert!(m.contains("name: sindri-dev"));
+        assert!(m.contains("namespace: default"));
+        assert!(m.contains("alpine:latest"));
+        assert!(m.contains("sleep infinity"));
+        assert!(m.contains("app.kubernetes.io/managed-by: sindri"));
+    }
+
+    #[test]
+    fn render_manifest_honours_desired_image_and_command() {
+        let t = KubernetesTarget::new("dev", "default");
+        let desired = serde_json::json!({"image": "ubuntu:24.04", "command": "tail -f /dev/null"});
+        let m = t.render_manifest(Some(&desired));
+        assert!(m.contains("ubuntu:24.04"));
+        assert!(m.contains("tail -f /dev/null"));
     }
 }
