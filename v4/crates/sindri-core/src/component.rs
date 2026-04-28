@@ -971,6 +971,80 @@ auth:
     }
 
     #[test]
+    fn p1_components_declare_non_empty_auth() {
+        // ADR-026 Phase 3 P1: cloud CLIs and MCP servers must declare auth
+        // requirements. Each manifest must deserialize cleanly, expose at
+        // least one token requirement, declare every token with `runtime`
+        // scope and a non-empty audience, and use a kebab-cased `kind:`
+        // discriminator on `redemption` (per Phase 0's internally-tagged
+        // schema).
+        use crate::auth::{AuthScope, Redemption};
+
+        let names = [
+            "aws-cli",
+            "azure-cli",
+            "gcloud",
+            "ibmcloud",
+            "aliyun",
+            "doctl",
+            "flyctl",
+            "linear-mcp",
+            "jira-mcp",
+            "pal-mcp-server",
+            "notebooklm-mcp-cli",
+        ];
+        let root = registry_root();
+        for name in names {
+            let path = root.join(name).join("component.yaml");
+            let yaml = std::fs::read_to_string(&path)
+                .unwrap_or_else(|e| panic!("read {}: {}", path.display(), e));
+            let m: ComponentManifest = serde_yaml::from_str(&yaml)
+                .unwrap_or_else(|e| panic!("parse {}: {}", path.display(), e));
+            assert!(
+                !m.auth.is_empty(),
+                "{name}: expected non-empty auth requirements"
+            );
+            assert!(
+                !m.auth.tokens.is_empty(),
+                "{name}: expected at least one token requirement"
+            );
+            for t in &m.auth.tokens {
+                assert!(!t.name.is_empty(), "{name}: token has empty name");
+                assert!(!t.audience.is_empty(), "{name}/{}: empty audience", t.name);
+                assert_eq!(
+                    t.scope,
+                    AuthScope::Runtime,
+                    "{name}/{}: expected runtime scope",
+                    t.name
+                );
+                match &t.redemption {
+                    Redemption::EnvVar { env_name } => {
+                        assert!(!env_name.is_empty(), "{name}/{}: empty env-name", t.name);
+                    }
+                    Redemption::EnvFile { env_name, path } => {
+                        assert!(
+                            !env_name.is_empty() && !path.is_empty(),
+                            "{name}/{}: empty env-file fields",
+                            t.name
+                        );
+                    }
+                    Redemption::File { path, .. } => {
+                        assert!(!path.is_empty(), "{name}/{}: empty file path", t.name);
+                    }
+                }
+            }
+
+            // Round-trip: serialise then deserialise, the `auth` block must survive.
+            let s = serde_yaml::to_string(&m).unwrap();
+            let m2: ComponentManifest = serde_yaml::from_str(&s).unwrap();
+            assert_eq!(
+                m.auth, m2.auth,
+                "{name}: auth block did not round-trip through serde_yaml"
+            );
+        }
+    }
+
+    #[test]
     fn manifest_without_auth_block_has_empty_default() {
         let yaml = r#"
 metadata: { name: t, version: "1.0.0", description: x, license: MIT }

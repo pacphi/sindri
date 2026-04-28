@@ -24,3 +24,33 @@ install:
 
 depends_on:
   - "mise:python"
+
+# ADR-026: auth-aware components (Phase 3 P1).
+# Azure CLI supports interactive `az login`, so service-principal credentials
+# are declared optional. When all three are present they enable headless auth.
+auth:
+  tokens:
+    - name: azure-client-id
+      description: "Azure AD application (client) ID for service-principal login."
+      audience: "https://management.azure.com/"
+      scope: runtime
+      optional: true
+      redemption:
+        kind: env-var
+        env-name: AZURE_CLIENT_ID
+    - name: azure-client-secret
+      description: "Azure AD application client secret."
+      audience: "https://management.azure.com/"
+      scope: runtime
+      optional: true
+      redemption:
+        kind: env-var
+        env-name: AZURE_CLIENT_SECRET
+    - name: azure-tenant-id
+      description: "Azure AD tenant ID for service-principal login."
+      audience: "https://management.azure.com/"
+      scope: runtime
+      optional: true
+      redemption:
+        kind: env-var
+        env-name: AZURE_TENANT_ID

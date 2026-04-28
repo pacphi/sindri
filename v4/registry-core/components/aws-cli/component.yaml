@@ -23,3 +23,26 @@ install:
       linux-aarch64: "sha256:9ce0b00b7926ea7b4f6fd7576e6b0e14ee783fe101e077fd861dc423be3b74e3"
 
 depends_on: []
+
+# ADR-026: auth-aware components (Phase 3 P1).
+# AWS CLI requires both an access key id and matching secret access key at
+# runtime. Both are marked required per the Phase 3 plan; users who prefer
+# `aws configure` / SSO can override via target config.
+auth:
+  tokens:
+    - name: aws-access-key-id
+      description: "AWS access key ID for the AWS CLI."
+      audience: "https://sts.amazonaws.com"
+      scope: runtime
+      optional: false
+      redemption:
+        kind: env-var
+        env-name: AWS_ACCESS_KEY_ID
+    - name: aws-secret-access-key
+      description: "AWS secret access key paired with AWS_ACCESS_KEY_ID."
+      audience: "https://sts.amazonaws.com"
+      scope: runtime
+      optional: false
+      redemption:
+        kind: env-var
+        env-name: AWS_SECRET_ACCESS_KEY
