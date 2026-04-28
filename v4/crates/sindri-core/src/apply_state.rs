@@ -334,13 +334,16 @@ impl Drop for StateLock {
     }
 }
 
-/// Attempt to acquire a **non-blocking** exclusive flock on `path`.
+/// Attempt to acquire a **non-blocking** exclusive advisory lock on `path`.
 ///
 /// Returns [`StateError::AlreadyRunning`] immediately (without blocking)
 /// if another process already holds the lock.  The caller must keep the
 /// returned [`StateLock`] alive for the duration of the apply.
+///
+/// Cross-platform via [`fs4`]: `flock(LOCK_EX | LOCK_NB)` on Unix and
+/// `LockFileEx(LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY)` on Windows.
 pub fn try_lock_state_file(path: &Path) -> Result<StateLock, StateError> {
-    use std::os::unix::io::AsRawFd;
+    use fs4::fs_std::FileExt;
 
     let file = OpenOptions::new()
         .create(true)
@@ -351,25 +354,21 @@ pub fn try_lock_state_file(path: &Path) -> Result<StateLock, StateError> {
             source: e,
         })?;
 
-    // LOCK_EX | LOCK_NB: exclusive, non-blocking
-    let ret = unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) };
-    if ret != 0 {
-        let err = std::io::Error::last_os_error();
-        if err.kind() == std::io::ErrorKind::WouldBlock {
-            return Err(StateError::AlreadyRunning {
+    match file.try_lock_exclusive() {
+        Ok(()) => Ok(StateLock {
+            _file: file,
+            path: path.to_path_buf(),
+        }),
+        Err(err) if err.kind() == std::io::ErrorKind::WouldBlock => {
+            Err(StateError::AlreadyRunning {
                 path: path.to_path_buf(),
-            });
+            })
         }
-        return Err(StateError::Io {
+        Err(err) => Err(StateError::Io {
             path: path.to_path_buf(),
             source: err,
-        });
+        }),
     }
-
-    Ok(StateLock {
-        _file: file,
-        path: path.to_path_buf(),
-    })
 }
 
 // ---------------------------------------------------------------------------
