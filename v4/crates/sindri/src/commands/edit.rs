@@ -217,11 +217,27 @@ mod tests {
 
     #[cfg(unix)]
     fn write_fake_editor(dir: &Path, name: &str, body: &str) -> PathBuf {
+        use std::io::Write;
         let path = dir.join(name);
-        std::fs::write(&path, body).unwrap();
+        // Write + fsync + explicit drop. Without sync_all, Linux sometimes
+        // returns ETXTBSY ("Text file busy") when we exec the script
+        // immediately afterwards because the kernel still considers the
+        // inode busy from the just-released write handle.  Keeping the
+        // scope tight here ensures the file handle is fully closed before
+        // we chmod / spawn.
+        {
+            let mut f = std::fs::File::create(&path).unwrap();
+            f.write_all(body.as_bytes()).unwrap();
+            f.sync_all().unwrap();
+        }
         let mut perms = std::fs::metadata(&path).unwrap().permissions();
         perms.set_mode(0o755);
         std::fs::set_permissions(&path, perms).unwrap();
+        // Tiny defensive pause: even after sync_all + drop, the kernel can
+        // briefly hold the inode in a state where exec(2) returns ETXTBSY.
+        // 20 ms is well below test-suite noise and reliably eliminates the
+        // race in CI parallel-execution environments.
+        std::thread::sleep(std::time::Duration::from_millis(20));
         path
     }
 
@@ -232,13 +248,15 @@ mod tests {
         let yaml_path = tmp.path().join("sindri.yaml");
         std::fs::write(&yaml_path, minimal_valid_yaml()).unwrap();
 
-        // Fake editor: no-op (just exits 0). The file already validates.
-        let editor = write_fake_editor(tmp.path(), "noop_editor.sh", "#!/bin/sh\nexit 0\n");
-
+        // Fake editor: no-op (just exits 0).  Use stock `true` rather than
+        // writing a shell script ourselves — that avoids the Linux ETXTBSY
+        // race entirely (no freshly-written script to exec).  Bare name so
+        // `Command::new` resolves via PATH (`/bin/true` on Linux,
+        // `/usr/bin/true` on macOS).
         let code = run(EditArgs {
             target: None,
             schema: false,
-            editor_override: Some(editor.to_string_lossy().into_owned()),
+            editor_override: Some("true".to_string()),
             non_interactive: true,
             path_override: Some(yaml_path.clone()),
         });
