@@ -1,19 +1,50 @@
 {
   "name": "@sindri-dev/renovate-config-sindri",
   "version": "0.1.0",
-  "description": "Renovate manager plugin for Sindri v4 BOM manifests (ADR-015)",
+  "description": "Renovate manager plugin for Sindri v4 BOM manifests — datasource mapping, custom regex managers, and post-update lockfile regeneration (ADR-015)",
   "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./datasources": "./src/datasources.js",
+    "./preset": "./src/preset.json"
+  },
+  "files": [
+    "src/",
+    "fixtures/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "test": "node --test src/index.test.js"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "node scripts/build.js",
+    "lint": "eslint src/ --ext .js",
+    "prepublishOnly": "npm test && npm run build"
   },
   "keywords": [
     "renovate",
+    "renovate-config",
     "sindri",
     "bom",
-    "dependencies"
+    "dependencies",
+    "mise",
+    "version-management"
   ],
+  "author": "sindri-dev team",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pacphi/sindri.git",
+    "directory": "v4/renovate-plugin"
+  },
+  "bugs": {
+    "url": "https://github.com/pacphi/sindri/issues"
+  },
+  "homepage": "https://github.com/pacphi/sindri/tree/v4/v4/renovate-plugin#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "devDependencies": {
-    "renovate": "*"
+    "vitest": "^1.6.0"
   }
 }
