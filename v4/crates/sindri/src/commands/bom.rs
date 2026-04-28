@@ -572,6 +572,7 @@ mod tests {
             configure: None,
             remove: None,
             overrides: HashMap::new(),
+            auth: Default::default(),
         }
     }
 

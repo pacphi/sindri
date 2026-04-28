@@ -78,6 +78,7 @@ fn linux_only_manifest() -> ComponentManifest {
         configure: None,
         remove: None,
         overrides: HashMap::new(),
+        auth: Default::default(),
     }
 }
 

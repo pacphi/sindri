@@ -3,6 +3,8 @@
 // ADR-024: Script-component lifecycle contract (validate/configure/remove)
 // DDD-01: Component domain — full aggregate (id, manifest, options,
 //         install/validate/configure/remove, per-platform overrides, capabilities)
+// ADR-026: Auth-Aware Components — `auth: AuthRequirements` field on ComponentManifest.
+use crate::auth::AuthRequirements;
 use crate::platform::{Arch, Os, Platform};
 use crate::version::VersionSpec;
 use schemars::JsonSchema;
@@ -208,6 +210,13 @@ pub struct ComponentManifest {
     /// See [`platform_key`].
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub overrides: HashMap<String, PlatformOverride>,
+
+    // ----- ADR-026 addition (additive; default-empty) -----
+    /// Credentials this component declares it needs to install and/or run
+    /// (ADR-026). Phase 0 ships the schema only; the resolver, lockfile, and
+    /// apply paths do not read this field yet (Phases 1+ will).
+    #[serde(default, skip_serializing_if = "AuthRequirements::is_empty")]
+    pub auth: AuthRequirements,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -912,6 +921,77 @@ options:
             // New fields default cleanly:
             assert!(m.options.fields.is_empty());
             assert!(m.overrides.is_empty());
+            // ADR-026 Phase 0: every existing component must deserialize with
+            // an empty `auth` block (the field is `#[serde(default)]`).
+            assert!(
+                m.auth.is_empty(),
+                "{name}: expected empty auth requirements, got {:?}",
+                m.auth
+            );
         }
+    }
+
+    // ----- ADR-026: auth block round-trips through ComponentManifest -----
+
+    #[test]
+    fn manifest_with_auth_block_round_trips() {
+        use crate::auth::{AuthScope, Redemption};
+
+        let yaml = r#"
+metadata: { name: claude-code, version: "1.0.0", description: x, license: MIT }
+platforms: [{ os: linux, arch: x86_64 }]
+install:
+  npm:
+    package: "@anthropic-ai/claude-code"
+    global: true
+auth:
+  tokens:
+    - name: anthropic_api_key
+      description: "Anthropic API key used by the Claude Code CLI."
+      scope: runtime
+      optional: false
+      audience: "urn:anthropic:api"
+      redemption:
+        kind: env-var
+        env-name: ANTHROPIC_API_KEY
+      discovery:
+        env-aliases: [ANTHROPIC_API_KEY, CLAUDE_API_KEY]
+"#;
+        let m: ComponentManifest = serde_yaml::from_str(yaml).unwrap();
+        assert!(!m.auth.is_empty());
+        assert_eq!(m.auth.tokens.len(), 1);
+        let t = &m.auth.tokens[0];
+        assert_eq!(t.name, "anthropic_api_key");
+        assert_eq!(t.scope, AuthScope::Runtime);
+        assert_eq!(t.audience, "urn:anthropic:api");
+        match &t.redemption {
+            Redemption::EnvVar { env_name } => assert_eq!(env_name, "ANTHROPIC_API_KEY"),
+            other => panic!("expected EnvVar, got {:?}", other),
+        }
+
+        // Round-trip: serialise then deserialise, the `auth` block must survive.
+        let s = serde_yaml::to_string(&m).unwrap();
+        let m2: ComponentManifest = serde_yaml::from_str(&s).unwrap();
+        assert_eq!(m.auth, m2.auth);
+    }
+
+    #[test]
+    fn manifest_without_auth_block_has_empty_default() {
+        let yaml = r#"
+metadata: { name: t, version: "1.0.0", description: x, license: MIT }
+platforms: [{ os: linux, arch: x86_64 }]
+install: {}
+"#;
+        let m: ComponentManifest = serde_yaml::from_str(yaml).unwrap();
+        assert!(m.auth.is_empty());
+
+        // And serialising back must NOT emit an empty `auth:` key
+        // (the field is `skip_serializing_if = "AuthRequirements::is_empty"`).
+        let s = serde_yaml::to_string(&m).unwrap();
+        assert!(
+            !s.contains("auth:"),
+            "expected serialised manifest to omit empty auth block, got:\n{}",
+            s
+        );
     }
 }

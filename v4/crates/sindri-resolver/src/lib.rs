@@ -372,5 +372,6 @@ fn build_platform_manifest(
         configure: None,
         remove: None,
         overrides: Default::default(),
+        auth: Default::default(),
     }
 }
