@@ -33,5 +33,5 @@ auth:
       optional: true
       audience: "https://gitlab.com/api/v4"
       redemption:
-        env-var:
-          env-name: GITLAB_TOKEN
+        kind: env-var
+        env-name: GITLAB_TOKEN

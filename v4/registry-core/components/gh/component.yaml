@@ -38,5 +38,5 @@ auth:
       optional: true
       audience: "https://api.github.com"
       redemption:
-        env-var:
-          env-name: GITHUB_TOKEN
+        kind: env-var
+        env-name: GITHUB_TOKEN

@@ -35,5 +35,5 @@ auth:
       optional: false
       audience: "urn:google:generative-language"
       redemption:
-        env-var:
-          env-name: GEMINI_API_KEY
+        kind: env-var
+        env-name: GEMINI_API_KEY
