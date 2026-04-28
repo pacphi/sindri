@@ -54,3 +54,9 @@ serde_json = { workspace = true }
 # in offline mode.
 sindri-resolver = { path = "../../crates/sindri-resolver" }
 sindri-core = { path = "../../crates/sindri-core" }
+sindri-secrets = { path = "../../crates/sindri-secrets" }
+tokio = { workspace = true }
+
+[[test]]
+name = "secrets_oauth_token_flow"
+path = "tests/secrets_oauth_token_flow.rs"

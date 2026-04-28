@@ -5,6 +5,7 @@
 //! Sprint 9/10 `add`, `ls`, `status`, `create`, `destroy`, `doctor`,
 //! `shell` verbs.
 use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
+use sindri_secrets::{FileBackend, SecretStore, SecretValue};
 use sindri_targets::{AuthValue, DockerTarget, LocalTarget, Target};
 use std::path::{Path, PathBuf};
 
@@ -358,17 +359,44 @@ fn auth_target(name: &str, value: Option<&str>) -> i32 {
             return EXIT_SCHEMA_OR_RESOLVE_ERROR;
         }
     };
-    if parsed.is_plain() {
-        eprintln!(
-            "Warning: storing a plain auth value in sindri.yaml is insecure. Prefer env: or file:."
-        );
-    }
 
-    // Persist under targets.<name>.auth.token in sindri.yaml. This is the
-    // canonical path per ADR-020 §4 — every auth-bearing target reads
-    // `auth.token`.
+    // Determine the manifest value and, for plain: tokens, persist them to
+    // the secret store rather than embedding the token inline (ADR-025).
+    let manifest_value = if parsed.is_plain() {
+        // Store the raw token bytes in the FileBackend.
+        let secret_key = format!("targets.{}.auth.token", name);
+        let token = raw.strip_prefix("plain:").unwrap_or(&raw).to_string();
+        let sv = SecretValue::from_plaintext(&token)
+            .with_description(format!("OAuth token for target {}", name));
+        let store = match FileBackend::default_path() {
+            Some(s) => s,
+            None => {
+                eprintln!("Cannot resolve secrets store path ($HOME unset).");
+                return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+            }
+        };
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("tokio runtime");
+        if let Err(e) = rt.block_on(store.write(&secret_key, sv)) {
+            eprintln!("Cannot write secret to store: {}", e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+        tracing::warn!(
+            key = %secret_key,
+            "plain: auth value migrated to sindri-secrets FileBackend. \
+             Future logins will use `secret:{}` in sindri.yaml.",
+            secret_key,
+        );
+        format!("secret:{}", secret_key)
+    } else {
+        raw.clone()
+    };
+
+    // Persist the manifest value under targets.<name>.auth.token.
     let manifest_path = std::path::PathBuf::from("sindri.yaml");
-    if let Err(e) = persist_auth(&manifest_path, name, &raw) {
+    if let Err(e) = persist_auth(&manifest_path, name, &manifest_value) {
         eprintln!("Cannot update sindri.yaml: {}", e);
         return EXIT_SCHEMA_OR_RESOLVE_ERROR;
     }
