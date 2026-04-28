@@ -49,11 +49,13 @@ pub enum TargetCmd {
         /// Pre-supplied prefixed auth value (skips the interactive prompt).
         value: Option<String>,
     },
-    /// Diff sindri.yaml's desired infra against the on-disk lock and print
-    /// the changes that *would* be applied (Wave 3C: experimental — does
-    /// not execute).
+    /// Reconcile `targets.<name>.infra` in sindri.yaml with the on-disk
+    /// lock — Terraform-plan-style classifier with destructive-prompt
+    /// gating (Wave 5E, audit D2).
     Update {
         name: String,
+        auto_approve: bool,
+        no_color: bool,
     },
     /// Plugin management.
     Plugin {
@@ -94,7 +96,11 @@ pub fn run(cmd: TargetCmd) -> i32 {
         TargetCmd::Start { name } => start_target(&name),
         TargetCmd::Stop { name } => stop_target(&name),
         TargetCmd::Auth { name, value } => auth_target(&name, value.as_deref()),
-        TargetCmd::Update { name } => update_target(&name),
+        TargetCmd::Update {
+            name,
+            auto_approve,
+            no_color,
+        } => update_target(&name, auto_approve, no_color),
         TargetCmd::Plugin { sub } => run_plugin(sub),
     }
 }
@@ -443,44 +449,190 @@ fn persist_auth(manifest_path: &Path, name: &str, value: &str) -> std::io::Resul
     Ok(())
 }
 
-fn update_target(name: &str) -> i32 {
-    // Wave 3C scope: experimental diff-only. The full convergence engine
-    // (in-place vs destroy+recreate classification, prompted execution)
-    // is a future PR.
-    let lock_path = format!("sindri.{}.infra.lock", name);
-    let lock = std::path::Path::new(&lock_path);
-    if !lock.exists() {
+fn update_target(name: &str, auto_approve: bool, no_color: bool) -> i32 {
+    update_target_at(
+        name,
+        Path::new("sindri.yaml"),
+        &PathBuf::from(format!("sindri.{}.infra.lock", name)),
+        auto_approve,
+        no_color,
+    )
+}
+
+/// Test-friendly variant that takes explicit paths. Drives the
+/// convergence engine end-to-end:
+///
+/// 1. Loads `targets.<name>` from `sindri.yaml`.
+/// 2. Loads (or initialises empty) the lockfile.
+/// 3. Builds a [`Plan`](sindri_targets::convergence::Plan) and renders it.
+/// 4. Prompts (unless `auto_approve`) before applying any destructive
+///    entry, then writes the new lock atomically.
+///
+/// The Applier used here is a no-op [`StubApplier`] — actual provider-API
+/// mutations land per-kind on top of `dispatch_create_async` (see PR #227).
+/// Tests inject a fake Applier through the `convergence` integration tests
+/// in `sindri-targets`.
+pub fn update_target_at(
+    name: &str,
+    manifest_path: &Path,
+    lock_path: &Path,
+    auto_approve: bool,
+    no_color: bool,
+) -> i32 {
+    use sindri_targets::convergence::{
+        apply_plan, build_plan, render_plan, schema_for_kind, write_lock_atomic, AlwaysYesConfirm,
+        InfraDocument, InfraLock, RenderOptions, StdinConfirm,
+    };
+
+    // ── Load manifest ────────────────────────────────────────────────
+    let content = match std::fs::read_to_string(manifest_path) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("Cannot read {}: {}", manifest_path.display(), e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+    let doc: serde_yaml::Value = match serde_yaml::from_str(&content) {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("Cannot parse {}: {}", manifest_path.display(), e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+    let target_node = doc
+        .get("targets")
+        .and_then(|t| t.get(name))
+        .cloned()
+        .unwrap_or(serde_yaml::Value::Null);
+    if target_node.is_null() {
         eprintln!(
-            "No infra lock for '{}' yet ({}). Nothing to diff.",
+            "Target '{}' not found in {} (targets.{} is missing).",
             name,
-            lock.display()
+            manifest_path.display(),
+            name
         );
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+    let kind = target_node
+        .get("kind")
+        .and_then(|v| v.as_str())
+        .unwrap_or("local")
+        .to_string();
+    let infra_yaml = target_node.get("infra").cloned();
+    let infra_json: Option<serde_json::Value> = match infra_yaml {
+        Some(v) => match serde_json::to_value(&v) {
+            Ok(j) => Some(j),
+            Err(e) => {
+                eprintln!("Cannot convert targets.{}.infra to JSON: {}", name, e);
+                return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+            }
+        },
+        None => None,
+    };
+
+    let desired = InfraDocument::from_infra_value(&kind, infra_json.as_ref());
+
+    // ── Load (or default) lock ───────────────────────────────────────
+    let recorded_lock = match InfraLock::read(lock_path, name, &kind) {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("Cannot read lock {}: {}", lock_path.display(), e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+    let recorded = InfraDocument {
+        kind: recorded_lock.kind.clone(),
+        resources: recorded_lock.resources.clone(),
+    };
+
+    // ── Build + render plan ──────────────────────────────────────────
+    let schema = schema_for_kind(&kind);
+    let plan = build_plan(name, &kind, &desired, &recorded, schema.as_ref());
+    let rendered = render_plan(&plan, RenderOptions { color: !no_color });
+    print!("{}", rendered);
+
+    // ── Apply ────────────────────────────────────────────────────────
+    let counts = plan.counts();
+    if counts.create + counts.in_place + counts.destroy + counts.recreate == 0 {
+        println!("No changes to apply.");
         return EXIT_SUCCESS;
     }
-    let manifest = match std::fs::read_to_string("sindri.yaml") {
-        Ok(s) => s,
+
+    let mut applier = StubApplier;
+    let result = if auto_approve {
+        let mut confirm = AlwaysYesConfirm;
+        apply_plan(&plan, &recorded_lock, &mut applier, &mut confirm, true)
+    } else {
+        let mut confirm = StdinConfirm::default();
+        apply_plan(&plan, &recorded_lock, &mut applier, &mut confirm, false)
+    };
+
+    let (new_lock, outcome) = match result {
+        Ok(v) => v,
         Err(e) => {
-            eprintln!("Cannot read sindri.yaml: {}", e);
+            eprintln!("Apply failed: {}", e);
             return EXIT_SCHEMA_OR_RESOLVE_ERROR;
         }
     };
-    let lock_content = match std::fs::read_to_string(lock) {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("Cannot read {}: {}", lock.display(), e);
-            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
-        }
-    };
+
+    if outcome.destructive_aborted {
+        println!("Aborted — no changes applied.");
+        return EXIT_SUCCESS;
+    }
+
+    if let Err(e) = write_lock_atomic(lock_path, &new_lock) {
+        eprintln!("Cannot write lock {}: {}", lock_path.display(), e);
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
     println!(
-        "EXPERIMENTAL: target update '{}' is diff-only in Wave 3C.\n\
-         The full convergence engine (in-place vs destroy+recreate) is deferred.",
-        name
+        "Applied {} change(s). Lock: {}",
+        outcome.applied,
+        lock_path.display()
     );
-    println!("--- desired (sindri.yaml, targets.{}.infra) ---", name);
-    println!("{}", manifest);
-    println!("--- current ({}) ---", lock.display());
-    println!("{}", lock_content);
     EXIT_SUCCESS
+}
+
+/// No-op Applier that copies desired → recorded (stamping a `_managed`
+/// marker so the lock reflects "we owned this resource"). Real provider
+/// mutations are wired per-kind via `dispatch_create_async` (PR #227)
+/// and land in subsequent waves.
+struct StubApplier;
+
+impl sindri_targets::convergence::Applier for StubApplier {
+    fn create(
+        &mut self,
+        _name: &str,
+        desired: &serde_json::Value,
+    ) -> Result<sindri_targets::convergence::ResourceState, sindri_targets::TargetError> {
+        let mut state = desired.clone();
+        if let Some(map) = state.as_object_mut() {
+            map.insert("_managed".into(), serde_json::Value::Bool(true));
+        }
+        Ok(state)
+    }
+    fn destroy(
+        &mut self,
+        _name: &str,
+        _recorded: &sindri_targets::convergence::ResourceState,
+    ) -> Result<(), sindri_targets::TargetError> {
+        Ok(())
+    }
+    fn update_in_place(
+        &mut self,
+        _name: &str,
+        recorded: &sindri_targets::convergence::ResourceState,
+        desired: &serde_json::Value,
+    ) -> Result<sindri_targets::convergence::ResourceState, sindri_targets::TargetError> {
+        let mut state = desired.clone();
+        if let (Some(new_map), Some(rec_map)) = (state.as_object_mut(), recorded.as_object()) {
+            for k in ["id", "_managed"] {
+                if let Some(v) = rec_map.get(k) {
+                    new_map.insert(k.into(), v.clone());
+                }
+            }
+        }
+        Ok(state)
+    }
 }
 
 // ─── Plugin management ──────────────────────────────────────────────────────
@@ -717,6 +869,79 @@ mod tests {
             "lambda-labs"
         );
         assert_eq!(derive_kind_from_ref("modal"), "modal");
+    }
+
+    #[test]
+    fn update_target_creates_lockfile_with_auto_approve() {
+        let dir = tempdir().unwrap();
+        let manifest = dir.path().join("sindri.yaml");
+        let lock = dir.path().join("sindri.web.infra.lock");
+        fs::write(
+            &manifest,
+            r#"
+components: []
+targets:
+  web:
+    kind: docker
+    infra:
+      resources:
+        web:
+          image: ghcr.io/example/web:1
+          env:
+            LOG: info
+"#,
+        )
+        .unwrap();
+
+        let code = update_target_at(
+            "web", &manifest, &lock, /*auto_approve*/ true, /*no_color*/ true,
+        );
+        assert_eq!(code, EXIT_SUCCESS);
+        assert!(lock.exists(), "lockfile should have been written");
+        let written = fs::read_to_string(&lock).unwrap();
+        let parsed: serde_yaml::Value = serde_yaml::from_str(&written).unwrap();
+        assert_eq!(parsed.get("kind").and_then(|v| v.as_str()), Some("docker"));
+        assert!(written.contains("ghcr.io/example/web:1"));
+    }
+
+    #[test]
+    fn update_target_noop_when_lock_matches_manifest() {
+        let dir = tempdir().unwrap();
+        let manifest = dir.path().join("sindri.yaml");
+        let lock = dir.path().join("sindri.web.infra.lock");
+        fs::write(
+            &manifest,
+            r#"
+components: []
+targets:
+  web:
+    kind: docker
+    infra:
+      resources:
+        web:
+          image: ghcr.io/example/web:1
+"#,
+        )
+        .unwrap();
+        // Pre-write a matching lock.
+        fs::write(
+            &lock,
+            "kind: docker\nresources:\n  web:\n    image: ghcr.io/example/web:1\n",
+        )
+        .unwrap();
+
+        let code = update_target_at("web", &manifest, &lock, true, true);
+        assert_eq!(code, EXIT_SUCCESS);
+    }
+
+    #[test]
+    fn update_target_missing_target_returns_error() {
+        let dir = tempdir().unwrap();
+        let manifest = dir.path().join("sindri.yaml");
+        let lock = dir.path().join("sindri.absent.infra.lock");
+        fs::write(&manifest, "components: []\n").unwrap();
+        let code = update_target_at("absent", &manifest, &lock, true, true);
+        assert_eq!(code, EXIT_SCHEMA_OR_RESOLVE_ERROR);
     }
 
     #[test]

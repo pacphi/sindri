@@ -11,6 +11,7 @@
 
 pub mod auth;
 pub mod cloud;
+pub mod convergence;
 pub mod docker;
 pub mod error;
 pub mod local;
