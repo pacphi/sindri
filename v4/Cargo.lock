@@ -3280,6 +3280,7 @@ name = "sindri-resolver"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "dirs-next",
  "hex",
  "serde",
  "serde_json",

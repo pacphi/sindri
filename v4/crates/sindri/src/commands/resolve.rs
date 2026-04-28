@@ -75,11 +75,16 @@ pub fn run(args: ResolveArgs) -> i32 {
 
     match sindri_resolver::resolve(&opts, &registry, &policy, &platform) {
         Ok(lockfile) => {
+            // Auth-binding summary (Phase 1, ADR-027 §3 — observability-only).
+            let (resolved_n, deferred_n, failed_n) = auth_binding_counts(&lockfile);
             if args.json {
                 println!(
-                    r#"{{"resolved":true,"lockfile":"{}","components":{}}}"#,
+                    r#"{{"resolved":true,"lockfile":"{}","components":{},"auth_bindings":{{"resolved":{},"deferred":{},"failed":{}}}}}"#,
                     lockfile_path.display(),
-                    lockfile.components.len()
+                    lockfile.components.len(),
+                    resolved_n,
+                    deferred_n,
+                    failed_n,
                 );
             } else {
                 println!(
@@ -95,6 +100,10 @@ pub fn run(args: ResolveArgs) -> i32 {
                         c.backend.as_str()
                     );
                 }
+                println!(
+                    "auth-bindings: {} resolved, {} deferred, {} failed",
+                    resolved_n, deferred_n, failed_n
+                );
             }
             EXIT_SUCCESS
         }
@@ -108,6 +117,23 @@ pub fn run(args: ResolveArgs) -> i32 {
             code
         }
     }
+}
+
+/// Tally `(resolved, deferred, failed)` from a Phase 1 lockfile's
+/// `auth_bindings` field (ADR-027 §3, observability-only).
+fn auth_binding_counts(lockfile: &sindri_core::lockfile::Lockfile) -> (usize, usize, usize) {
+    use sindri_core::auth::AuthBindingStatus;
+    let mut r = 0usize;
+    let mut d = 0usize;
+    let mut f = 0usize;
+    for b in &lockfile.auth_bindings {
+        match b.status {
+            AuthBindingStatus::Bound => r += 1,
+            AuthBindingStatus::Deferred => d += 1,
+            AuthBindingStatus::Failed => f += 1,
+        }
+    }
+    (r, d, f)
 }
 
 fn load_registry_from_cache() -> HashMap<String, ComponentEntry> {

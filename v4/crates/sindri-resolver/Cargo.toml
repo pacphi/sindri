@@ -19,3 +19,4 @@ serde_yaml = { workspace = true }
 sha2 = { workspace = true }
 hex = { workspace = true }
 tracing = { workspace = true }
+dirs-next = { workspace = true }

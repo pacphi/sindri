@@ -14,6 +14,7 @@ pub fn which(name: &str) -> Option<std::path::PathBuf> {
 
 use crate::error::TargetError;
 /// The Target trait — replaces Provider from v3 (ADR-017)
+use sindri_core::auth::AuthCapability;
 use sindri_core::platform::TargetProfile;
 
 pub trait Target: Send + Sync {
@@ -25,6 +26,18 @@ pub trait Target: Send + Sync {
 
     /// Detect or return the platform/capabilities of this target
     fn profile(&self) -> Result<TargetProfile, TargetError>;
+
+    /// Describe the credential slots this target can fulfill (ADR-027 §1).
+    ///
+    /// Default: empty — targets opt in. Phase 4 of the auth-aware
+    /// implementation plan fills these in for built-in targets (`local`,
+    /// `docker`, `ssh`, ...). The resolver's auth-binding pass walks this
+    /// list (plus per-target `provides:` overrides from the BOM manifest)
+    /// to discover candidate sources for each component-declared
+    /// [`AuthRequirement`](sindri_core::auth::AuthRequirements).
+    fn auth_capabilities(&self) -> Vec<AuthCapability> {
+        Vec::new()
+    }
 
     /// Execute a shell command on the target, return (stdout, stderr)
     fn exec(&self, cmd: &str, env: &[(&str, &str)]) -> Result<(String, String), TargetError>;
