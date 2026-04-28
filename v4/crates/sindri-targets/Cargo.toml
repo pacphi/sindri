@@ -16,3 +16,6 @@ tracing = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 dirs-next = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

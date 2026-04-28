@@ -1,6 +1,8 @@
 use crate::error::TargetError;
 use crate::traits::{PrereqCheck, Target};
+use sindri_core::auth::{AuthCapability, AuthSource};
 use sindri_core::platform::{Arch, Capabilities, Os, Platform, TargetProfile};
+
 /// Cloud target stubs (ADR-017, Sprint 10)
 ///
 /// Each cloud target implements the Target trait. Sprint 10 provides the
@@ -105,6 +107,15 @@ impl Target for E2bTarget {
             PrereqCheck::fail("e2b CLI", "npm install -g @e2b/cli")
         }]
     }
+
+    /// E2B sandboxes don't have a native secret-store API the resolver
+    /// can target — secrets land in the sandbox via the `e2b` CLI's
+    /// `--env` flag at create time. We surface no capabilities by
+    /// default; operators wire forwarded vars via `provides:` in the
+    /// target manifest (ADR-027 §1, Phase 4).
+    fn auth_capabilities(&self) -> Vec<AuthCapability> {
+        Vec::new()
+    }
 }
 
 // ─── Fly.io ─────────────────────────────────────────────────────────────────
@@ -188,6 +199,44 @@ impl Target for FlyTarget {
         } else {
             PrereqCheck::fail("flyctl CLI", "curl -L https://fly.io/install.sh | sh")
         }]
+    }
+
+    /// Fly.io advertises:
+    /// 1. **`flyctl auth token`** — the OAuth-result token from the
+    ///    operator's logged-in `flyctl` session (audience GitHub-style
+    ///    `https://api.fly.io`). Priority `15`.
+    /// 2. **`flyctl secrets`** — per-app secrets group accessible via
+    ///    `flyctl secrets list/get`. Modelled as a `FromCli` source with
+    ///    a `{key}` template the resolver expands when binding (Phase 4
+    ///    advertises a generic `flyctl secrets` capability id; per-secret
+    ///    refinement happens in Phase 2 when redemption is wired). The
+    ///    audience is `urn:fly:secrets` so component manifests can
+    ///    declare a generic Fly-secrets requirement.
+    ///
+    /// Both are conditional on `flyctl` being on `PATH` — without the
+    /// CLI neither path is reachable.
+    fn auth_capabilities(&self) -> Vec<AuthCapability> {
+        if crate::traits::which("flyctl").is_none() {
+            return Vec::new();
+        }
+        vec![
+            AuthCapability {
+                id: "fly_auth_token".to_string(),
+                audience: "https://api.fly.io".to_string(),
+                source: AuthSource::FromCli {
+                    command: "flyctl auth token".to_string(),
+                },
+                priority: 15,
+            },
+            AuthCapability {
+                id: "fly_secrets".to_string(),
+                audience: "urn:fly:secrets".to_string(),
+                source: AuthSource::FromCli {
+                    command: format!("flyctl secrets list --app {} --json", self.app_name),
+                },
+                priority: 12,
+            },
+        ]
     }
 }
 
@@ -293,5 +342,131 @@ impl Target for KubernetesTarget {
                 "Install kubectl: https://kubernetes.io/docs/tasks/tools/",
             )
         }]
+    }
+
+    /// Kubernetes targets advertise the cluster's projected-secret
+    /// mechanism (`valueFrom: { secretKeyRef }`) as a generic
+    /// [`AuthSource::FromSecretsStore`] with backend `k8s` (ADR-027 §1,
+    /// Phase 4).
+    ///
+    /// The `path` is the namespace — per-secret resolution happens at
+    /// apply time (Phase 2) when a concrete `secretKeyRef.name` and
+    /// `secretKeyRef.key` are projected into the workload pod. Audience
+    /// is `urn:k8s:secrets` so component manifests can opt-in.
+    ///
+    /// Conditional on `kubectl` being on `PATH`.
+    fn auth_capabilities(&self) -> Vec<AuthCapability> {
+        if crate::traits::which("kubectl").is_none() {
+            return Vec::new();
+        }
+        vec![AuthCapability {
+            id: "k8s_secret_keyref".to_string(),
+            audience: "urn:k8s:secrets".to_string(),
+            source: AuthSource::FromSecretsStore {
+                backend: "k8s".to_string(),
+                path: self.namespace.clone(),
+            },
+            priority: 18,
+        }]
+    }
+}
+
+// ─── Tests ──────────────────────────────────────────────────────────────────
+//
+// Auth-capability tests for cloud targets live at the bottom of this file
+// to keep the unit-test surface co-located with the implementations. Tests
+// that mutate `PATH` use `well_known::ENV_LOCK` to serialise.
+
+#[cfg(test)]
+mod auth_cap_tests {
+    use super::*;
+    use crate::well_known::ENV_LOCK;
+    use std::fs;
+    use std::os::unix::fs::PermissionsExt;
+
+    fn fake_bin_dir(name: &str) -> tempfile::TempDir {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let bin = dir.path().join(name);
+        fs::write(&bin, "#!/bin/sh\nexit 0\n").unwrap();
+        let mut perms = fs::metadata(&bin).unwrap().permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(&bin, perms).unwrap();
+        dir
+    }
+
+    #[test]
+    fn fly_without_flyctl_yields_empty() {
+        let _g = ENV_LOCK.lock().unwrap();
+        // SAFETY: caller holds ENV_LOCK.
+        unsafe { std::env::set_var("PATH", "/nonexistent-sindri-path-xyz") };
+        let target = FlyTarget::new("prod", "my-app");
+        assert!(target.auth_capabilities().is_empty());
+    }
+
+    #[test]
+    fn fly_with_flyctl_advertises_oauth_and_secrets() {
+        let _g = ENV_LOCK.lock().unwrap();
+        let dir = fake_bin_dir("flyctl");
+        // SAFETY: caller holds ENV_LOCK.
+        unsafe { std::env::set_var("PATH", dir.path()) };
+
+        let target = FlyTarget::new("prod", "my-app");
+        let caps = target.auth_capabilities();
+
+        let token = caps
+            .iter()
+            .find(|c| c.id == "fly_auth_token")
+            .expect("fly_auth_token missing");
+        assert_eq!(token.audience, "https://api.fly.io");
+        match &token.source {
+            AuthSource::FromCli { command } => assert_eq!(command, "flyctl auth token"),
+            other => panic!("expected FromCli, got {:?}", other),
+        }
+
+        let secrets = caps
+            .iter()
+            .find(|c| c.id == "fly_secrets")
+            .expect("fly_secrets missing");
+        match &secrets.source {
+            AuthSource::FromCli { command } => assert!(command.contains("my-app")),
+            other => panic!("expected FromCli, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn k8s_without_kubectl_yields_empty() {
+        let _g = ENV_LOCK.lock().unwrap();
+        // SAFETY: caller holds ENV_LOCK.
+        unsafe { std::env::set_var("PATH", "/nonexistent-sindri-path-xyz") };
+        let target = KubernetesTarget::new("prod", "default");
+        assert!(target.auth_capabilities().is_empty());
+    }
+
+    #[test]
+    fn k8s_with_kubectl_advertises_secrets_store() {
+        let _g = ENV_LOCK.lock().unwrap();
+        let dir = fake_bin_dir("kubectl");
+        // SAFETY: caller holds ENV_LOCK.
+        unsafe { std::env::set_var("PATH", dir.path()) };
+
+        let target = KubernetesTarget::new("prod", "my-namespace");
+        let caps = target.auth_capabilities();
+        assert_eq!(caps.len(), 1);
+        let c = &caps[0];
+        assert_eq!(c.id, "k8s_secret_keyref");
+        assert_eq!(c.audience, "urn:k8s:secrets");
+        match &c.source {
+            AuthSource::FromSecretsStore { backend, path } => {
+                assert_eq!(backend, "k8s");
+                assert_eq!(path, "my-namespace");
+            }
+            other => panic!("expected FromSecretsStore, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn e2b_advertises_no_capabilities() {
+        let target = E2bTarget::new("sandbox", "default");
+        assert!(target.auth_capabilities().is_empty());
     }
 }

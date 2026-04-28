@@ -5,8 +5,10 @@ pub mod cloud;
 pub mod docker;
 pub mod error;
 pub mod local;
+pub mod plugin;
 pub mod ssh;
 pub mod traits;
+pub mod well_known;
 
 pub use auth::AuthValue;
 // ADR-027 §1: re-export the target-side capability vocabulary that lives in
