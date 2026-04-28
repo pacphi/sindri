@@ -110,6 +110,19 @@ async fn run_async(args: ApplyArgs) -> i32 {
         );
         return EXIT_RESOLUTION_CONFLICT;
     }
+    // Wave 5A — D5: per-component cosign pre-flight.
+    //
+    // Loads the install policy from `sindri.policy.yaml` (best-effort) and,
+    // when `require_signed_registries=true`, refuses to proceed if any
+    // OCI-resolved component is missing `component_digest`. When trust keys
+    // are loaded from `~/.sindri/trust/`, verifies each digest against the
+    // configured cosign keys before any backend runs — fail-closed semantics
+    // per ADR-014.
+    if let Err(e) = preflight_component_signatures(&lockfile).await {
+        eprintln!("Component signature verification failed: {}", e);
+        return EXIT_RESOLUTION_CONFLICT;
+    }
+
     let target = LocalTarget::new();
     let total = lockfile.components.len();
 
@@ -327,6 +340,148 @@ async fn run_project_init_pass(
 
 fn render_apply_err(e: &ApplyError) -> String {
     e.to_string()
+}
+
+/// Wave 5A — D5: per-component cosign signature pre-flight.
+///
+/// Behaviour matrix (loaded against `sindri.policy.yaml`, defaulting to
+/// `require_signed_registries=false`):
+///
+/// | policy strict | digest present | trust keys | outcome                    |
+/// |---------------|----------------|------------|----------------------------|
+/// | false         | —              | —          | warn-and-proceed (legacy)  |
+/// | true          | None           | —          | error (digest required)    |
+/// | true          | Some           | empty      | error (no trusted keys)    |
+/// | true          | Some           | non-empty  | verify; pass-or-error      |
+/// | false         | Some           | non-empty  | verify; warn-on-fail       |
+///
+/// Components that have **no** `oci_digest` (resolved from a non-OCI
+/// backend like brew/cargo) are skipped: there is no OCI artifact to sign.
+async fn preflight_component_signatures(
+    lockfile: &sindri_core::lockfile::Lockfile,
+) -> Result<(), String> {
+    let strict = load_install_policy()
+        .and_then(|p| p.require_signed_registries)
+        .unwrap_or(false);
+
+    // Best-effort trust-store load. A missing `~/.sindri/trust/` is treated
+    // as "no keys" — the matrix above describes how that interacts with
+    // strict mode.
+    let trust_dir = sindri_core::paths::home_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join(".sindri")
+        .join("trust");
+    let verifier =
+        sindri_registry::CosignVerifier::load_from_trust_dir(&trust_dir).map_err(|e| {
+            format!(
+                "failed to load cosign trust keys from {}: {}",
+                trust_dir.display(),
+                e
+            )
+        })?;
+
+    for comp in &lockfile.components {
+        // Components without an OCI ref were resolved from a registry-less
+        // backend (cargo, brew, …) — there is no OCI artifact to sign.
+        let oci_str = match comp.oci_digest.as_deref() {
+            Some(s) => s,
+            None => continue,
+        };
+
+        match comp.component_digest.as_deref() {
+            None => {
+                if strict {
+                    return Err(format!(
+                        "component '{}' is missing `component_digest` but policy.require_signed_registries=true \
+                         (re-resolve to populate the digest, or relax the policy)",
+                        comp.id.to_address()
+                    ));
+                }
+                tracing::warn!(
+                    component = comp.id.to_address().as_str(),
+                    "no component_digest — skipping cosign verification (permissive policy)"
+                );
+            }
+            Some(digest) => {
+                let oci_ref = match sindri_registry::OciRef::parse(oci_str) {
+                    Ok(r) => r,
+                    Err(e) => {
+                        return Err(format!(
+                            "component '{}' has malformed oci_digest '{}': {}",
+                            comp.id.to_address(),
+                            oci_str,
+                            e
+                        ));
+                    }
+                };
+                let registry_name = oci_ref.registry.clone();
+                let trusted_keys = verifier.keys_for(&registry_name);
+                if trusted_keys.is_empty() {
+                    if strict {
+                        return Err(format!(
+                            "component '{}' references registry '{}' but no trusted cosign keys are loaded",
+                            comp.id.to_address(),
+                            registry_name
+                        ));
+                    }
+                    tracing::warn!(
+                        component = comp.id.to_address().as_str(),
+                        registry = registry_name.as_str(),
+                        "no trusted cosign keys — skipping per-component verification"
+                    );
+                    continue;
+                }
+                // Real OCI fetch + cosign verification. The verifier wraps
+                // a default `oci_client::Client` internally — `sindri apply`
+                // does not otherwise need a long-lived client.
+                match verifier
+                    .verify_component_signature_default_client(
+                        &registry_name,
+                        &oci_ref,
+                        digest,
+                        strict,
+                    )
+                    .await
+                {
+                    Ok(key_id) if key_id != "<unsigned>" => {
+                        tracing::info!(
+                            component = comp.id.to_address().as_str(),
+                            "verified per-component cosign signature against key {}",
+                            key_id
+                        );
+                    }
+                    Ok(_) => {
+                        // `<unsigned>` only happens with empty trust set +
+                        // permissive policy — which we already handled above.
+                    }
+                    Err(e) => {
+                        if strict {
+                            return Err(format!(
+                                "component '{}' cosign verification failed: {}",
+                                comp.id.to_address(),
+                                e
+                            ));
+                        }
+                        tracing::warn!(
+                            component = comp.id.to_address().as_str(),
+                            "cosign verification failed (permissive policy): {}",
+                            e
+                        );
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+fn load_install_policy() -> Option<sindri_core::policy::InstallPolicy> {
+    let path = std::path::Path::new("sindri.policy.yaml");
+    if !path.exists() {
+        return None;
+    }
+    let content = std::fs::read_to_string(path).ok()?;
+    serde_yaml::from_str(&content).ok()
 }
 
 fn compute_hash(content: &str) -> String {

@@ -54,8 +54,13 @@ pub const SINDRI_INDEX_MEDIA_TYPE: &str = "application/vnd.sindri.registry.index
 
 /// Standard OCI tarball-gzip media type. Accepted as a fallback when a
 /// registry publisher chose to bundle their `index.yaml` inside a tarball
-/// (e.g. for hosting the index alongside other assets).
+/// (e.g. for hosting the index alongside other assets). Wave 5A wires this
+/// through [`crate::tarball::extract_layer`] with path-traversal protection
+/// and digest verification.
 pub const OCI_TAR_GZIP_MEDIA_TYPE: &str = "application/vnd.oci.image.layer.v1.tar+gzip";
+
+/// Standard OCI uncompressed-tar layer media type. Wave 5A — D6.
+pub const OCI_TAR_MEDIA_TYPE: &str = "application/vnd.oci.image.layer.v1.tar";
 
 /// Cosign simple-signing payload media type (cosign spec). The signature
 /// manifest layer carrying this media type contains the canonical
@@ -128,6 +133,16 @@ impl RegistryClient {
     /// only succeed if the policy does *not* require signing.
     pub fn with_verifier(mut self, verifier: CosignVerifier) -> Self {
         self.verifier = Some(Arc::new(verifier));
+        self
+    }
+
+    /// Replace the underlying [`OciClient`] (test harnesses).
+    ///
+    /// Used by the wiremock-backed tests in `tests/oci_wiremock.rs` to swap
+    /// in a client configured for plain HTTP against an in-process mock
+    /// registry. Production callers should never need this.
+    pub fn with_oci_client(mut self, oci: OciClient) -> Self {
+        self.oci = oci;
         self
     }
 
@@ -331,21 +346,24 @@ impl RegistryClient {
                     detail: format!("layer was not valid UTF-8: {}", e),
                 })?
             }
-            OCI_TAR_GZIP_MEDIA_TYPE => {
-                return Err(RegistryError::UnsupportedMediaType {
-                    reference: oci_ref.to_canonical(),
-                    media_type: layer.media_type.clone(),
-                    expected: format!(
-                        "{} (tar+gzip layer extraction will land in a follow-up PR)",
-                        SINDRI_INDEX_MEDIA_TYPE
-                    ),
-                });
+            OCI_TAR_GZIP_MEDIA_TYPE | OCI_TAR_MEDIA_TYPE => {
+                // Wave 5A — D6: extract tar/gzip layer with path-traversal
+                // protection and streaming digest verification.
+                extract_index_yaml_from_layer(
+                    &buf,
+                    layer.media_type.as_str(),
+                    &layer.digest,
+                    &oci_ref,
+                )?
             }
             other => {
                 return Err(RegistryError::UnsupportedMediaType {
                     reference: oci_ref.to_canonical(),
                     media_type: other.to_string(),
-                    expected: format!("{} or {}", SINDRI_INDEX_MEDIA_TYPE, OCI_TAR_GZIP_MEDIA_TYPE),
+                    expected: format!(
+                        "{}, {}, or {}",
+                        SINDRI_INDEX_MEDIA_TYPE, OCI_TAR_GZIP_MEDIA_TYPE, OCI_TAR_MEDIA_TYPE
+                    ),
                 });
             }
         };
@@ -416,6 +434,60 @@ impl RegistryClient {
             }
         }
     }
+}
+
+/// Extract `index.yaml` content from a tar (or tar+gzip) OCI layer blob.
+///
+/// Wraps [`crate::tarball::extract_layer`] with the registry-error
+/// translation and the convention that the layer's *root* must contain an
+/// `index.yaml` entry. Anything else is treated as a malformed registry
+/// artifact.
+fn extract_index_yaml_from_layer(
+    blob: &[u8],
+    media_type: &str,
+    descriptor_digest: &str,
+    oci_ref: &OciRef,
+) -> Result<String, RegistryError> {
+    use crate::tarball::{read_entry_from_layer, LayerCompression, TarballError};
+    use std::path::Path;
+    let compression = LayerCompression::from_media_type(media_type).ok_or_else(|| {
+        RegistryError::UnsupportedMediaType {
+            reference: oci_ref.to_canonical(),
+            media_type: media_type.to_string(),
+            expected: format!("{} or {}", OCI_TAR_GZIP_MEDIA_TYPE, OCI_TAR_MEDIA_TYPE),
+        }
+    })?;
+    let entry = read_entry_from_layer(
+        blob,
+        compression,
+        descriptor_digest,
+        Path::new("index.yaml"),
+    )
+    .map_err(|e| match e {
+        TarballError::DigestMismatch { expected, actual } => RegistryError::OciFetch {
+            reference: oci_ref.to_canonical(),
+            detail: format!(
+                "layer digest mismatch — expected {}, computed sha256:{}",
+                expected, actual
+            ),
+        },
+        TarballError::UnsafePath { path, reason } => RegistryError::LayerExtraction {
+            reference: oci_ref.to_canonical(),
+            detail: format!("unsafe entry '{}': {}", path, reason),
+        },
+        TarballError::BadDescriptorDigest(d) => RegistryError::OciFetch {
+            reference: oci_ref.to_canonical(),
+            detail: format!("malformed descriptor digest '{}'", d),
+        },
+        TarballError::Io(io) => RegistryError::Io(io),
+    })?;
+    let bytes = entry.ok_or_else(|| RegistryError::IndexMissingFromLayer {
+        reference: oci_ref.to_canonical(),
+    })?;
+    String::from_utf8(bytes).map_err(|e| RegistryError::OciFetch {
+        reference: oci_ref.to_canonical(),
+        detail: format!("index.yaml in tar layer was not valid UTF-8: {}", e),
+    })
 }
 
 /// Convert an [`OciRef`] into the [`oci_client::Reference`] type expected by

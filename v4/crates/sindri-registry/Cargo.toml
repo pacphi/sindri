@@ -27,6 +27,9 @@ sigstore = { workspace = true }
 p256 = { workspace = true }
 ecdsa = { workspace = true }
 base64 = { workspace = true }
+# Wave 5A — D6: tar/gzip OCI layer extraction (path-traversal-safe).
+flate2 = { workspace = true }
+tar = { workspace = true }
 
 [features]
 default = []
@@ -40,3 +43,7 @@ tempfile = { workspace = true }
 tokio = { workspace = true }
 rand_core = { version = "0.6", features = ["std"] }
 serde_json = { workspace = true }
+# Wave 5A — D7: in-process HTTP mock server for OCI Distribution Spec tests.
+# These tests do not require network access and run on every `cargo test`
+# invocation, unlike the `live-oci-tests`-gated `tests/oci_integration.rs`.
+wiremock = "0.6"

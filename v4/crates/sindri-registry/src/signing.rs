@@ -380,6 +380,70 @@ impl CosignVerifier {
         )
     }
 
+    /// Per-component cosign verification (Wave 5A — D5).
+    ///
+    /// Variant of [`Self::verify_registry_signature`] that targets an
+    /// individual component artifact rather than the registry-level
+    /// `index.yaml`. The OCI protocol is identical (cosign hosts the
+    /// signature manifest at `<repo>:sha256-<hex>.sig`); the only difference
+    /// is the meaning of the `expected_digest` field — it is the digest of
+    /// the component's primary OCI layer/manifest as recorded in the
+    /// lockfile's `component_digest` field.
+    ///
+    /// Coordinates with the existing per-registry verification path: trust
+    /// keys live under `~/.sindri/trust/<registry>/cosign-*.pub` regardless
+    /// of whether they sign registry artifacts or component artifacts. A
+    /// future enhancement may scope keys per-component, but Wave 5A keeps
+    /// the trust model flat.
+    pub async fn verify_component_signature(
+        &self,
+        oci: &OciClient,
+        registry_name: &str,
+        oci_ref: &OciRef,
+        component_digest: &str,
+        policy_requires_signing: bool,
+    ) -> Result<String, RegistryError> {
+        // Wraps the same fetch+verify pipeline. The registry-level helper
+        // already takes the digest as an argument and treats it as opaque,
+        // so the only behavioural difference is the audit log prefix.
+        tracing::debug!(
+            "verifying per-component cosign signature for {} ({}) under registry '{}'",
+            oci_ref.to_canonical(),
+            component_digest,
+            registry_name
+        );
+        self.verify_registry_signature(
+            oci,
+            registry_name,
+            oci_ref,
+            component_digest,
+            policy_requires_signing,
+        )
+        .await
+    }
+
+    /// Convenience wrapper around [`Self::verify_component_signature`] that
+    /// constructs a default [`OciClient`] internally. Suitable for callers
+    /// (e.g. `sindri apply`) that don't otherwise need to manage an OCI
+    /// client lifecycle.
+    pub async fn verify_component_signature_default_client(
+        &self,
+        registry_name: &str,
+        oci_ref: &OciRef,
+        component_digest: &str,
+        policy_requires_signing: bool,
+    ) -> Result<String, RegistryError> {
+        let oci = OciClient::new(oci_client::client::ClientConfig::default());
+        self.verify_component_signature(
+            &oci,
+            registry_name,
+            oci_ref,
+            component_digest,
+            policy_requires_signing,
+        )
+        .await
+    }
+
     fn key_ids_for(&self, registry_name: &str) -> Vec<String> {
         self.keys_for(registry_name)
             .iter()
