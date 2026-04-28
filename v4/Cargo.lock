@@ -1655,6 +1655,7 @@ dependencies = [
  "predicates",
  "serde_json",
  "serde_yaml",
+ "sindri-core",
  "tempfile",
 ]
 
@@ -3648,11 +3649,16 @@ name = "sindri-core"
 version = "0.1.0"
 dependencies = [
  "dirs-next",
+ "hex",
+ "libc",
  "schemars 1.2.1",
  "serde",
  "serde_json",
  "serde_yaml",
+ "sha2 0.11.0",
+ "tempfile",
  "thiserror 2.0.18",
+ "tracing",
 ]
 
 [[package]]

@@ -7,6 +7,7 @@
 // | 3    | RESOLUTION_CONFLICT   | Dependency closure has an unresolvable conflict              |
 // | 4    | SCHEMA_ERROR          | sindri.yaml or sindri.policy.yaml failed validation          |
 // | 5    | STALE_LOCKFILE        | sindri.lock is absent or does not match sindri.yaml          |
+// | 6    | APPLY_IN_PROGRESS     | Another `sindri apply` is already running for this BOM       |
 
 pub const EXIT_SUCCESS: i32 = 0;
 pub const EXIT_ERROR: i32 = 1;
@@ -14,6 +15,10 @@ pub const EXIT_POLICY_DENIED: i32 = 2;
 pub const EXIT_RESOLUTION_CONFLICT: i32 = 3;
 pub const EXIT_SCHEMA_OR_RESOLVE_ERROR: i32 = 4;
 pub const EXIT_STALE_LOCKFILE: i32 = 5;
+/// Exit code 6: another `sindri apply` process holds the state-file flock for
+/// this BOM hash.  The user should wait for the in-progress apply to finish
+/// (or stale-lock clean-up with `sindri apply --clear-state`).
+pub const EXIT_APPLY_IN_PROGRESS: i32 = 6;
 
 /// Typed exit-code enum mirroring the const values above.
 #[repr(i32)]
@@ -24,4 +29,5 @@ pub enum ExitCode {
     ResolutionConflict = EXIT_RESOLUTION_CONFLICT,
     SchemaOrResolveError = EXIT_SCHEMA_OR_RESOLVE_ERROR,
     StaleLockfile = EXIT_STALE_LOCKFILE,
+    ApplyInProgress = EXIT_APPLY_IN_PROGRESS,
 }

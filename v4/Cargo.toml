@@ -57,3 +57,5 @@ tempfile = "3"
 uuid = { version = "1", features = ["v4"] }
 # Tarball backup/restore (`sindri backup` / `sindri restore`).
 tar = "0.4"
+# Unix advisory flock for concurrent-apply protection (Wave 5H, D19).
+libc = "0.2"

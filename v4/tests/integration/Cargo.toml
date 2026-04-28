@@ -32,6 +32,10 @@ path = "tests/registry_lint_finds_missing_license.rs"
 name = "lockfile_bom_emission"
 path = "tests/lockfile_bom_emission.rs"
 
+[[test]]
+name = "apply_resume"
+path = "tests/apply_resume.rs"
+
 [dev-dependencies]
 # `assert_cmd::Command::cargo_bin("sindri")` locates the workspace binary
 # in `target/debug/sindri`. Running `cargo test --workspace` (or
@@ -43,3 +47,5 @@ predicates = "3"
 tempfile = { workspace = true }
 serde_yaml = { workspace = true }
 serde_json = { workspace = true }
+# Used by apply_resume integration tests for in-process state-file assertions.
+sindri-core = { path = "../../crates/sindri-core" }

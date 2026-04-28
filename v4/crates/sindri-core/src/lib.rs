@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+pub mod apply_state;
 pub mod component;
 pub mod exit_codes;
 pub mod lockfile;

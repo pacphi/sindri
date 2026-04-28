@@ -19,10 +19,46 @@
 //! Steps 1–5 are factored into [`super::apply_lifecycle::install_one`]; this
 //! function is the thin shell that loads the lockfile, runs collision
 //! validation, drives the loop, and runs the project-init pass.
+//!
+//! # Wave 5H — `--resume` / `--clear-state` (D19)
+//!
+//! `sindri apply --resume` retries from the failing component instead of
+//! restarting the whole apply.  State is persisted to
+//! `~/.sindri/apply-state/<bom-hash>.jsonl` (append-only JSONL, one record
+//! per state transition).
+//!
+//! State machine per component:
+//!
+//! ```text
+//! pending → pre_install → installing → configuring → validating
+//!         → post_install → pre_project_init → project_init
+//!         → post_project_init → completed
+//!                                   ↑ failed{stage, error} on any error
+//! ```
+//!
+//! On `--resume`, the store is loaded and components already in `completed`
+//! state are skipped.  Components in `failed` or `pending` state are
+//! re-attempted.
+//!
+//! `--clear-state` wipes the state file for the current BOM hash so the user
+//! can force a clean-slate apply after fixing config drift.
+//!
+//! Concurrent-apply protection: an exclusive flock is taken on the state file;
+//! if another process already holds it the command exits with
+//! [`EXIT_APPLY_IN_PROGRESS`] (code 6, ADR-012).
+//!
+//! The cosign pre-flight (PR #228) runs at the top of **every** apply,
+//! including `--resume` — it is cheap and idempotent.
 
 use crate::commands::apply_lifecycle::{install_one, ApplyError, ApplyOptions};
+use sindri_core::apply_state::{
+    now_rfc3339, try_lock_state_file, ApplyStateStore, ComponentStage, RecordStatus, StateError,
+    StateRecord,
+};
 use sindri_core::component::ComponentManifest;
-use sindri_core::exit_codes::{EXIT_RESOLUTION_CONFLICT, EXIT_STALE_LOCKFILE, EXIT_SUCCESS};
+use sindri_core::exit_codes::{
+    EXIT_APPLY_IN_PROGRESS, EXIT_RESOLUTION_CONFLICT, EXIT_STALE_LOCKFILE, EXIT_SUCCESS,
+};
 use sindri_core::lockfile::ResolvedComponent;
 use sindri_core::platform::Platform;
 use sindri_extensions::{
@@ -38,6 +74,10 @@ pub struct ApplyArgs {
     pub target: String,
     /// Skip SBOM auto-emit on success (ADR-007).
     pub no_bom: bool,
+    /// Resume from the last failing component instead of restarting (Wave 5H).
+    pub resume: bool,
+    /// Wipe the apply-state file for the current BOM (Wave 5H).
+    pub clear_state: bool,
 }
 
 /// Synchronous entry point preserved for the CLI dispatch. Internally we
@@ -110,14 +150,95 @@ async fn run_async(args: ApplyArgs) -> i32 {
         );
         return EXIT_RESOLUTION_CONFLICT;
     }
+
+    // ---------------------------------------------------------------------------
+    // Wave 5H: state-file management
+    // ---------------------------------------------------------------------------
+
+    // Derive the BOM hash from `sindri.yaml` if it exists; fall back to the
+    // lockfile content.  This ensures two different BOMs never share state.
+    let bom_content_for_hash = if Path::new("sindri.yaml").exists() {
+        std::fs::read_to_string("sindri.yaml").unwrap_or_else(|_| content.clone())
+    } else {
+        content.clone()
+    };
+
+    let state_path = match ApplyStateStore::path_for_bom(&bom_content_for_hash) {
+        Some(p) => p,
+        None => {
+            // No home directory — skip state file entirely.
+            eprintln!(
+                "warning: could not determine home directory; apply-state will not be persisted"
+            );
+            // Fall back to a temp path so the rest of the code compiles.
+            std::env::temp_dir().join("sindri-apply-state-fallback.jsonl")
+        }
+    };
+
+    // --clear-state: delete the state file and exit (unless combined with --resume).
+    if args.clear_state {
+        let store = match ApplyStateStore::open(state_path.clone()) {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Failed to open apply-state: {}", e);
+                return EXIT_RESOLUTION_CONFLICT;
+            }
+        };
+        match store.clear() {
+            Ok(()) => {
+                println!("Apply-state cleared for this BOM.");
+                // If only --clear-state (without --resume), stop here.
+                if !args.resume {
+                    return EXIT_SUCCESS;
+                }
+            }
+            Err(e) => {
+                eprintln!("Failed to clear apply-state: {}", e);
+                return EXIT_RESOLUTION_CONFLICT;
+            }
+        }
+    }
+
+    // Open the state store and acquire the exclusive flock.
+    let store = match ApplyStateStore::open(state_path.clone()) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("Failed to open apply-state: {}", e);
+            return EXIT_RESOLUTION_CONFLICT;
+        }
+    };
+
+    let _lock = match try_lock_state_file(&state_path) {
+        Ok(l) => l,
+        Err(StateError::AlreadyRunning { path }) => {
+            eprintln!("error: {}", StateError::AlreadyRunning { path });
+            return EXIT_APPLY_IN_PROGRESS;
+        }
+        Err(e) => {
+            eprintln!("Failed to lock apply-state: {}", e);
+            return EXIT_RESOLUTION_CONFLICT;
+        }
+    };
+
+    // Load prior run's state if --resume.
+    let prior_summary = if args.resume {
+        match store.load_summary() {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Failed to load apply-state for --resume: {}", e);
+                return EXIT_RESOLUTION_CONFLICT;
+            }
+        }
+    } else {
+        sindri_core::apply_state::ApplyStateSummary::default()
+    };
+
+    // ---------------------------------------------------------------------------
     // Wave 5A — D5: per-component cosign pre-flight.
     //
-    // Loads the install policy from `sindri.policy.yaml` (best-effort) and,
-    // when `require_signed_registries=true`, refuses to proceed if any
-    // OCI-resolved component is missing `component_digest`. When trust keys
-    // are loaded from `~/.sindri/trust/`, verifies each digest against the
-    // configured cosign keys before any backend runs — fail-closed semantics
-    // per ADR-014.
+    // Runs on EVERY apply (including --resume) — it is cheap and idempotent
+    // per the PR #228 contract.
+    // ---------------------------------------------------------------------------
     if let Err(e) = preflight_component_signatures(&lockfile).await {
         eprintln!("Component signature verification failed: {}", e);
         return EXIT_RESOLUTION_CONFLICT;
@@ -131,16 +252,43 @@ async fn run_async(args: ApplyArgs) -> i32 {
         return EXIT_SUCCESS;
     }
 
-    println!(
-        "Plan: {} component(s) to apply on {}:",
-        total, lockfile.target
-    );
-    for comp in &lockfile.components {
+    // When resuming, report how many components will be skipped.
+    let skip_count = if args.resume {
+        lockfile
+            .components
+            .iter()
+            .filter(|c| prior_summary.is_completed(&c.id.name))
+            .count()
+    } else {
+        0
+    };
+
+    if args.resume && skip_count > 0 {
         println!(
-            "  + {} {} ({})",
+            "Resuming apply: {} of {} component(s) already completed, {} remaining.",
+            skip_count,
+            total,
+            total - skip_count
+        );
+    } else {
+        println!(
+            "Plan: {} component(s) to apply on {}:",
+            total, lockfile.target
+        );
+    }
+
+    for comp in &lockfile.components {
+        let marker = if args.resume && prior_summary.is_completed(&comp.id.name) {
+            "(already completed)"
+        } else {
+            ""
+        };
+        println!(
+            "  + {} {} ({}) {}",
             comp.id.to_address(),
             comp.version,
-            comp.backend.as_str()
+            comp.backend.as_str(),
+            marker
         );
     }
 
@@ -206,7 +354,9 @@ async fn run_async(args: ApplyArgs) -> i32 {
     let mut applied: Vec<&ResolvedComponent> = Vec::new();
 
     for comp in &lockfile.components {
-        if skipped_names.contains(&comp.id.name) {
+        let name = &comp.id.name;
+
+        if skipped_names.contains(name) {
             println!(
                 "  - {} {} (skipped by collision plan)",
                 comp.id.to_address(),
@@ -214,6 +364,26 @@ async fn run_async(args: ApplyArgs) -> i32 {
             );
             continue;
         }
+
+        // --resume: skip components that already completed in a prior run.
+        if args.resume && prior_summary.is_completed(name) {
+            println!(
+                "  - {} {} (skipped — already completed)",
+                comp.id.to_address(),
+                comp.version
+            );
+            applied.push(comp);
+            continue;
+        }
+
+        // Record transition: pending → installing
+        let _ = store.append(&StateRecord {
+            component: name.clone(),
+            stage: ComponentStage::Installing,
+            status: RecordStatus::InProgress,
+            error: None,
+            ts: now_rfc3339(),
+        });
 
         print!("  Installing {} {}...", comp.id.to_address(), comp.version);
         match install_one(
@@ -230,10 +400,27 @@ async fn run_async(args: ApplyArgs) -> i32 {
                     " done (hooks={}, configured={}, validated={})",
                     outcome.hooks_ran, outcome.configured, outcome.validated
                 );
+                // Record: completed
+                let _ = store.append(&StateRecord {
+                    component: name.clone(),
+                    stage: ComponentStage::Completed,
+                    status: RecordStatus::Completed,
+                    error: None,
+                    ts: now_rfc3339(),
+                });
                 applied.push(comp);
             }
             Err(e) => {
-                println!(" FAILED: {}", render_apply_err(&e));
+                let err_msg = render_apply_err(&e);
+                println!(" FAILED: {}", err_msg);
+                // Record: failed
+                let _ = store.append(&StateRecord {
+                    component: name.clone(),
+                    stage: ComponentStage::Failed,
+                    status: RecordStatus::Failed,
+                    error: Some(err_msg),
+                    ts: now_rfc3339(),
+                });
                 failed += 1;
             }
         }
@@ -241,6 +428,9 @@ async fn run_async(args: ApplyArgs) -> i32 {
 
     if failed > 0 {
         eprintln!("\n{}/{} component(s) failed", failed, total);
+        eprintln!(
+            "hint: fix the issue and run `sindri apply --resume` to retry failed component(s)."
+        );
         return EXIT_RESOLUTION_CONFLICT;
     }
 
@@ -357,6 +547,9 @@ fn render_apply_err(e: &ApplyError) -> String {
 ///
 /// Components that have **no** `oci_digest` (resolved from a non-OCI
 /// backend like brew/cargo) are skipped: there is no OCI artifact to sign.
+///
+/// This runs on every apply including `--resume` — it is idempotent per
+/// the PR #228 contract.
 async fn preflight_component_signatures(
     lockfile: &sindri_core::lockfile::Lockfile,
 ) -> Result<(), String> {

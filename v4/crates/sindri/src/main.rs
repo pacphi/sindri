@@ -243,6 +243,16 @@ enum Commands {
         /// Skip SBOM auto-emit on success (ADR-007).
         #[arg(long)]
         no_bom: bool,
+        /// Resume from the last failing component instead of restarting the
+        /// whole apply (Wave 5H, D19).  Components already in `completed`
+        /// state are skipped; `failed` / `pending` components are retried.
+        #[arg(long)]
+        resume: bool,
+        /// Wipe the apply-state file for the current BOM so the next apply
+        /// starts from scratch (Wave 5H, D19).  Can be combined with
+        /// `--resume` to clear-then-resume (effectively a full re-apply).
+        #[arg(long)]
+        clear_state: bool,
     },
     /// Open `$EDITOR` on a sindri config with save-time validation (ADR-011)
     Edit {
@@ -760,11 +770,15 @@ fn main() {
             dry_run,
             target,
             no_bom,
+            resume,
+            clear_state,
         }) => commands::apply::run(commands::apply::ApplyArgs {
             yes,
             dry_run,
             target,
             no_bom,
+            resume,
+            clear_state,
         }),
         Some(Commands::Edit {
             target,
