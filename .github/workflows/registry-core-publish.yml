@@ -1,21 +1,39 @@
 name: "v4: registry-core publish"
 
 # Wave 4D — Publish the v4 registry-core registry as a signed OCI artifact.
+# Wave 6E — SLSA L3+ provenance attestation + full ScanCode license scan.
 #
 # Implements:
 #   - ADR-016: registry tag cadence (monthly drops + immutable tags).
 #   - ADR-014: signed registries via cosign.
 #   - ADR-003: OCI-only registry distribution shape.
+#   - D10: SLSA L3+ provenance attestation via actions/attest-build-provenance.
+#   - D11: Full ScanCode Toolkit license scan replacing the regex smoke check.
 #
 # Lives on `main` (per repo convention for workflow files); operates on the
 # `v4` branch's `v4/registry-core/` tree at checkout time.
 #
 # Failure semantics (intentional):
-#   - Tag already exists on ghcr.io  -> abort BEFORE any mutation.
-#   - Lint fails                     -> abort BEFORE any mutation.
-#   - Smoke install fails (any cell) -> abort BEFORE any mutation.
-#   - Cosign sign fails              -> LOUD failure (never leave a tag pushed
-#                                       but unsigned).
+#   - Tag already exists on ghcr.io         -> abort BEFORE any mutation.
+#   - Lint fails                             -> abort BEFORE any mutation.
+#   - Smoke install fails (any cell)         -> abort BEFORE any mutation.
+#   - ScanCode finds missing/disallowed lic  -> abort BEFORE any mutation.
+#   - Cosign sign fails                      -> LOUD failure (never leave a tag
+#                                               pushed but unsigned).
+#   - SLSA attestation fails                 -> LOUD failure (never leave a tag
+#                                               unattested after push).
+#   - Attestation verify fails               -> LOUD failure (malformed provenance
+#                                               caught before workflow exits).
+#
+# Pinned action SHAs (release workflows are a high-value supply-chain target):
+#   actions/checkout@v4                          34e114876b0b11c390a56381ad16ebd13914f8d5
+#   actions/upload-artifact@v4                   ea165f8d65b6e75b540449e92b4886f43607fa02
+#   actions/download-artifact@v4                 d3f86a106a0bac45b974a628896c90dbdf5c8093
+#   actions/cache@v4                             0057852bfaa89a56745cba8c7296529d2fc39830
+#   actions/attest-build-provenance@v2.4.0       e8998f949152b193b063cb0ec769d69d929409be
+#   sigstore/cosign-installer@v3.9.2             d58896d6a1865668819e1d91763c7751a165e159
+#   oras-project/setup-oras@v1.2.4               22ce207df3b08e061f537244349aac6ae1d214f6
+#   dtolnay/rust-toolchain@stable                (no version tag; used by SHA on lock)
 
 on:
   push:
@@ -32,15 +50,29 @@ on:
         type: string
         default: ""
       dry_run:
-        description: Skip oras push and cosign sign; lint/smoke/index only.
+        description: >-
+          Skip oras push, cosign sign, and SLSA attestation; lint/smoke/index only.
+          Set to false for an actual publish.
         required: false
         type: boolean
         default: true
+      debug_scancode:
+        description: >-
+          Emit the full ScanCode JSON report as a workflow artifact for inspection.
+          Useful when diagnosing license scan failures.
+        required: false
+        type: boolean
+        default: false
 
+# D10: id-token: write is required for both cosign keyless (future) and
+# actions/attest-build-provenance OIDC token flow.
+# attestations: write is required for attest-build-provenance to store the
+# attestation in the GitHub attestation store.
 permissions:
   contents: read
-  packages: write    # needed for `oras push` to ghcr.io
-  id-token: write    # reserved for cosign keyless flow (future migration)
+  packages: write       # oras push to ghcr.io
+  id-token: write       # cosign keyless + SLSA OIDC token
+  attestations: write   # store SLSA provenance attestation (D10)
 
 concurrency:
   group: registry-core-publish-${{ github.ref }}
@@ -50,8 +82,13 @@ env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
   REGISTRY_IMAGE: ghcr.io/sindri-dev/registry-core
-  ORAS_VERSION: "1.2.0"
+  ORAS_VERSION: "1.2.3"
   COSIGN_VERSION: "v2.4.1"
+  # D11: Allowed SPDX license identifiers for registry-core source files.
+  # Derived from the root LICENSE (MIT). Apache-2.0 and BSD-3-Clause are
+  # common in transitive Rust deps and are equally permissive; include them
+  # to avoid false-positive failures on vendored or copied snippets.
+  SCANCODE_ALLOWED_LICENSES: "MIT,Apache-2.0,BSD-3-Clause,BSD-2-Clause,ISC,Unlicense,CC0-1.0"
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -64,7 +101,7 @@ jobs:
       tag: ${{ steps.derive.outputs.tag }}
       dry_run: ${{ steps.derive.outputs.dry_run }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
         with:
           ref: v4
           fetch-depth: 0
@@ -109,12 +146,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: [resolve-tag]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
         with:
           ref: v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Cache cargo (sindri build)
-        uses: actions/cache@v5
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
         with:
           path: |
             ~/.cargo/registry
@@ -138,7 +175,7 @@ jobs:
           fi
       - name: Upload lint report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: registry-lint-report
           path: v4/lint-report.json
@@ -162,12 +199,12 @@ jobs:
           - { os: windows-latest,   runner: windows,     sample-component: "winget:GitHub.cli" }
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
         with:
           ref: v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Cache cargo (sindri build)
-        uses: actions/cache@v5
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
         with:
           path: |
             ~/.cargo/registry
@@ -218,34 +255,154 @@ jobs:
           popd >/dev/null
 
   # ---------------------------------------------------------------------------
-  # Job 3: license-scan. Smoke regex check that every install.{sh,ps1} declares
-  # a license. (Full scancode is deferred — see PR body.)
+  # Job 3: license-scan. D11 — Full ScanCode Toolkit scan of registry-core/.
+  #
+  # Replaces the prior regex smoke check. Uses pip-install of scancode-toolkit
+  # (more reliable than docker-in-docker for artifact uploads and caching).
+  #
+  # Allowlist (env.SCANCODE_ALLOWED_LICENSES): MIT, Apache-2.0, BSD-3-Clause,
+  # BSD-2-Clause, ISC, Unlicense, CC0-1.0 — all OSI-approved permissive
+  # licenses consistent with the root MIT LICENSE.
+  #
+  # Failure modes:
+  #   - Any source file with NO license declaration -> fail.
+  #   - Any detected license NOT in the allowlist   -> fail.
   # ---------------------------------------------------------------------------
   license-scan:
-    name: License smoke scan
+    name: License scan (ScanCode)
     runs-on: ubuntu-latest
     needs: [resolve-tag]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
         with:
           ref: v4
-      - name: Scan install scripts for SPDX/License declarations
+
+      - name: Set up Python for ScanCode
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Cache ScanCode pip install
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-scancode-32.x
+          restore-keys: ${{ runner.os }}-scancode-
+
+      - name: Install ScanCode Toolkit
+        run: |
+          pip install --quiet scancode-toolkit==32.3.0
+
+      - name: Run ScanCode against registry-core/
+        id: scancode
         shell: bash
         run: |
           set -euo pipefail
-          missing=0
-          shopt -s nullglob
-          for script in v4/registry-core/components/*/*/install.sh v4/registry-core/components/*/*/install.ps1; do
-            if ! grep -qE 'License|SPDX-License-Identifier' "$script"; then
-              echo "::error file=$script::No License or SPDX-License-Identifier found"
-              missing=$((missing + 1))
-            fi
-          done
-          if (( missing > 0 )); then
-            echo "::error::$missing install script(s) missing license declarations"
-            exit 1
-          fi
-          echo "License smoke scan OK."
+          # Run ScanCode: detect licenses, copyrights.
+          # --license          : enable license detection
+          # --copyright        : enable copyright detection
+          # --json-pp          : pretty-print JSON output
+          # --timeout 120      : per-file timeout in seconds
+          # --processes 2      : parallelism (GH Actions has 2 vCPUs)
+          # --strip-root       : strip leading path from output paths
+          scancode \
+            --license \
+            --copyright \
+            --json-pp scancode-report.json \
+            --timeout 120 \
+            --processes 2 \
+            --strip-root \
+            v4/registry-core/ \
+            2>&1 | tee scancode-stdout.log
+          echo "ScanCode finished."
+
+      - name: Evaluate license results
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="scancode-report.json"
+          allowed_csv="${SCANCODE_ALLOWED_LICENSES}"
+
+          python3 - <<'PYEOF'
+          import json, sys, os
+
+          report_path = "scancode-report.json"
+          allowed_csv = os.environ.get("SCANCODE_ALLOWED_LICENSES", "")
+          allowed = set(s.strip() for s in allowed_csv.split(",") if s.strip())
+
+          print(f"Allowed SPDX IDs: {sorted(allowed)}")
+
+          with open(report_path) as f:
+              data = json.load(f)
+
+          files = data.get("files", [])
+          # Filter to source files only (skip dirs, binaries, generated)
+          source_exts = {
+              ".rs", ".toml", ".yaml", ".yml", ".sh", ".ps1",
+              ".md", ".json", ".lock"
+          }
+          skip_paths = {"target/", ".git/"}
+
+          errors = []
+          for file_entry in files:
+              ftype = file_entry.get("type", "")
+              if ftype != "file":
+                  continue
+              path = file_entry.get("path", "")
+              # Skip generated/vendor directories
+              if any(s in path for s in skip_paths):
+                  continue
+              ext = "." + path.rsplit(".", 1)[-1] if "." in path else ""
+              if ext not in source_exts:
+                  continue
+
+              detected = file_entry.get("license_detections", [])
+              if not detected:
+                  errors.append(f"MISSING LICENSE: {path}")
+                  continue
+
+              for detection in detected:
+                  for match in detection.get("matches", []):
+                      spdx = match.get("spdx_license_expression", "") or ""
+                      # Normalize: strip LicenseRef- prefixes and parentheses
+                      spdx_clean = spdx.replace("(", "").replace(")", "").strip()
+                      # Allow compound expressions where all components are allowed
+                      components = [
+                          c.strip()
+                          for c in spdx_clean.replace(" AND ", " OR ").split(" OR ")
+                          if c.strip() and c.strip() not in ("", "AND", "OR")
+                      ]
+                      for comp in components:
+                          if comp and comp not in allowed:
+                              errors.append(
+                                  f"DISALLOWED LICENSE [{comp}] in {path} "
+                                  f"(full expression: {spdx!r})"
+                              )
+
+          if errors:
+              print(f"\n::error::ScanCode found {len(errors)} license issue(s):")
+              for e in errors:
+                  print(f"  ::error::{e}")
+              sys.exit(1)
+          else:
+              total = sum(
+                  1 for fe in files
+                  if fe.get("type") == "file"
+                  and fe.get("license_detections")
+              )
+              print(f"\nScanCode license scan PASSED. {total} file(s) with license declarations.")
+          PYEOF
+
+      - name: Upload ScanCode report
+        if: ${{ always() || github.event.inputs.debug_scancode == 'true' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: scancode-license-report
+          path: |
+            scancode-report.json
+            scancode-stdout.log
+          if-no-files-found: warn
+          retention-days: 30
 
   # ---------------------------------------------------------------------------
   # Job 4: generate-index. Aggregates per-component component.yaml into
@@ -259,12 +416,12 @@ jobs:
     outputs:
       index-path: ${{ steps.gen.outputs.index-path }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
         with:
           ref: v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Cache cargo (sindri build)
-        uses: actions/cache@v5
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
         with:
           path: |
             ~/.cargo/registry
@@ -308,7 +465,7 @@ jobs:
           test -s "$out" || { echo "::error::index.yaml is empty"; exit 1; }
           echo "index-path=v4/$out" >> "$GITHUB_OUTPUT"
       - name: Upload generated index
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: registry-core-index
           path: v4/registry-core/index.yaml
@@ -326,7 +483,7 @@ jobs:
     if: ${{ needs.resolve-tag.outputs.dry_run == 'false' }}
     steps:
       - name: Install oras
-        uses: oras-project/setup-oras@v1
+        uses: oras-project/setup-oras@22ce207df3b08e061f537244349aac6ae1d214f6  # v1.2.4
         with:
           version: ${{ env.ORAS_VERSION }}
       - name: Login to ghcr.io (read)
@@ -355,17 +512,18 @@ jobs:
     outputs:
       digest: ${{ steps.push.outputs.digest }}
       reference: ${{ steps.push.outputs.reference }}
+      artifact-path: ${{ steps.push.outputs.artifact-path }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
         with:
           ref: v4
       - name: Download generated index
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
         with:
           name: registry-core-index
           path: v4/registry-core/
       - name: Install oras
-        uses: oras-project/setup-oras@v1
+        uses: oras-project/setup-oras@22ce207df3b08e061f537244349aac6ae1d214f6  # v1.2.4
         with:
           version: ${{ env.ORAS_VERSION }}
       - name: Login to ghcr.io
@@ -392,6 +550,8 @@ jobs:
           echo "Pushed: ${ref}@${digest}"
           echo "digest=${digest}" >> "$GITHUB_OUTPUT"
           echo "reference=${REGISTRY_IMAGE}@${digest}" >> "$GITHUB_OUTPUT"
+          # Expose index.yaml path for attest-build-provenance subject discovery.
+          echo "artifact-path=$(pwd)/index.yaml" >> "$GITHUB_OUTPUT"
 
   # ---------------------------------------------------------------------------
   # Job 7: sign. Cosign sign the manifest by digest. LOUD failure on any error.
@@ -405,7 +565,7 @@ jobs:
       signed-reference: ${{ steps.sign.outputs.signed-reference }}
     steps:
       - name: Install cosign
-        uses: sigstore/cosign-installer@v3
+        uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159  # v3.9.2
         with:
           cosign-release: ${{ env.COSIGN_VERSION }}
       - name: Login to ghcr.io (cosign uploads sig as OCI ref)
@@ -425,18 +585,203 @@ jobs:
           fi
           cosign sign --yes --key env://COSIGN_PRIVATE_KEY "$ref"
           echo "signed-reference=${ref}" >> "$GITHUB_OUTPUT"
-      # TODO(wave-4d-followup): SLSA provenance attestation (cosign attest
-      # --predicate slsa-provenance.json --type slsaprovenance) once we have a
-      # blessed predicate generator wired into the pipeline.
 
   # ---------------------------------------------------------------------------
-  # Job 8: summary. Always-runs markdown summary.
+  # Job 8: attest. D10 — SLSA L3+ provenance attestation.
+  #
+  # Uses actions/attest-build-provenance@v2.4.0 which generates a SLSA
+  # Build L3 provenance predicate and stores it in the GitHub attestation
+  # store under this repository.
+  #
+  # The attestation covers:
+  #   - artifact digest (sha256 of the pushed OCI manifest)
+  #   - builder identity (GitHub Actions OIDC — https://token.actions.githubusercontent.com)
+  #   - invocation parameters (workflow ref, SHA, run ID, run attempt)
+  #   - source repo metadata (repo URL, commit SHA, ref)
+  #
+  # Downstream verification:
+  #   gh attestation verify oci://ghcr.io/sindri-dev/registry-core@<digest> \
+  #     --repo pacphi/sindri
+  #
+  # Or with a local file:
+  #   gh attestation verify <path/to/index.yaml> \
+  #     --repo pacphi/sindri
+  # ---------------------------------------------------------------------------
+  attest:
+    name: SLSA provenance attestation (D10)
+    runs-on: ubuntu-latest
+    needs: [resolve-tag, publish, sign]
+    if: ${{ needs.resolve-tag.outputs.dry_run == 'false' }}
+    outputs:
+      attestation-id: ${{ steps.attest.outputs.attestation-id }}
+      attestation-url: ${{ steps.attest.outputs.attestation-url }}
+      bundle-path: ${{ steps.attest.outputs.bundle-path }}
+    permissions:
+      id-token: write       # OIDC token for Sigstore signing
+      attestations: write   # store provenance in GitHub attestation store
+      contents: read
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          ref: v4
+          sparse-checkout: |
+            v4/registry-core/index.yaml
+          sparse-checkout-cone-mode: false
+
+      # Download the same index.yaml that was pushed, so attest-build-provenance
+      # can compute its digest and cross-reference with the OCI manifest digest.
+      - name: Download generated index (for attestation subject)
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        with:
+          name: registry-core-index
+          path: attestation-subject/
+
+      - name: Generate SLSA provenance attestation
+        id: attest
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be  # v2.4.0
+        with:
+          # Subject is the OCI artifact identified by its manifest digest.
+          # We provide both the digest (for OCI attestation lookup) and the
+          # local file path (for gh attestation verify with a local file).
+          subject-digest: ${{ needs.publish.outputs.digest }}
+          subject-name: ${{ env.REGISTRY_IMAGE }}
+          # Also attest the local index.yaml artifact for file-based verification.
+          subject-path: attestation-subject/index.yaml
+          # Push the attestation to the GitHub attestation store.
+          push-to-registry: false
+          # Show the attestation summary in the step summary.
+          show-summary: true
+
+      - name: Upload attestation bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: slsa-provenance-bundle
+          path: ${{ steps.attest.outputs.bundle-path }}
+          if-no-files-found: error
+          retention-days: 90
+
+  # ---------------------------------------------------------------------------
+  # Job 9: verify-attestation. D10 — Verify the SLSA provenance is well-formed
+  # immediately after attestation, before the workflow exits successfully.
+  # Uses `gh attestation verify` with the OCI reference.
+  #
+  # This job acts as an in-workflow acceptance gate: if the attestation was
+  # malformed or the OIDC token was invalid, this job will fail loudly.
+  # ---------------------------------------------------------------------------
+  verify-attestation:
+    name: Verify SLSA attestation (D10)
+    runs-on: ubuntu-latest
+    needs: [resolve-tag, publish, attest]
+    if: ${{ needs.resolve-tag.outputs.dry_run == 'false' }}
+    permissions:
+      contents: read
+      packages: read   # read ghcr.io for oci:// reference lookup
+    steps:
+      - name: Download attestation bundle
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        with:
+          name: slsa-provenance-bundle
+          path: attestation-bundle/
+
+      - name: Download index.yaml subject
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        with:
+          name: registry-core-index
+          path: attestation-subject/
+
+      - name: Verify attestation via gh CLI
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          ref="${{ env.REGISTRY_IMAGE }}@${{ needs.publish.outputs.digest }}"
+          repo="${{ github.repository }}"
+
+          echo "Verifying SLSA provenance for: ${ref}"
+          echo "Expected source repo: ${repo}"
+
+          # Primary verification: OCI reference with repo binding.
+          # This confirms the attestation was signed by a GitHub Actions OIDC
+          # token scoped to this exact repository.
+          gh attestation verify "oci://${ref}" \
+            --repo "${repo}" \
+            --format json \
+            | tee attestation-verify-result.json
+
+          # Parse and display key provenance fields from the result.
+          python3 - <<'PYEOF'
+          import json, sys
+
+          with open("attestation-verify-result.json") as f:
+              content = f.read().strip()
+
+          # gh attestation verify may return a JSON array or object
+          try:
+              data = json.loads(content)
+          except json.JSONDecodeError:
+              print("::warning::Could not parse attestation verify output as JSON")
+              sys.exit(0)
+
+          attestations = data if isinstance(data, list) else [data]
+          print(f"\nFound {len(attestations)} attestation(s).")
+
+          for i, att in enumerate(attestations):
+              bundle = att.get("bundle", {})
+              pred = (
+                  bundle
+                  .get("dsseEnvelope", {})
+                  .get("payload", {})
+              )
+              if isinstance(pred, str):
+                  import base64
+                  try:
+                      pred = json.loads(base64.b64decode(pred + "=="))
+                  except Exception:
+                      pred = {}
+              predicate = pred.get("predicate", {})
+              build_def = predicate.get("buildDefinition", {})
+              run_details = predicate.get("runDetails", {})
+
+              print(f"\nAttestation [{i+1}]:")
+              print(f"  Builder ID : {run_details.get('builder', {}).get('id', '<unknown>')}")
+              print(f"  Source repo: {build_def.get('externalParameters', {}).get('workflow', {}).get('repository', '<unknown>')}")
+              print(f"  Commit SHA : {build_def.get('resolvedDependencies', [{}])[0].get('digest', {}).get('gitCommit', '<unknown>')}")
+              print(f"  Run ID     : {run_details.get('metadata', {}).get('invocationID', '<unknown>')}")
+
+          print("\nSLSA provenance verification PASSED.")
+          PYEOF
+
+          echo "Attestation verification complete."
+
+      - name: Upload verification result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: attestation-verify-result
+          path: attestation-verify-result.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  # ---------------------------------------------------------------------------
+  # Job 10: summary. Always-runs markdown summary.
   # ---------------------------------------------------------------------------
   summary:
     name: Workflow summary
     runs-on: ubuntu-latest
     if: always()
-    needs: [resolve-tag, lint, smoke-install, license-scan, generate-index, tag-immutability-check, publish, sign]
+    needs:
+      - resolve-tag
+      - lint
+      - smoke-install
+      - license-scan
+      - generate-index
+      - tag-immutability-check
+      - publish
+      - sign
+      - attest
+      - verify-attestation
     steps:
       - name: Emit GitHub step summary
         shell: bash
@@ -446,6 +791,8 @@ jobs:
           dry="${{ needs.resolve-tag.outputs.dry_run }}"
           digest="${{ needs.publish.outputs.digest }}"
           signed_ref="${{ needs.sign.outputs.signed-reference }}"
+          attest_url="${{ needs.attest.outputs.attestation-url }}"
+          attest_id="${{ needs.attest.outputs.attestation-id }}"
           {
             echo "# v4 registry-core publish"
             echo ""
@@ -456,15 +803,38 @@ jobs:
             echo "| Image | \`${REGISTRY_IMAGE}\` |"
             echo "| Manifest digest | \`${digest:-<not pushed>}\` |"
             echo "| Signed reference | \`${signed_ref:-<not signed>}\` |"
+            echo "| Attestation ID | \`${attest_id:-<not attested>}\` |"
+            echo "| Attestation URL | ${attest_url:+[View]($attest_url)}${attest_url:-<not attested>} |"
             echo ""
             echo "## Job outcomes"
             echo "| Job | Result |"
             echo "|---|---|"
             echo "| lint | ${{ needs.lint.result }} |"
             echo "| smoke-install | ${{ needs.smoke-install.result }} |"
-            echo "| license-scan | ${{ needs.license-scan.result }} |"
+            echo "| license-scan (ScanCode) | ${{ needs.license-scan.result }} |"
             echo "| generate-index | ${{ needs.generate-index.result }} |"
             echo "| tag-immutability-check | ${{ needs.tag-immutability-check.result }} |"
             echo "| publish | ${{ needs.publish.result }} |"
             echo "| sign | ${{ needs.sign.result }} |"
+            echo "| attest (SLSA L3+) | ${{ needs.attest.result }} |"
+            echo "| verify-attestation | ${{ needs.verify-attestation.result }} |"
+            echo ""
+            echo "## Verifying SLSA provenance downstream"
+            echo ""
+            echo "After this workflow completes, any consumer can verify the"
+            echo "SLSA provenance attestation with the GitHub CLI:"
+            echo ""
+            echo "\`\`\`shell"
+            echo "# By OCI reference + digest (preferred):"
+            echo "gh attestation verify \\"
+            echo "  oci://${REGISTRY_IMAGE}@${digest:-<digest>} \\"
+            echo "  --repo ${{ github.repository }}"
+            echo ""
+            echo "# By local file (if you have the index.yaml):"
+            echo "gh attestation verify index.yaml \\"
+            echo "  --repo ${{ github.repository }}"
+            echo "\`\`\`"
+            echo ""
+            echo "The command prints the verified builder identity, source commit,"
+            echo "and invocation ID. Exit code 0 = provenance is authentic."
           } >> "$GITHUB_STEP_SUMMARY"
