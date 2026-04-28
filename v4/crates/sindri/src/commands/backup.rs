@@ -1,6 +1,6 @@
-//! `sindri backup` / `sindri restore` (Sprint 12, Wave 4C).
+//! `sindri backup` / `sindri restore` (Sprint 12, Wave 4C + Wave 6F D9).
 //!
-//! Backup produces a `tar.gz` of the user's sindri state:
+//! Backup produces a compressed tarball of the user's sindri state:
 //!   * Project files: `sindri.yaml`, `sindri.policy.yaml`, `sindri.lock`,
 //!     and any `sindri.<target>.lock`.
 //!   * `~/.sindri/ledger.jsonl`
@@ -11,14 +11,82 @@
 //!
 //! Restore extracts an archive with default-deny overwrite semantics and
 //! refuses entries with absolute paths or `..` traversal components.
+//!
+//! # D9 — zstd compression (Wave 6F)
+//!
+//! `sindri backup` now accepts `--compression {gzip,zstd}` (default `gzip`
+//! for backwards-compatibility). The produced archive is named
+//! `sindri-backup-<stamp>.tar.gz` or `sindri-backup-<stamp>.tar.zst`
+//! depending on the chosen algorithm.
+//!
+//! Restore auto-detects the compression algorithm by **magic bytes** — not by
+//! filename extension or any CLI flag — so old and new archives are handled
+//! transparently regardless of how they were named:
+//!
+//! | Magic bytes (hex) | Algorithm |
+//! |---|---|
+//! | `1F 8B` | gzip  |
+//! | `28 B5 2F FD` | zstd  |
+//!
+//! This ensures restore remains forwards- and backwards-compatible: an archive
+//! written with `--compression zstd` is restored without any extra flag.
 
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use serde::Serialize;
 use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{BufReader, Read, Write};
 use std::path::{Component, Path, PathBuf};
 use tar::{Archive, Builder, Header};
+
+// ---- Compression algorithm -----------------------------------------------
+
+/// Compression algorithm selector for `sindri backup --compression`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Compression2 {
+    /// gzip (default; produces `.tar.gz`).
+    #[default]
+    Gzip,
+    /// zstd (produces `.tar.zst`).
+    Zstd,
+}
+
+impl Compression2 {
+    /// Parse the CLI `--compression` value.
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "gzip" | "gz" => Some(Compression2::Gzip),
+            "zstd" | "zst" => Some(Compression2::Zstd),
+            _ => None,
+        }
+    }
+
+    /// Default filename suffix.
+    pub fn extension(self) -> &'static str {
+        match self {
+            Compression2::Gzip => "tar.gz",
+            Compression2::Zstd => "tar.zst",
+        }
+    }
+}
+
+// ---- Magic-byte detection ------------------------------------------------
+
+/// Detect the compression algorithm of `archive` by reading its first four
+/// bytes. Returns `None` when the file is too short or uses an unknown format.
+pub fn detect_compression(archive: &Path) -> std::io::Result<Option<Compression2>> {
+    let mut f = File::open(archive)?;
+    let mut magic = [0u8; 4];
+    let n = f.read(&mut magic)?;
+    if n >= 2 && magic[0] == 0x1F && magic[1] == 0x8B {
+        return Ok(Some(Compression2::Gzip));
+    }
+    // zstd magic: 0xFD2FB528 (little-endian → bytes 28 B5 2F FD)
+    if n >= 4 && magic[0] == 0x28 && magic[1] == 0xB5 && magic[2] == 0x2F && magic[3] == 0xFD {
+        return Ok(Some(Compression2::Zstd));
+    }
+    Ok(None)
+}
 
 /// CLI args for `sindri backup`.
 pub struct BackupArgs {
@@ -26,6 +94,8 @@ pub struct BackupArgs {
     pub output: Option<PathBuf>,
     /// Include `~/.sindri/cache/registries/` (large; off by default).
     pub include_cache: bool,
+    /// Compression algorithm (`gzip` | `zstd`). Defaults to `gzip`.
+    pub compression: Compression2,
 }
 
 /// CLI args for `sindri restore`.
@@ -60,9 +130,9 @@ pub fn run_backup(args: BackupArgs) -> i32 {
             return EXIT_SCHEMA_OR_RESOLVE_ERROR;
         }
     };
-    let dest = resolve_output_path(args.output.as_deref(), &cwd);
+    let dest = resolve_output_path(args.output.as_deref(), &cwd, args.compression);
 
-    match write_backup(&dest, &cwd, &home, args.include_cache) {
+    match write_backup(&dest, &cwd, &home, args.include_cache, args.compression) {
         Ok(report) => {
             println!(
                 "Backup written to {} ({} entries)",
@@ -110,9 +180,9 @@ pub fn run_restore(args: RestoreArgs) -> i32 {
     }
 }
 
-fn resolve_output_path(output: Option<&Path>, cwd: &Path) -> PathBuf {
+fn resolve_output_path(output: Option<&Path>, cwd: &Path, compression: Compression2) -> PathBuf {
     let stamp = chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
-    let default_name = format!("sindri-backup-{}.tar.gz", stamp);
+    let default_name = format!("sindri-backup-{}.{}", stamp, compression.extension());
     match output {
         Some(p) if p.is_dir() => p.join(default_name),
         Some(p) => p.to_path_buf(),
@@ -135,6 +205,7 @@ pub fn write_backup(
     project_dir: &Path,
     home_dir: &Path,
     include_cache: bool,
+    compression: Compression2,
 ) -> std::io::Result<WriteReport> {
     if let Some(parent) = dest.parent() {
         if !parent.as_os_str().is_empty() {
@@ -142,8 +213,45 @@ pub fn write_backup(
         }
     }
     let f = File::create(dest)?;
-    let gz = GzEncoder::new(f, Compression::default());
-    let mut tar = Builder::new(gz);
+
+    // Dispatch to the per-algorithm inner writer.  We build the entire tar
+    // stream in memory (entries list) and hand it off so each arm can
+    // finish its compressor without needing a common trait-object type for
+    // the tar::Builder generic.
+    match compression {
+        Compression2::Gzip => {
+            let gz = GzEncoder::new(f, Compression::default());
+            let mut tar = Builder::new(gz);
+            let entries = collect_backup_entries(&mut tar, project_dir, home_dir, include_cache)?;
+            let gz = tar.into_inner()?;
+            gz.finish()?;
+            Ok(WriteReport {
+                archive_path: dest.to_path_buf(),
+                entries,
+            })
+        }
+        Compression2::Zstd => {
+            let zw = zstd::stream::write::Encoder::new(f, 0)?;
+            let mut tar = Builder::new(zw);
+            let entries = collect_backup_entries(&mut tar, project_dir, home_dir, include_cache)?;
+            let zw = tar.into_inner()?;
+            zw.finish()?;
+            Ok(WriteReport {
+                archive_path: dest.to_path_buf(),
+                entries,
+            })
+        }
+    }
+}
+
+/// Shared logic: append all the sindri state files into `tar`.
+/// Works with any `Write` wrapped in a `tar::Builder`.
+fn collect_backup_entries<W: Write>(
+    tar: &mut Builder<W>,
+    project_dir: &Path,
+    home_dir: &Path,
+    include_cache: bool,
+) -> std::io::Result<usize> {
     let mut entries = 0usize;
 
     // 1. Project files.
@@ -177,26 +285,20 @@ pub fn write_backup(
     for sub in &["trust", "plugins", "history"] {
         let dir = home_dir.join(".sindri").join(sub);
         if dir.is_dir() {
-            entries += append_dir_recursive(&mut tar, &dir, &format!("home/.sindri/{}", sub))?;
+            entries += append_dir_recursive(tar, &dir, &format!("home/.sindri/{}", sub))?;
         }
     }
     if include_cache {
         let cache = home_dir.join(".sindri").join("cache").join("registries");
         if cache.is_dir() {
-            entries += append_dir_recursive(&mut tar, &cache, "home/.sindri/cache/registries")?;
+            entries += append_dir_recursive(tar, &cache, "home/.sindri/cache/registries")?;
         }
     }
-
-    let gz = tar.into_inner()?;
-    gz.finish()?;
-    Ok(WriteReport {
-        archive_path: dest.to_path_buf(),
-        entries,
-    })
+    Ok(entries)
 }
 
-fn append_dir_recursive(
-    tar: &mut Builder<GzEncoder<File>>,
+fn append_dir_recursive<W: Write>(
+    tar: &mut Builder<W>,
     src: &Path,
     archive_prefix: &str,
 ) -> std::io::Result<usize> {
@@ -260,6 +362,10 @@ fn walk(root: &Path) -> Vec<std::io::Result<PathBuf>> {
 /// Restore `archive` into `project_dir` (for `project/` entries) and
 /// `home_dir` (for `home/.sindri/` entries). Returns the number of
 /// entries written (or that would be written, in `dry_run`).
+///
+/// The compression algorithm is auto-detected by magic bytes so callers
+/// do not need to know whether the archive was produced with `--compression
+/// gzip` or `--compression zstd`.
 pub fn restore_archive(
     archive: &Path,
     project_dir: &Path,
@@ -267,12 +373,44 @@ pub fn restore_archive(
     dry_run: bool,
     force: bool,
 ) -> std::io::Result<usize> {
-    let f = File::open(archive)?;
-    let gz = GzDecoder::new(f);
-    let mut ar = Archive::new(gz);
-    ar.set_preserve_permissions(false);
-    ar.set_unpack_xattrs(false);
+    let algo = detect_compression(archive)?.ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!(
+                "unrecognised archive format: {} (expected gzip or zstd magic bytes)",
+                archive.display()
+            ),
+        )
+    })?;
 
+    match algo {
+        Compression2::Gzip => {
+            let f = File::open(archive)?;
+            let gz = GzDecoder::new(BufReader::new(f));
+            let mut ar = Archive::new(gz);
+            ar.set_preserve_permissions(false);
+            ar.set_unpack_xattrs(false);
+            restore_entries(&mut ar, project_dir, home_dir, dry_run, force)
+        }
+        Compression2::Zstd => {
+            let f = File::open(archive)?;
+            let zr = zstd::stream::read::Decoder::new(BufReader::new(f))?;
+            let mut ar = Archive::new(zr);
+            ar.set_preserve_permissions(false);
+            ar.set_unpack_xattrs(false);
+            restore_entries(&mut ar, project_dir, home_dir, dry_run, force)
+        }
+    }
+}
+
+/// Extract entries from an already-opened [`Archive`].
+fn restore_entries<R: Read>(
+    ar: &mut Archive<R>,
+    project_dir: &Path,
+    home_dir: &Path,
+    dry_run: bool,
+    force: bool,
+) -> std::io::Result<usize> {
     let mut count = 0usize;
     for entry in ar.entries()? {
         let mut e = entry?;
@@ -373,7 +511,14 @@ mod tests {
 
         let archive = TempDir::new().unwrap();
         let dest = archive.path().join("backup.tar.gz");
-        let report = write_backup(&dest, project.path(), home.path(), false).unwrap();
+        let report = write_backup(
+            &dest,
+            project.path(),
+            home.path(),
+            false,
+            Compression2::Gzip,
+        )
+        .unwrap();
         assert!(report.entries >= 6);
         assert!(dest.is_file());
 
@@ -414,7 +559,14 @@ mod tests {
         populate_state(project.path(), home.path());
         let archive = TempDir::new().unwrap();
         let dest = archive.path().join("backup.tar.gz");
-        write_backup(&dest, project.path(), home.path(), false).unwrap();
+        write_backup(
+            &dest,
+            project.path(),
+            home.path(),
+            false,
+            Compression2::Gzip,
+        )
+        .unwrap();
 
         let project2 = TempDir::new().unwrap();
         let home2 = TempDir::new().unwrap();
@@ -432,7 +584,14 @@ mod tests {
         populate_state(project.path(), home.path());
         let archive = TempDir::new().unwrap();
         let dest = archive.path().join("backup.tar.gz");
-        write_backup(&dest, project.path(), home.path(), false).unwrap();
+        write_backup(
+            &dest,
+            project.path(),
+            home.path(),
+            false,
+            Compression2::Gzip,
+        )
+        .unwrap();
 
         // Restore destination already has a sindri.yaml.
         let project2 = TempDir::new().unwrap();
@@ -492,5 +651,95 @@ mod tests {
             restore_archive(&archive, project2.path(), home2.path(), false, true).unwrap_err();
         assert_eq!(err.kind(), std::io::ErrorKind::InvalidData);
         assert!(err.to_string().contains("parent-dir"));
+    }
+
+    // ---- D9: zstd round-trip tests ------------------------------------------
+
+    #[test]
+    fn zstd_round_trip_preserves_files() {
+        let project = TempDir::new().unwrap();
+        let home = TempDir::new().unwrap();
+        populate_state(project.path(), home.path());
+
+        let archive_dir = TempDir::new().unwrap();
+        let dest = archive_dir.path().join("backup.tar.zst");
+        let report = write_backup(
+            &dest,
+            project.path(),
+            home.path(),
+            false,
+            Compression2::Zstd,
+        )
+        .unwrap();
+        assert!(report.entries >= 6);
+        assert!(dest.is_file());
+
+        // Verify magic bytes are zstd.
+        assert_eq!(detect_compression(&dest).unwrap(), Some(Compression2::Zstd));
+
+        let project2 = TempDir::new().unwrap();
+        let home2 = TempDir::new().unwrap();
+        let n = restore_archive(&dest, project2.path(), home2.path(), false, false).unwrap();
+        assert_eq!(n, report.entries);
+
+        assert_eq!(
+            std::fs::read_to_string(project2.path().join("sindri.yaml")).unwrap(),
+            "name: test\ncomponents: []\n"
+        );
+        assert_eq!(
+            std::fs::read_to_string(home2.path().join(".sindri/ledger.jsonl")).unwrap(),
+            "{\"event\":\"install\"}\n"
+        );
+    }
+
+    #[test]
+    fn magic_bytes_auto_detect_gzip() {
+        let project = TempDir::new().unwrap();
+        let home = TempDir::new().unwrap();
+        populate_state(project.path(), home.path());
+
+        let archive_dir = TempDir::new().unwrap();
+        // Intentionally misname the file to verify detection is by bytes, not name.
+        let dest = archive_dir.path().join("backup.wrong_ext");
+        write_backup(
+            &dest,
+            project.path(),
+            home.path(),
+            false,
+            Compression2::Gzip,
+        )
+        .unwrap();
+
+        assert_eq!(detect_compression(&dest).unwrap(), Some(Compression2::Gzip));
+        // Restore succeeds despite the wrong extension.
+        let project2 = TempDir::new().unwrap();
+        let home2 = TempDir::new().unwrap();
+        let n = restore_archive(&dest, project2.path(), home2.path(), false, false).unwrap();
+        assert!(n >= 6);
+    }
+
+    #[test]
+    fn magic_bytes_auto_detect_zstd() {
+        let project = TempDir::new().unwrap();
+        let home = TempDir::new().unwrap();
+        populate_state(project.path(), home.path());
+
+        let archive_dir = TempDir::new().unwrap();
+        // Misname as .tar.gz to prove magic bytes win.
+        let dest = archive_dir.path().join("backup.tar.gz");
+        write_backup(
+            &dest,
+            project.path(),
+            home.path(),
+            false,
+            Compression2::Zstd,
+        )
+        .unwrap();
+
+        assert_eq!(detect_compression(&dest).unwrap(), Some(Compression2::Zstd));
+        let project2 = TempDir::new().unwrap();
+        let home2 = TempDir::new().unwrap();
+        let n = restore_archive(&dest, project2.path(), home2.path(), false, false).unwrap();
+        assert!(n >= 6);
     }
 }
