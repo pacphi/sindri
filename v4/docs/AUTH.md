@@ -1,7 +1,9 @@
 # Sindri auth-aware components
 
-> Status: Phase 2A. Apply-time redemption + ledger events. Gate 5 (admission)
-> ships in Phase 2B (PR B). `sindri auth show` / `auth refresh` ship in Phase 5.
+> Status: Phase 5. Apply-time redemption + Gate 5 + the inspection
+> verbs `sindri auth show`, `sindri auth refresh`, `sindri doctor --auth`,
+> and the user-driven `sindri target auth … --bind <req>` write are
+> all live.
 
 This document is the user-facing guide for the auth-aware component model
 introduced in ADR-026 (component-side declaration), ADR-027 (target-side
@@ -222,10 +224,141 @@ bypass is auditable. Note:
 Use this when you need to get an install through the door for diagnostic
 reasons. Production CI should never need it.
 
+## Daily workflow
+
+Phase 5 ships first-class verbs for inspecting and managing bindings.
+Reach for them in this order:
+
+### Before you `apply`: `sindri doctor --auth`
+
+Runs Gate 5 against the current lockfile without side effects. Same
+verdict that `sindri apply` would produce, just without the install
+phase. Use it as a fast pre-flight check on a new clone, after
+rotating a credential, or when CI has been red.
+
+```console
+$ sindri doctor --auth
+sindri doctor --auth — target: local
+
+auth bindings: 3 resolved, 0 deferred, 0 failed
+[OK]   Gate 5 (auth-resolvable) — all bindings admissible.
+```
+
+If Gate 5 denies, you'll get the offending binding plus a remediation
+checklist that points at `auth show` and `target auth … --bind`.
+
+### Diagnosis: `sindri auth show [<component>]`
+
+Pretty table of every binding for the current target's lockfile.
+Columns are component, requirement, status, source, audience. For
+`Deferred` / `Failed` bindings, the `considered` list explains *which*
+candidates were checked and *why* each was rejected. This is your main
+diagnostic verb.
+
+```console
+$ sindri auth show npm:claude-code
+auth bindings on target 'local'  (1 total)
+
+COMPONENT                   REQUIREMENT         STATUS  SOURCE                  AUDIENCE
+-----------------------------------------------------------------------------------------
+npm:claude-code             anthropic_api_key   bound   env:ANTHROPIC_API_KEY   urn:anthropic:api
+```
+
+`--json` for scripts:
+
+```console
+$ sindri auth show --json | jq '.bindings | map(select(.status == "failed")) | length'
+0
+```
+
+### Fixing a `Failed` binding: `sindri target auth <name> --bind <req-id>`
+
+When `auth show` lists a `Failed` binding with a non-empty `considered`
+list, you can promote one of those candidates into a real
+`provides:` entry without hand-editing `sindri.yaml`:
+
+```console
+$ sindri auth show --json | jq -r '.bindings[] | select(.status=="failed") | .id'
+deadbeefdeadbeef
+
+$ sindri target auth local --bind deadbeefdeadbeef
+Wrote provides entry 'github_token' (audience='https://api.github.com',
+source=env:GITHUB_TOKEN, priority=50) to targets.local in sindri.yaml
+Next: `sindri resolve` to re-bind, then `sindri auth show` to verify.
+
+$ sindri resolve && sindri auth show
+…
+brew:gh   github_token   bound   env:GITHUB_TOKEN   https://api.github.com
+```
+
+The `--bind` flow synthesises a *syntactically valid* `AuthSource`
+skeleton from the candidate's `source-kind`. You may need to edit the
+manifest after to replace placeholders (e.g. a `cli:` command).
+
+### Rotating a credential: `sindri auth refresh`
+
+Re-runs the binding pass and rewrites the lockfile's `auth_bindings`
+without re-resolving the component closure. Cheaper than a full
+`sindri resolve` and idempotent. For OAuth bindings, the cached token
+is invalidated so the next apply re-acquires it.
+
+```console
+$ # rotate the secret in your store, then:
+$ sindri auth refresh
+auth refresh: target='local' bindings: 3 resolved, 0 deferred, 0 failed
+Wrote sindri.lock
+```
+
+Filter to one component:
+
+```console
+$ sindri auth refresh npm:claude-code
+auth refresh: target='local' bindings: 1 resolved, 0 deferred, 0 failed
+Wrote sindri.lock
+```
+
+### Sample remediation session
+
+End-to-end: a CI run failed Gate 5 on `brew:gh github_token`.
+
+```console
+# 1. confirm the failure locally
+$ CI=1 sindri doctor --auth
+[FAIL] Gate 5 (auth-resolvable) — AUTH_REQUIRED_UNRESOLVED
+       Auth-aware Gate 5 denied apply: component `brew:gh` requirement
+       `github_token` (audience `https://api.github.com`) on target
+       `local` has no bound source.
+
+Remediation:
+  1. `sindri auth show --target local` to see why bindings failed.
+  2. `sindri target auth local --bind <req-id>` to bind a rejected candidate.
+  3. Adjust `policy.auth.*` if the violation is intentional.
+
+# 2. inspect what was considered
+$ sindri auth show brew:gh
+brew:gh   github_token   failed   —   https://api.github.com
+    reason: no source matched (required)
+    considered (1):
+      - github_token (from-env): audience-mismatch
+
+# 3. promote the considered candidate
+$ sindri target auth local --bind github_token --capability-id github_token \
+    --audience https://api.github.com
+Wrote provides entry 'github_token' (audience='https://api.github.com',
+source=env:GITHUB_TOKEN, priority=50) to targets.local in sindri.yaml
+
+# 4. refresh + verify
+$ sindri auth refresh && sindri doctor --auth
+auth refresh: target='local' bindings: 1 resolved, 0 deferred, 0 failed
+[OK]   Gate 5 (auth-resolvable) — all bindings admissible.
+```
+
 ## See also
 
 - ADR-026 — component-side schema.
 - ADR-027 — target-side capability + binding algorithm.
 - DDD-07 — the auth-bindings domain.
 - `v4/docs/policy.md` Gate 5 section.
-- `v4/docs/CLI.md` — `sindri apply --skip-auth`, future `sindri auth show`.
+- `v4/docs/CLI.md` — `sindri apply --skip-auth`, `sindri auth show`,
+  `sindri auth refresh`, `sindri doctor --auth`,
+  `sindri target auth … --bind`, `sindri completions`.

@@ -193,11 +193,32 @@ enum Commands {
         fix: bool,
         #[arg(long)]
         components: bool,
+        /// Phase 5 (ADR-027 §Phase 5): focused doctor view that runs
+        /// Gate 5 against the current manifest+target set with no apply
+        /// side effects.
+        #[arg(long)]
+        auth: bool,
+        /// Emit machine-readable JSON (auth view).
+        #[arg(long)]
+        json: bool,
+        /// Manifest path (default: `sindri.yaml`).
+        #[arg(long, default_value = "sindri.yaml")]
+        manifest: String,
     },
     /// Target management (ADR-017, ADR-023)
     Target {
         #[command(subcommand)]
         cmd: TargetSubcmds,
+    },
+    /// Inspect and manage auth bindings (Phase 5, ADR-027)
+    Auth {
+        #[command(subcommand)]
+        cmd: AuthSubcmds,
+    },
+    /// Generate shell completions (bash/zsh/fish/powershell)
+    Completions {
+        /// Shell to generate completions for.
+        shell: String,
     },
     /// Apply sindri.lock to the target
     Apply {
@@ -261,6 +282,66 @@ enum TargetSubcmds {
     Doctor { name: Option<String> },
     /// Open an interactive shell on the target
     Shell { name: String },
+    /// Inspect or write per-target auth `provides:` entries (ADR-027 §Phase 5)
+    Auth {
+        /// Target name (must exist in sindri.yaml).
+        name: String,
+        /// Bind a previously-considered-but-rejected candidate by binding-id
+        /// (or requirement-name) to this target's `provides:` list.
+        #[arg(long)]
+        bind: Option<String>,
+        /// When the binding has multiple considered candidates, choose this
+        /// one by `capability_id`.
+        #[arg(long = "capability-id")]
+        capability_id: Option<String>,
+        /// Override the audience field of the new provides entry.
+        #[arg(long)]
+        audience: Option<String>,
+        /// Override the priority of the new provides entry (default: 50).
+        #[arg(long)]
+        priority: Option<i32>,
+        /// Manifest path (default: `sindri.yaml`).
+        #[arg(long, default_value = "sindri.yaml")]
+        manifest: String,
+        /// JSON output.
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum AuthSubcmds {
+    /// Print a table of every requirement, its binding, and the
+    /// considered candidates. Reads `sindri.lock`.
+    Show {
+        /// Optional component address; if omitted, all components are shown.
+        component: Option<String>,
+        /// Target lockfile to read (default: `local`).
+        #[arg(long, default_value = "local")]
+        target: String,
+        /// JSON output.
+        #[arg(long)]
+        json: bool,
+        /// Manifest path (default: `sindri.yaml`).
+        #[arg(long, default_value = "sindri.yaml")]
+        manifest: String,
+    },
+    /// Re-run the resolver's binding pass and rewrite the lockfile's
+    /// `auth_bindings` field. For OAuth bindings, the cached token is
+    /// invalidated so the next apply re-acquires it.
+    Refresh {
+        /// Optional component address; if omitted, all components are refreshed.
+        component: Option<String>,
+        /// Target lockfile to refresh (default: `local`).
+        #[arg(long, default_value = "local")]
+        target: String,
+        /// JSON output.
+        #[arg(long)]
+        json: bool,
+        /// Manifest path (default: `sindri.yaml`).
+        #[arg(long, default_value = "sindri.yaml")]
+        manifest: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -275,6 +356,33 @@ enum PolicySubcmds {
         #[arg(long)]
         reason: Option<String>,
     },
+}
+
+/// Generate shell completions for the requested shell, writing to stdout.
+/// Phase 5 (ADR-027 §Phase 5): doesn't break existing completions because
+/// it's an opt-in subcommand — users redirect output into their shell's
+/// completion directory.
+fn generate_completions(shell: &str) -> i32 {
+    use clap::CommandFactory;
+    use clap_complete::{generate, shells};
+    let mut cmd = Cli::command();
+    let bin_name = "sindri".to_string();
+    let mut out = std::io::stdout();
+    match shell.to_lowercase().as_str() {
+        "bash" => generate(shells::Bash, &mut cmd, bin_name, &mut out),
+        "zsh" => generate(shells::Zsh, &mut cmd, bin_name, &mut out),
+        "fish" => generate(shells::Fish, &mut cmd, bin_name, &mut out),
+        "powershell" | "pwsh" => generate(shells::PowerShell, &mut cmd, bin_name, &mut out),
+        "elvish" => generate(shells::Elvish, &mut cmd, bin_name, &mut out),
+        other => {
+            eprintln!(
+                "Unsupported shell '{}'. Supported: bash, zsh, fish, powershell, elvish.",
+                other
+            );
+            return sindri_core::exit_codes::EXIT_ERROR;
+        }
+    }
+    sindri_core::exit_codes::EXIT_SUCCESS
 }
 
 fn main() {
@@ -338,10 +446,16 @@ fn main() {
             target,
             fix,
             components,
+            auth,
+            json,
+            manifest,
         }) => commands::doctor::run(commands::doctor::DoctorArgs {
             target,
             fix,
             components,
+            auth,
+            json,
+            manifest,
         }),
         Some(Commands::Target { cmd }) => {
             let tc = match cmd {
@@ -356,9 +470,52 @@ fn main() {
                 TargetSubcmds::Destroy { name } => TargetCmd::Destroy { name },
                 TargetSubcmds::Doctor { name } => TargetCmd::Doctor { name },
                 TargetSubcmds::Shell { name } => TargetCmd::Shell { name },
+                TargetSubcmds::Auth {
+                    name,
+                    bind,
+                    capability_id,
+                    audience,
+                    priority,
+                    manifest,
+                    json,
+                } => TargetCmd::Auth(commands::target::AuthSubArgs {
+                    name: name.clone(),
+                    bind,
+                    manifest,
+                    target: name,
+                    capability_id,
+                    audience,
+                    priority,
+                    json,
+                }),
             };
             commands::target::run(tc)
         }
+        Some(Commands::Auth { cmd }) => match cmd {
+            AuthSubcmds::Show {
+                component,
+                target,
+                json,
+                manifest,
+            } => commands::auth::run_show(commands::auth::ShowArgs {
+                component,
+                target,
+                json,
+                manifest,
+            }),
+            AuthSubcmds::Refresh {
+                component,
+                target,
+                json,
+                manifest,
+            } => commands::auth::run_refresh(commands::auth::RefreshArgs {
+                component,
+                target,
+                json,
+                manifest,
+            }),
+        },
+        Some(Commands::Completions { shell }) => generate_completions(&shell),
         Some(Commands::Policy { cmd }) => {
             let policy_cmd = match cmd {
                 PolicySubcmds::Use { preset } => PolicyCmd::Use { preset },

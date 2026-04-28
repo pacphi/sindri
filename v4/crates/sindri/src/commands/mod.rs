@@ -1,6 +1,7 @@
 pub mod add;
 pub mod apply;
 pub mod apply_lifecycle;
+pub mod auth;
 pub mod bom;
 pub mod diff;
 pub mod doctor;
