@@ -346,14 +346,23 @@ pub fn try_lock_state_file(path: &Path) -> Result<StateLock, StateError> {
     use fs4::fs_std::FileExt;
 
     let mut opts = OpenOptions::new();
-    opts.create(true).append(true);
+    // The lock handle needs `read | write` access on Windows: `LockFileEx`
+    // requires `GENERIC_READ` or `GENERIC_WRITE` on the handle, and
+    // `OpenOptions::append(true)` only grants `FILE_APPEND_DATA` — which
+    // makes `LockFileEx` fail with `ERROR_ACCESS_DENIED` (5).  We do not
+    // write through this handle (the JSONL appender in `ApplyStateStore`
+    // keeps its own separate handle); `read | write | create` is purely
+    // about giving `LockFileEx` the access rights it needs.  On POSIX,
+    // `flock(2)` does not care about access mode, so the same options
+    // work cross-platform.
+    opts.read(true).write(true).create(true);
 
-    // On Windows, the default share mode is 0, which prevents a second process
-    // from even opening the file once we hold a write handle — the open itself
-    // fails with "Access is denied" before `LockFileEx` ever runs.  Allow
-    // concurrent reads/writes/deletes (FILE_SHARE_READ | FILE_SHARE_WRITE |
-    // FILE_SHARE_DELETE = 0x07) so the advisory lock is what arbitrates
-    // exclusive access, matching the POSIX `flock` semantics on Unix.
+    // On Windows, the default share mode is 0, which prevents any other
+    // handle from opening the file while ours is live — the second open
+    // would fail with "Access is denied" before `LockFileEx` arbitrates.
+    // Allow concurrent reads/writes/deletes (FILE_SHARE_READ |
+    // FILE_SHARE_WRITE | FILE_SHARE_DELETE = 0x07) so the advisory lock
+    // arbitrates exclusive access, matching POSIX `flock` semantics.
     #[cfg(windows)]
     {
         use std::os::windows::fs::OpenOptionsExt;
