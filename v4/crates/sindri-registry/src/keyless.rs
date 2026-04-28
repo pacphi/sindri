@@ -413,6 +413,49 @@ impl KeylessVerifier {
     }
 }
 
+impl KeylessVerifier {
+    /// Resolve the SAN identity to verify against for a given component
+    /// (Wave 6A.1).
+    ///
+    /// Mirrors [`crate::trust_scope::select_override`] — the
+    /// most-specific override identity wins; falls back to
+    /// `registry_identity` when no override matches. Override-takes-
+    /// precedence: even when both apply, the registry identity is
+    /// **never** consulted as long as an override matched.
+    ///
+    /// Returns `None` when neither an override identity nor a
+    /// registry-level identity is available; callers should treat that
+    /// as `SignatureRequired` under strict policy or `<unsigned>` under
+    /// permissive policy (caller's choice).
+    pub fn resolve_identity_for_component<'a>(
+        component_address: &str,
+        registry_identity: Option<&'a sindri_core::manifest::RegistryIdentity>,
+        trust_overrides: &'a [sindri_core::manifest::TrustOverride],
+    ) -> Option<KeylessIdentity> {
+        if let Some(ov) = crate::trust_scope::select_override(trust_overrides, component_address) {
+            // Override matched. Use its identity if present; otherwise
+            // the override is key-based-only and the keyless caller has
+            // no identity to verify against — return None so the caller
+            // can decide how to fail.
+            if let Some(id) = &ov.identity {
+                return Some(KeylessIdentity {
+                    san_uri: id.san_uri.clone(),
+                    issuer: id.issuer.clone(),
+                });
+            }
+            // Override matched but is key-based only. Override-takes-
+            // precedence means we deliberately do NOT fall back to the
+            // registry identity — that would silently re-enable trust
+            // the policy author scoped down.
+            return None;
+        }
+        registry_identity.map(|id| KeylessIdentity {
+            san_uri: id.san_uri.clone(),
+            issuer: id.issuer.clone(),
+        })
+    }
+}
+
 /// Information extracted from a Fulcio-issued certificate after a
 /// successful chain validation.
 #[derive(Debug, Clone)]
@@ -1111,13 +1154,125 @@ mod tests {
 
     // -- Bundle envelope full-roundtrip via KeylessVerifier --------------
 
-    /// We can't easily synthesise a *real* Fulcio-issued cert in pure Rust
-    /// without pulling in `rcgen`, so the cert-chain + SAN tests use
-    /// pre-baked PEM fixtures generated offline (see `tests/fixtures/`).
-    /// Cross-cutting verifier tests live in
-    /// `tests/keyless_wiremock.rs` where we have wiremock + a fixture
-    /// directory; this section keeps unit-test parity with the key-based
-    /// path's `verify_payload` tests.
+    // We can't easily synthesise a *real* Fulcio-issued cert in pure Rust
+    // without pulling in `rcgen`, so the cert-chain + SAN tests use
+    // pre-baked PEM fixtures generated offline (see `tests/fixtures/`).
+    // Cross-cutting verifier tests live in `tests/keyless_wiremock.rs`
+    // where we have wiremock + a fixture directory; this section keeps
+    // unit-test parity with the key-based path's `verify_payload` tests.
+
+    // -- Wave 6A.1: per-component identity resolution ---------------------
+    fn ov_identity(glob: &str, san: &str, issuer: &str) -> sindri_core::manifest::TrustOverride {
+        sindri_core::manifest::TrustOverride {
+            component_glob: glob.to_string(),
+            keys: None,
+            identity: Some(sindri_core::manifest::RegistryIdentity {
+                san_uri: san.to_string(),
+                issuer: issuer.to_string(),
+            }),
+        }
+    }
+
+    fn ov_keys_only(glob: &str) -> sindri_core::manifest::TrustOverride {
+        sindri_core::manifest::TrustOverride {
+            component_glob: glob.to_string(),
+            keys: Some(vec![std::path::PathBuf::from("/dev/null")]),
+            identity: None,
+        }
+    }
+
+    #[test]
+    fn resolve_identity_falls_back_to_registry_when_no_override_matches() {
+        let registry_id = sindri_core::manifest::RegistryIdentity {
+            san_uri: "https://example/registry".into(),
+            issuer: "https://issuer.example".into(),
+        };
+        let overrides = vec![ov_identity(
+            "team-foo/*",
+            "https://example/team-foo",
+            "https://issuer.example",
+        )];
+        let resolved = KeylessVerifier::resolve_identity_for_component(
+            "team-bar/svc",
+            Some(&registry_id),
+            &overrides,
+        )
+        .unwrap();
+        assert_eq!(resolved.san_uri, "https://example/registry");
+    }
+
+    #[test]
+    fn resolve_identity_uses_most_specific_override() {
+        let registry_id = sindri_core::manifest::RegistryIdentity {
+            san_uri: "https://example/registry".into(),
+            issuer: "https://issuer.example".into(),
+        };
+        let overrides = vec![
+            ov_identity("team-foo/*", "https://example/team-foo", "https://i"),
+            ov_identity(
+                "team-foo/specific",
+                "https://example/team-foo/specific",
+                "https://i",
+            ),
+        ];
+        let resolved = KeylessVerifier::resolve_identity_for_component(
+            "team-foo/specific",
+            Some(&registry_id),
+            &overrides,
+        )
+        .unwrap();
+        assert_eq!(resolved.san_uri, "https://example/team-foo/specific");
+    }
+
+    #[test]
+    fn resolve_identity_override_takes_precedence_over_registry() {
+        // Even though the registry-level identity also covers this
+        // component, the override takes precedence.
+        let registry_id = sindri_core::manifest::RegistryIdentity {
+            san_uri: "https://example/registry".into(),
+            issuer: "https://issuer.example".into(),
+        };
+        let overrides = vec![ov_identity(
+            "team-foo/*",
+            "https://example/team-foo",
+            "https://issuer.example",
+        )];
+        let resolved = KeylessVerifier::resolve_identity_for_component(
+            "team-foo/svc",
+            Some(&registry_id),
+            &overrides,
+        )
+        .unwrap();
+        assert_eq!(resolved.san_uri, "https://example/team-foo");
+        // Crucially NOT the registry identity.
+        assert_ne!(resolved.san_uri, "https://example/registry");
+    }
+
+    #[test]
+    fn resolve_identity_keys_only_override_returns_none_no_registry_fallback() {
+        // Override matches but is key-based-only (no identity). The
+        // override-takes-precedence rule means we DON'T fall back to
+        // the registry identity — that would silently re-enable trust
+        // the override scoped down.
+        let registry_id = sindri_core::manifest::RegistryIdentity {
+            san_uri: "https://example/registry".into(),
+            issuer: "https://issuer.example".into(),
+        };
+        let overrides = vec![ov_keys_only("team-foo/*")];
+        let resolved = KeylessVerifier::resolve_identity_for_component(
+            "team-foo/svc",
+            Some(&registry_id),
+            &overrides,
+        );
+        assert!(resolved.is_none());
+    }
+
+    #[test]
+    fn resolve_identity_returns_none_when_neither_override_nor_registry() {
+        let resolved = KeylessVerifier::resolve_identity_for_component("team-foo/svc", None, &[]);
+        assert!(resolved.is_none());
+    }
+
     #[test]
     fn verifier_rejects_envelope_without_certificate() {
         let trust = KeylessTrustRoot::from_pem(b"trust".to_vec(), b"rekor".to_vec()).unwrap();

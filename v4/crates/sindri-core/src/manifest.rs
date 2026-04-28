@@ -3,6 +3,7 @@ use crate::component::BomEntry;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct BomManifest {
@@ -46,6 +47,46 @@ pub struct RegistryConfig {
     pub verification_mode: Option<String>,
     /// The expected SAN URI + OIDC issuer for keyless mode. Required when
     /// `verification_mode == "keyless"`; ignored otherwise.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub identity: Option<RegistryIdentity>,
+    /// Wave 6A.1 — per-component trust scoping (ADR-014, follow-up to PR #228 + #237).
+    ///
+    /// Each entry narrows the trust set for components whose canonical
+    /// address matches `component_glob`. Most-specific glob wins
+    /// (longest-pattern tie-break); when no entry matches, the verifier
+    /// falls back to the registry-level `trust` / `identity` fields.
+    ///
+    /// Fail-closed semantics: under
+    /// `policy.require_signed_registries=true` a component that matches
+    /// neither an override **nor** registry-level trust is rejected.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub trust_overrides: Vec<TrustOverride>,
+}
+
+/// Per-component trust scope (Wave 6A.1).
+///
+/// Lets a single registry publish artifacts signed by multiple teams /
+/// keys / Fulcio identities — a common pattern when an organisation
+/// shares one OCI registry across product groups.
+///
+/// Either [`Self::keys`] (key-based override) or [`Self::identity`]
+/// (keyless override) should be set; setting both is allowed and means
+/// the component can verify under either mode (whichever the cosign
+/// signature actually used).
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct TrustOverride {
+    /// Glob pattern matched against the component's canonical address
+    /// (e.g. `"mise:nodejs"`, `"team-foo/*"`, `"team-bar/specific@v1"`).
+    /// `*` matches any run of characters except `/`; `**` matches any
+    /// run including `/`. Most-specific match (longest pattern) wins.
+    pub component_glob: String,
+    /// Key-based trust override — list of paths to PEM-encoded P-256
+    /// public keys. Resolved relative to the manifest file at load time.
+    /// Verifier accepts if any key matches.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub keys: Option<Vec<PathBuf>>,
+    /// Keyless trust override — SAN URI + OIDC issuer pair the
+    /// Fulcio-issued cert must match exactly.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub identity: Option<RegistryIdentity>,
 }

@@ -21,6 +21,7 @@ pub mod local;
 pub mod oci_ref;
 pub mod signing;
 pub mod tarball;
+pub mod trust_scope;
 
 pub use cache::{BlobKind, RegistryCache};
 pub use client::RegistryClient;
@@ -33,3 +34,4 @@ pub use keyless::{
 pub use local::LocalRegistry;
 pub use oci_ref::{OciRef, OciReference};
 pub use signing::{CosignVerifier, TrustedKey};
+pub use trust_scope::{glob_match, select_override};

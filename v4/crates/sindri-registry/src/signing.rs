@@ -380,6 +380,286 @@ impl CosignVerifier {
         )
     }
 
+    /// Verify a payload against an explicit set of trusted keys (Wave 6A.1).
+    ///
+    /// Companion to [`Self::verify_payload`] used by the per-component
+    /// trust-override path: callers that have already resolved a
+    /// component-scoped key list pass it in directly rather than going
+    /// through the registry-name index. Behaviour is otherwise
+    /// identical — empty `keys` triggers the same
+    /// `SignatureRequired`/`<unsigned>` outcome as the registry-level
+    /// helper, scoped to the component address rather than the registry.
+    pub fn verify_payload_with_keys(
+        scope_label: &str,
+        keys: &[TrustedKey],
+        payload_bytes: &[u8],
+        signature_bytes: &[u8],
+        expected_manifest_digest: &str,
+        policy_requires_signing: bool,
+    ) -> Result<String, RegistryError> {
+        // 1. Parse + check digest in the simple-signing payload.
+        let payload: serde_json::Value = serde_json::from_slice(payload_bytes).map_err(|e| {
+            RegistryError::SignatureMismatch {
+                registry: scope_label.to_string(),
+                expected_keys: keys.iter().map(|k| k.key_id.clone()).collect(),
+                detail: format!("simple-signing payload was not valid JSON: {}", e),
+            }
+        })?;
+        let actual_digest = payload
+            .get("critical")
+            .and_then(|c| c.get("image"))
+            .and_then(|i| i.get("docker-manifest-digest"))
+            .and_then(|d| d.as_str())
+            .ok_or_else(|| RegistryError::SignatureMismatch {
+                registry: scope_label.to_string(),
+                expected_keys: keys.iter().map(|k| k.key_id.clone()).collect(),
+                detail: "simple-signing payload missing critical.image.docker-manifest-digest"
+                    .into(),
+            })?;
+        if actual_digest != expected_manifest_digest {
+            return Err(RegistryError::SignatureMismatch {
+                registry: scope_label.to_string(),
+                expected_keys: keys.iter().map(|k| k.key_id.clone()).collect(),
+                detail: format!(
+                    "payload digest {} != expected {}",
+                    actual_digest, expected_manifest_digest
+                ),
+            });
+        }
+
+        // 2. Empty trust set short-circuit (matches verify_payload).
+        if keys.is_empty() {
+            if policy_requires_signing {
+                return Err(RegistryError::SignatureRequired {
+                    registry: scope_label.to_string(),
+                    reason: "no trusted keys available for this component scope".into(),
+                });
+            }
+            tracing::warn!(
+                "no trusted keys for scope '{}'; cosign signature not verified",
+                scope_label
+            );
+            return Ok("<unsigned>".to_string());
+        }
+
+        // 3. Decode signature.
+        let signature = Signature::from_der(signature_bytes)
+            .or_else(|_| Signature::from_slice(signature_bytes))
+            .map_err(|e| RegistryError::SignatureMismatch {
+                registry: scope_label.to_string(),
+                expected_keys: keys.iter().map(|k| k.key_id.clone()).collect(),
+                detail: format!(
+                    "signature bytes are not a valid P-256 ECDSA signature: {}",
+                    e
+                ),
+            })?;
+
+        // 4. Try every key in the scoped trust set.
+        for key in keys {
+            if key.key.verify(payload_bytes, &signature).is_ok() {
+                return Ok(key.key_id.clone());
+            }
+        }
+        Err(RegistryError::SignatureMismatch {
+            registry: scope_label.to_string(),
+            expected_keys: keys.iter().map(|k| k.key_id.clone()).collect(),
+            detail: "no trusted key matched the signature".into(),
+        })
+    }
+
+    /// Per-component cosign verification with optional override-scoped trust
+    /// (Wave 6A.1).
+    ///
+    /// Like [`Self::verify_component_signature`] but consults an
+    /// override list first. Matching follows
+    /// [`crate::trust_scope::select_override`]: most-specific glob wins,
+    /// override-takes-precedence-over-registry. The per-registry trust
+    /// set is the fallback when no override matches.
+    ///
+    /// `component_address` is the component's canonical
+    /// `backend:name[@qualifier]` form (the output of
+    /// `ComponentId::to_address`).
+    ///
+    /// Override keys are loaded from disk on each call. Callers that
+    /// verify many components against the same override set may want to
+    /// pre-load + cache the [`TrustedKey`] vectors instead.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn verify_component_signature_scoped(
+        &self,
+        oci: &OciClient,
+        registry_name: &str,
+        component_address: &str,
+        oci_ref: &OciRef,
+        component_digest: &str,
+        trust_overrides: &[sindri_core::manifest::TrustOverride],
+        policy_requires_signing: bool,
+    ) -> Result<String, RegistryError> {
+        // 1. Pick the most-specific matching override, if any.
+        let override_match =
+            crate::trust_scope::select_override(trust_overrides, component_address);
+
+        // 2. If an override matches and declares key-based trust, we use
+        //    it exclusively — no fallback to registry-level keys, per
+        //    the override-takes-precedence rule. Override matches with
+        //    no `keys` (e.g. keyless-only override) fall through to the
+        //    keyless verifier upstream; the key-based path here treats
+        //    that as "no trust set" and behaves accordingly.
+        if let Some(ov) = override_match {
+            if let Some(key_paths) = &ov.keys {
+                let scoped_keys = load_keys_from_paths(key_paths)?;
+                let scope_label = format!("{}::{}", registry_name, ov.component_glob);
+
+                tracing::debug!(
+                    component = component_address,
+                    glob = %ov.component_glob,
+                    keys = scoped_keys.len(),
+                    "verifying per-component cosign signature against scoped override trust set"
+                );
+
+                return self
+                    .fetch_and_verify_with_keys(
+                        oci,
+                        &scope_label,
+                        oci_ref,
+                        component_digest,
+                        &scoped_keys,
+                        policy_requires_signing,
+                    )
+                    .await;
+            }
+        }
+
+        // 3. No override applies (or override is keyless-only) — fall
+        //    back to per-registry trust. This is the original Wave 5A
+        //    behaviour.
+        tracing::debug!(
+            component = component_address,
+            registry = registry_name,
+            "no key-based override matched; using registry-level trust set"
+        );
+        self.verify_component_signature(
+            oci,
+            registry_name,
+            oci_ref,
+            component_digest,
+            policy_requires_signing,
+        )
+        .await
+    }
+
+    /// Fetch the cosign signature manifest + layer bytes for `oci_ref`
+    /// and verify against an explicit `keys` list. Mirrors the wire
+    /// protocol in [`Self::verify_registry_signature`] but doesn't go
+    /// through `self.trusted_keys`.
+    #[allow(clippy::too_many_arguments)]
+    async fn fetch_and_verify_with_keys(
+        &self,
+        oci: &OciClient,
+        scope_label: &str,
+        oci_ref: &OciRef,
+        manifest_digest: &str,
+        keys: &[TrustedKey],
+        policy_requires_signing: bool,
+    ) -> Result<String, RegistryError> {
+        // Fast path — empty keys + permissive policy, mirror upstream.
+        if keys.is_empty() && !policy_requires_signing {
+            tracing::warn!(
+                "no scoped keys for '{}'; skipping cosign verification",
+                scope_label
+            );
+            return Ok("<unsigned>".to_string());
+        }
+        if keys.is_empty() && policy_requires_signing {
+            return Err(RegistryError::SignatureRequired {
+                registry: scope_label.to_string(),
+                reason: "no trusted keys configured for this component scope".into(),
+            });
+        }
+
+        let sig_tag = cosign_signature_tag(manifest_digest).ok_or_else(|| {
+            RegistryError::SignatureMismatch {
+                registry: scope_label.to_string(),
+                expected_keys: keys.iter().map(|k| k.key_id.clone()).collect(),
+                detail: format!(
+                    "cannot derive cosign signature tag from '{}'",
+                    manifest_digest
+                ),
+            }
+        })?;
+        let sig_ref = OciClientReference::with_tag(
+            oci_ref.registry.clone(),
+            oci_ref.repository.clone(),
+            sig_tag,
+        );
+        let auth =
+            crate::client::docker_config_auth(&oci_ref.registry).unwrap_or(RegistryAuth::Anonymous);
+
+        let (manifest, _sig_manifest_digest) =
+            oci.pull_manifest(&sig_ref, &auth).await.map_err(|e| {
+                RegistryError::SignatureRequired {
+                    registry: scope_label.to_string(),
+                    reason: format!("could not pull signature manifest: {}", e),
+                }
+            })?;
+        let image = match manifest {
+            OciManifest::Image(m) => m,
+            OciManifest::ImageIndex(_) => {
+                return Err(RegistryError::SignatureMismatch {
+                    registry: scope_label.to_string(),
+                    expected_keys: keys.iter().map(|k| k.key_id.clone()).collect(),
+                    detail: "signature manifest unexpectedly was an image index".into(),
+                });
+            }
+        };
+        let layer = image
+            .layers
+            .iter()
+            .find(|l| l.media_type == crate::client::COSIGN_SIMPLESIGNING_MEDIA_TYPE)
+            .ok_or_else(|| RegistryError::SignatureMismatch {
+                registry: scope_label.to_string(),
+                expected_keys: keys.iter().map(|k| k.key_id.clone()).collect(),
+                detail: format!(
+                    "signature manifest missing layer with media type {}",
+                    crate::client::COSIGN_SIMPLESIGNING_MEDIA_TYPE
+                ),
+            })?;
+        let mut payload_bytes: Vec<u8> = Vec::new();
+        oci.pull_blob(&sig_ref, layer, &mut payload_bytes)
+            .await
+            .map_err(|e| RegistryError::SignatureMismatch {
+                registry: scope_label.to_string(),
+                expected_keys: keys.iter().map(|k| k.key_id.clone()).collect(),
+                detail: format!("could not pull simple-signing layer: {}", e),
+            })?;
+        let sig_b64 = image
+            .annotations
+            .as_ref()
+            .and_then(|a| a.get(crate::client::COSIGN_SIGNATURE_ANNOTATION))
+            .ok_or_else(|| RegistryError::SignatureMismatch {
+                registry: scope_label.to_string(),
+                expected_keys: keys.iter().map(|k| k.key_id.clone()).collect(),
+                detail: format!(
+                    "signature manifest missing '{}' annotation",
+                    crate::client::COSIGN_SIGNATURE_ANNOTATION
+                ),
+            })?;
+        let signature_bytes = base64::engine::general_purpose::STANDARD
+            .decode(sig_b64.as_bytes())
+            .map_err(|e| RegistryError::SignatureMismatch {
+                registry: scope_label.to_string(),
+                expected_keys: keys.iter().map(|k| k.key_id.clone()).collect(),
+                detail: format!("signature annotation was not valid base64: {}", e),
+            })?;
+        Self::verify_payload_with_keys(
+            scope_label,
+            keys,
+            &payload_bytes,
+            &signature_bytes,
+            manifest_digest,
+            policy_requires_signing,
+        )
+    }
+
     /// Per-component cosign verification (Wave 5A — D5).
     ///
     /// Variant of [`Self::verify_registry_signature`] that targets an
@@ -444,12 +724,67 @@ impl CosignVerifier {
         .await
     }
 
+    /// Convenience wrapper around [`Self::verify_component_signature_scoped`]
+    /// that constructs a default [`OciClient`] internally.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn verify_component_signature_scoped_default_client(
+        &self,
+        registry_name: &str,
+        component_address: &str,
+        oci_ref: &OciRef,
+        component_digest: &str,
+        trust_overrides: &[sindri_core::manifest::TrustOverride],
+        policy_requires_signing: bool,
+    ) -> Result<String, RegistryError> {
+        let oci = OciClient::new(oci_client::client::ClientConfig::default());
+        self.verify_component_signature_scoped(
+            &oci,
+            registry_name,
+            component_address,
+            oci_ref,
+            component_digest,
+            trust_overrides,
+            policy_requires_signing,
+        )
+        .await
+    }
+
     fn key_ids_for(&self, registry_name: &str) -> Vec<String> {
         self.keys_for(registry_name)
             .iter()
             .map(|k| k.key_id.clone())
             .collect()
     }
+}
+
+/// Load + parse a list of PEM key paths into [`TrustedKey`] values.
+///
+/// Used by the per-component override path (Wave 6A.1) — overrides
+/// declare paths in the manifest rather than relying on a directory
+/// scan. Missing files are reported via
+/// [`RegistryError::TrustKeyParseFailed`] for symmetry with the
+/// directory-scan loader.
+pub fn load_keys_from_paths(
+    paths: &[std::path::PathBuf],
+) -> Result<Vec<TrustedKey>, RegistryError> {
+    let mut keys = Vec::with_capacity(paths.len());
+    for p in paths {
+        let pem = fs::read_to_string(p).map_err(|e| RegistryError::TrustKeyParseFailed {
+            path: p.display().to_string(),
+            detail: format!("could not read key file: {}", e),
+        })?;
+        let key = TrustedKey::from_pem(&pem).map_err(|e| match e {
+            RegistryError::TrustKeyParseFailed { detail, .. } => {
+                RegistryError::TrustKeyParseFailed {
+                    path: p.display().to_string(),
+                    detail,
+                }
+            }
+            other => other,
+        })?;
+        keys.push(key);
+    }
+    Ok(keys)
 }
 
 /// Compute the cosign signature tag for a given manifest digest.
@@ -687,6 +1022,130 @@ mod tests {
             .verify_payload("nope", &payload, &[0u8; 64], &digest, false)
             .unwrap();
         assert_eq!(key_id, "<unsigned>");
+    }
+
+    // -- Wave 6A.1: per-component trust override (precedence + scoping) ----
+
+    #[test]
+    fn verify_payload_with_keys_succeeds_against_scoped_key() {
+        let signing = SigningKey::random(&mut OsRng);
+        let verifying = VerifyingKey::from(&signing);
+        let pem = verifying
+            .to_public_key_pem(p256::pkcs8::LineEnding::LF)
+            .unwrap();
+        let scoped_key = TrustedKey::from_pem(&pem).unwrap();
+        let manifest_digest = format!("sha256:{}", "1".repeat(64));
+        let payload = simple_signing_payload(&manifest_digest);
+        let sig: Signature = signing.sign(&payload);
+        let sig_bytes = sig.to_der().as_bytes().to_vec();
+        let key_id = CosignVerifier::verify_payload_with_keys(
+            "ghcr.io::team-foo/*",
+            std::slice::from_ref(&scoped_key),
+            &payload,
+            &sig_bytes,
+            &manifest_digest,
+            true,
+        )
+        .expect("scoped key should verify");
+        assert_eq!(key_id, scoped_key.key_id);
+    }
+
+    #[test]
+    fn verify_payload_with_keys_rejects_registry_key_when_scoped_to_override() {
+        // Trust set: registry key A. Override-scoped key list: only key B.
+        // The signature comes from key A — which means the registry key
+        // would verify, but the scoped override list excludes it. The
+        // override-takes-precedence rule says the verification must
+        // FAIL because the scoped list doesn't accept key A.
+        let registry_signing = SigningKey::random(&mut OsRng);
+        let override_signing = SigningKey::random(&mut OsRng);
+        let override_verifying = VerifyingKey::from(&override_signing);
+        let override_pem = override_verifying
+            .to_public_key_pem(p256::pkcs8::LineEnding::LF)
+            .unwrap();
+        let override_key = TrustedKey::from_pem(&override_pem).unwrap();
+
+        let manifest_digest = format!("sha256:{}", "2".repeat(64));
+        let payload = simple_signing_payload(&manifest_digest);
+        // Signed by the *registry* key, not the override key.
+        let sig: Signature = registry_signing.sign(&payload);
+        let sig_bytes = sig.to_der().as_bytes().to_vec();
+
+        let err = CosignVerifier::verify_payload_with_keys(
+            "ghcr.io::team-foo/*",
+            std::slice::from_ref(&override_key),
+            &payload,
+            &sig_bytes,
+            &manifest_digest,
+            true,
+        )
+        .expect_err("scoped trust list must NOT accept a registry-signed signature");
+        assert!(
+            matches!(err, RegistryError::SignatureMismatch { ref detail, .. } if detail.contains("no trusted key matched")),
+            "expected SignatureMismatch, got {:?}",
+            err
+        );
+    }
+
+    #[test]
+    fn verify_payload_with_keys_strict_empty_keys_fails_closed() {
+        let digest = format!("sha256:{}", "3".repeat(64));
+        let payload = simple_signing_payload(&digest);
+        let err = CosignVerifier::verify_payload_with_keys(
+            "ghcr.io::scope",
+            &[],
+            &payload,
+            &[0u8; 64],
+            &digest,
+            true,
+        )
+        .expect_err("empty scoped keys + strict policy must fail closed");
+        assert!(
+            matches!(err, RegistryError::SignatureRequired { .. }),
+            "expected SignatureRequired, got {:?}",
+            err
+        );
+    }
+
+    #[test]
+    fn verify_payload_with_keys_permissive_empty_keys_returns_unsigned() {
+        let digest = format!("sha256:{}", "4".repeat(64));
+        let payload = simple_signing_payload(&digest);
+        let key_id = CosignVerifier::verify_payload_with_keys(
+            "ghcr.io::scope",
+            &[],
+            &payload,
+            &[0u8; 64],
+            &digest,
+            false,
+        )
+        .expect("permissive policy + no keys should warn-and-pass");
+        assert_eq!(key_id, "<unsigned>");
+    }
+
+    #[test]
+    fn load_keys_from_paths_round_trip() {
+        use std::io::Write;
+        let tmp = TempDir::new().unwrap();
+        let signing = SigningKey::random(&mut OsRng);
+        let verifying = VerifyingKey::from(&signing);
+        let pem = verifying
+            .to_public_key_pem(p256::pkcs8::LineEnding::LF)
+            .unwrap();
+        let path = tmp.path().join("scoped-key.pub");
+        let mut f = std::fs::File::create(&path).unwrap();
+        f.write_all(pem.as_bytes()).unwrap();
+        let keys = super::load_keys_from_paths(std::slice::from_ref(&path)).unwrap();
+        assert_eq!(keys.len(), 1);
+        assert_eq!(keys[0].key_id.len(), 8);
+    }
+
+    #[test]
+    fn load_keys_from_paths_missing_file_errors() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("does-not-exist.pub");
+        let err = super::load_keys_from_paths(std::slice::from_ref(&path)).expect_err("must fail");
+        assert!(matches!(err, RegistryError::TrustKeyParseFailed { .. }));
     }
 
     #[test]
