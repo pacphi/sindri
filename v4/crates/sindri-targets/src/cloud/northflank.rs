@@ -188,6 +188,105 @@ impl NorthflankTarget {
         Ok(svc_id)
     }
 
+    /// Async HTTP dispatch — `DELETE /v1/projects/{project}/services/{service}`.
+    /// Idempotent: a 404 response is treated as success.
+    pub async fn dispatch_destroy_async(&self) -> Result<(), TargetError> {
+        let token = self.token()?;
+        let url = format!(
+            "{}/v1/projects/{}/services/{}",
+            self.base_url, self.project, self.service
+        );
+        let client = reqwest::Client::new();
+        let resp = client
+            .delete(&url)
+            .bearer_auth(&token)
+            .send()
+            .await
+            .map_err(|e| TargetError::Http {
+                target: self.name.clone(),
+                detail: format!("destroy request failed: {}", e),
+            })?;
+        let status = resp.status();
+        if status.is_success() || status == reqwest::StatusCode::NOT_FOUND {
+            return Ok(());
+        }
+        if status == reqwest::StatusCode::UNAUTHORIZED {
+            return Err(TargetError::AuthFailed {
+                target: self.name.clone(),
+                detail: "Northflank API returned 401 — check NORTHFLANK_API_TOKEN".into(),
+            });
+        }
+        if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+            return Err(TargetError::RateLimited {
+                target: self.name.clone(),
+            });
+        }
+        let body = resp.text().await.unwrap_or_default();
+        Err(TargetError::Http {
+            target: self.name.clone(),
+            detail: format!("HTTP {}: {}", status, body),
+        })
+    }
+
+    /// Async HTTP dispatch — `PATCH /v1/projects/{project}/services/{service}`
+    /// with the mutable subset of the desired spec. Northflank exposes
+    /// `deployment.instances` and `ports` as in-place mutable; the
+    /// per-kind schema in `convergence::schema::NorthflankSchema` ensures
+    /// only those are routed here.
+    pub async fn dispatch_update_async(
+        &self,
+        desired: &serde_json::Value,
+    ) -> Result<serde_json::Value, TargetError> {
+        let token = self.token()?;
+        let url = format!(
+            "{}/v1/projects/{}/services/{}",
+            self.base_url, self.project, self.service
+        );
+        let mut patch = serde_json::Map::new();
+        if let Some(v) = desired.get("deployment") {
+            patch.insert("deployment".into(), v.clone());
+        }
+        if let Some(v) = desired.get("ports") {
+            patch.insert("ports".into(), v.clone());
+        }
+        let body = serde_json::Value::Object(patch);
+        let client = reqwest::Client::new();
+        let resp = client
+            .patch(&url)
+            .bearer_auth(&token)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| TargetError::Http {
+                target: self.name.clone(),
+                detail: format!("update request failed: {}", e),
+            })?;
+        let status = resp.status();
+        if status == reqwest::StatusCode::UNAUTHORIZED {
+            return Err(TargetError::AuthFailed {
+                target: self.name.clone(),
+                detail: "Northflank API returned 401 — check NORTHFLANK_API_TOKEN".into(),
+            });
+        }
+        if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+            return Err(TargetError::RateLimited {
+                target: self.name.clone(),
+            });
+        }
+        if !status.is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(TargetError::Http {
+                target: self.name.clone(),
+                detail: format!("HTTP {}: {}", status, body),
+            });
+        }
+        let parsed: serde_json::Value = resp.json().await.map_err(|e| TargetError::Http {
+            target: self.name.clone(),
+            detail: format!("failed to parse response: {}", e),
+        })?;
+        Ok(parsed)
+    }
+
     /// Synchronous wrapper around `dispatch_create_async`. Used by the
     /// `Target::create` trait method, which is not async. Creates a
     /// one-shot current-thread runtime for the HTTP call.
@@ -458,5 +557,55 @@ mod tests {
                 detail
             );
         }
+    }
+
+    // ── destroy / update HTTP dispatch (Wave 6B) ─────────────────────────────
+
+    #[tokio::test]
+    async fn http_destroy_success() {
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+        let server = MockServer::start().await;
+        Mock::given(method("DELETE"))
+            .and(path("/v1/projects/proj-abc/services/sindri-svc"))
+            .respond_with(ResponseTemplate::new(204))
+            .mount(&server)
+            .await;
+        let t = make_target(&server.uri());
+        t.dispatch_destroy_async().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn http_destroy_404_treated_as_success() {
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+        let server = MockServer::start().await;
+        Mock::given(method("DELETE"))
+            .and(path("/v1/projects/proj-abc/services/sindri-svc"))
+            .respond_with(ResponseTemplate::new(404))
+            .mount(&server)
+            .await;
+        let t = make_target(&server.uri());
+        t.dispatch_destroy_async().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn http_update_in_place_patches_deployment() {
+        use wiremock::matchers::{body_string_contains, method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+        let server = MockServer::start().await;
+        Mock::given(method("PATCH"))
+            .and(path("/v1/projects/proj-abc/services/sindri-svc"))
+            .and(body_string_contains("instances"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"data": {"id": "svc-xyz789"}})),
+            )
+            .mount(&server)
+            .await;
+        let t = make_target(&server.uri());
+        let desired = serde_json::json!({"deployment": {"instances": 3}});
+        let got = t.dispatch_update_async(&desired).await.unwrap();
+        assert_eq!(got["data"]["id"], "svc-xyz789");
     }
 }

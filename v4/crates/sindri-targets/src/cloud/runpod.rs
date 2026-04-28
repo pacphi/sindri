@@ -175,6 +175,100 @@ impl RunPodTarget {
         Ok(pod_id)
     }
 
+    /// Async HTTP dispatch — `DELETE /v2/pod/{id}`. Idempotent: a 404
+    /// response is treated as success ("already gone").
+    pub async fn dispatch_destroy_async(&self, pod_id: &str) -> Result<(), TargetError> {
+        let token = self.resolve_token()?;
+        let url = format!("{}/v2/pod/{}", self.base_url, pod_id);
+        let client = reqwest::Client::new();
+        let resp = client
+            .delete(&url)
+            .bearer_auth(&token)
+            .send()
+            .await
+            .map_err(|e| TargetError::Http {
+                target: self.name.clone(),
+                detail: format!("destroy request failed: {}", e),
+            })?;
+        let status = resp.status();
+        if status.is_success() || status == reqwest::StatusCode::NOT_FOUND {
+            return Ok(());
+        }
+        if status == reqwest::StatusCode::UNAUTHORIZED {
+            return Err(TargetError::AuthFailed {
+                target: self.name.clone(),
+                detail: "RunPod API returned 401 — check RUNPOD_API_KEY".into(),
+            });
+        }
+        if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+            return Err(TargetError::RateLimited {
+                target: self.name.clone(),
+            });
+        }
+        let body = resp.text().await.unwrap_or_default();
+        Err(TargetError::Http {
+            target: self.name.clone(),
+            detail: format!("HTTP {}: {}", status, body),
+        })
+    }
+
+    /// Async HTTP dispatch — `PATCH /v2/pod/{id}` with the mutable
+    /// fields (`gpuCount`, `imageName`). RunPod treats most fields as
+    /// immutable; the convergence engine routes immutable changes
+    /// through `DestroyAndRecreate`.
+    pub async fn dispatch_update_async(
+        &self,
+        pod_id: &str,
+        desired: &serde_json::Value,
+    ) -> Result<serde_json::Value, TargetError> {
+        let token = self.resolve_token()?;
+        let url = format!("{}/v2/pod/{}", self.base_url, pod_id);
+        // Forward only the fields RunPod allows in-place: count + image.
+        let mut patch = serde_json::Map::new();
+        if let Some(v) = desired.get("count").or_else(|| desired.get("gpuCount")) {
+            patch.insert("count".into(), v.clone());
+        }
+        if let Some(v) = desired.get("image").or_else(|| desired.get("imageName")) {
+            patch.insert("imageName".into(), v.clone());
+        }
+        let body = serde_json::Value::Object(patch);
+        let client = reqwest::Client::new();
+        let resp = client
+            .patch(&url)
+            .bearer_auth(&token)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| TargetError::Http {
+                target: self.name.clone(),
+                detail: format!("update request failed: {}", e),
+            })?;
+        let status = resp.status();
+        if status == reqwest::StatusCode::UNAUTHORIZED {
+            return Err(TargetError::AuthFailed {
+                target: self.name.clone(),
+                detail: "RunPod API returned 401 — check RUNPOD_API_KEY".into(),
+            });
+        }
+        if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+            return Err(TargetError::RateLimited {
+                target: self.name.clone(),
+            });
+        }
+        if !status.is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(TargetError::Http {
+                target: self.name.clone(),
+                detail: format!("HTTP {}: {}", status, body),
+            });
+        }
+        let parsed: serde_json::Value = resp.json().await.map_err(|e| TargetError::Http {
+            target: self.name.clone(),
+            detail: format!("failed to parse response: {}", e),
+        })?;
+        Ok(parsed)
+    }
+
     /// Synchronous wrapper around `dispatch_create_async`.  Used by the
     /// `Target::create` trait method, which is not async.  Creates a
     /// one-shot current-thread runtime for the HTTP call.
@@ -443,5 +537,59 @@ mod tests {
                 detail
             );
         }
+    }
+
+    // ── destroy / update HTTP dispatch (Wave 6B) ─────────────────────────────
+
+    #[tokio::test]
+    async fn http_destroy_success() {
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+        let server = MockServer::start().await;
+        Mock::given(method("DELETE"))
+            .and(path("/v2/pod/pod-abc"))
+            .respond_with(ResponseTemplate::new(204))
+            .mount(&server)
+            .await;
+        let t = make_target(&server.uri());
+        t.dispatch_destroy_async("pod-abc").await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn http_destroy_404_treated_as_success() {
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+        let server = MockServer::start().await;
+        Mock::given(method("DELETE"))
+            .and(path("/v2/pod/pod-gone"))
+            .respond_with(ResponseTemplate::new(404))
+            .mount(&server)
+            .await;
+        let t = make_target(&server.uri());
+        // Idempotent — 404 means already gone, not an error.
+        t.dispatch_destroy_async("pod-gone").await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn http_update_in_place_patches_count_and_image() {
+        use wiremock::matchers::{body_string_contains, method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+        let server = MockServer::start().await;
+        Mock::given(method("PATCH"))
+            .and(path("/v2/pod/pod-update"))
+            .and(body_string_contains("\"count\":2"))
+            .and(body_string_contains("\"imageName\":\"new-img\""))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(serde_json::json!({"id": "pod-update"})),
+            )
+            .mount(&server)
+            .await;
+        let t = make_target(&server.uri());
+        let desired = serde_json::json!({"count": 2, "image": "new-img"});
+        let got = t
+            .dispatch_update_async("pod-update", &desired)
+            .await
+            .unwrap();
+        assert_eq!(got["id"], "pod-update");
     }
 }
