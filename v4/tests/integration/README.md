@@ -39,7 +39,7 @@ tests/
 ├── helpers.rs                                       # shared utilities (sindri_cmd, temp_workdir, …)
 ├── init_validate_resolve.rs                         # init → validate → resolve --offline
 ├── apply_local_idempotent.rs                        # apply --dry-run twice → identical plan
-├── admission_gate_denies_unsupported_platform.rs    # ignored, see FIXME(wave-4a-followup)
+├── admission_gate_denies_unsupported_platform.rs    # ignored pending Wave 3A.2 manifest fetch
 ├── registry_lint_finds_missing_license.rs           # lint flags missing metadata.license
 └── lockfile_bom_emission.rs                         # bom --format spdx emits valid SPDX 2.3 JSON
 ```
@@ -54,6 +54,7 @@ tests/
 
 ## Skip-on-CI gating
 
-Scenarios that touch tempdirs in ways that have proven flaky on Windows
-runners are guarded with `#[cfg_attr(windows, ignore)]` and tagged
-`FIXME(wave-4a-followup):`.
+The `admission_gate_denies_unsupported_platform` test is `#[ignore]`-d
+pending Wave 3A.2 per-component manifest fetch (see its source file for
+details). All other scenarios, including `apply_local_idempotent`, run on
+every platform including Windows.
