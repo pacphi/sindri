@@ -26,3 +26,14 @@ install:
 
 depends_on:
   - "mise:nodejs"
+
+auth:
+  tokens:
+    - name: anthropic_api_key
+      description: "Anthropic API key used by the Claude Code CLI."
+      scope: runtime
+      optional: false
+      audience: "urn:anthropic:api"
+      redemption:
+        env-var:
+          env-name: ANTHROPIC_API_KEY

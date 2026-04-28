@@ -24,3 +24,14 @@ install:
     timeout: "600"
 
 depends_on: []
+
+auth:
+  tokens:
+    - name: openai_api_key
+      description: "Provider API key used by the Goose agent (OpenAI by default)."
+      scope: runtime
+      optional: false
+      audience: "urn:openai:api"
+      redemption:
+        env-var:
+          env-name: OPENAI_API_KEY

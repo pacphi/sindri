@@ -26,3 +26,14 @@ install:
 
 depends_on:
   - "mise:nodejs"
+
+auth:
+  tokens:
+    - name: gemini_api_key
+      description: "Google Gemini API key used by the Gemini CLI."
+      scope: runtime
+      optional: false
+      audience: "urn:google:generative-language"
+      redemption:
+        env-var:
+          env-name: GEMINI_API_KEY

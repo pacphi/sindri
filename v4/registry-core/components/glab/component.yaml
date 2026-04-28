@@ -24,3 +24,14 @@ install:
       glab: "1.44.0"
 
 depends_on: []
+
+auth:
+  tokens:
+    - name: gitlab_token
+      description: "GitLab personal access token used by the glab CLI."
+      scope: runtime
+      optional: true
+      audience: "https://gitlab.com/api/v4"
+      redemption:
+        env-var:
+          env-name: GITLAB_TOKEN
