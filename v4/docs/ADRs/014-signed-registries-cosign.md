@@ -1,6 +1,6 @@
 # ADR-014: Signed Registries with cosign from Day One
 
-**Status:** Accepted
+**Status:** Accepted (key-based: PR #220, PR #228; **keyless OIDC: PR for Wave 6A — D1 closed 2026-04-27**)
 **Date:** 2026-04-24
 **Deciders:** sindri-dev team
 
@@ -76,6 +76,34 @@ Binary asset checksums are verified at download time during `sindri apply`.
 - Key rotation requires a documented process. Mitigation: publish key rotation policy
   in `sindri.dev/security`.
 
+## Implementation status (2026-04-27)
+
+Two cosign verification modes are now supported, selected per-registry via the
+additive `verification_mode` field on `RegistryConfig`:
+
+- **`key-based`** (default; backward compatible): trust keys loaded from
+  `~/.sindri/trust/<registry>/cosign-*.pub` (P-256 ECDSA). Implemented by
+  `sindri_registry::CosignVerifier` (PR #220 / PR #228). Registries that
+  predate the `verification_mode` field continue to work unchanged.
+- **`keyless`** (Wave 6A — D1, this PR): short-lived Fulcio-issued
+  certificates plus Rekor inclusion proof. Implemented by
+  `sindri_registry::KeylessVerifier`. Gated behind the `keyless` cargo
+  feature (default-on; can be disabled with `--no-default-features` for
+  air-gapped builds without Rekor reachability). Required policy fields:
+  `verification_mode: keyless` plus `identity: { san_uri, issuer }` for
+  SAN matching.
+
+The keyless verifier implements the three-pronged trust check expected of
+sigstore consumers: (1) Fulcio certificate chain validation against a
+pinned root CA bundle, (2) SAN URI + OIDC issuer match against the
+registry's declared expected identity, (3) Rekor inclusion proof
+verification against a pinned Rekor public key. Bundle-format signatures
+(`cosign sign --bundle`) are fully offline-verifiable; legacy detached
+signatures fail closed pending the Wave-6 follow-up that adds online
+Rekor lookup.
+
 ## References
 
 - Research: `05-open-questions.md` Q7, `08-install-policy.md` §1 Gate 2, `10-registry-lifecycle.md` §8
+- Implementation: PR #220 (operational cosign), PR #228 (per-component cosign + carry-over),
+  PR for Wave 6A (keyless OIDC — closes deferred item D1)
