@@ -921,13 +921,8 @@ options:
             // New fields default cleanly:
             assert!(m.options.fields.is_empty());
             assert!(m.overrides.is_empty());
-            // ADR-026 Phase 0: every existing component must deserialize with
-            // an empty `auth` block (the field is `#[serde(default)]`).
-            assert!(
-                m.auth.is_empty(),
-                "{name}: expected empty auth requirements, got {:?}",
-                m.auth
-            );
+            // Auth may be empty (most components) or populated (Phase 3 migrations);
+            // we only assert successful deserialization here.
         }
     }
 
