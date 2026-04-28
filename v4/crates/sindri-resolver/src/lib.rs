@@ -1,9 +1,11 @@
 #![allow(dead_code)]
 
 pub mod admission;
+pub mod auth_binding;
 pub mod backend_choice;
 pub mod closure;
 pub mod error;
+pub mod ledger;
 pub mod lockfile_writer;
 pub mod version;
 
@@ -201,7 +203,33 @@ fn resolve_online(
         lockfile.components.push(resolved);
     }
 
-    // 5. Write lockfile
+    // 5. Auth-binding pass (ADR-027 §3, observability-only — Phase 1 of the
+    //    auth-aware implementation plan). Bindings are derived from any
+    //    ComponentManifests already attached to the resolved components
+    //    (today: only those loaded by callers that pre-populate the field;
+    //    full OCI-fetch integration arrives in a later wave). When no
+    //    manifests carry auth requirements, this pass produces zero
+    //    bindings and is a no-op.
+    let target_caps = collect_target_capabilities(&bom, &opts.target_name);
+    let comp_inputs = build_component_auth_inputs(&lockfile);
+    if !comp_inputs.is_empty() {
+        let inputs: Vec<auth_binding::ComponentAuthInput<'_>> = comp_inputs
+            .iter()
+            .map(|(addr, auth)| auth_binding::ComponentAuthInput {
+                address: addr.clone(),
+                auth,
+            })
+            .collect();
+        let targets = vec![auth_binding::TargetAuthInput {
+            target_id: opts.target_name.clone(),
+            capabilities: target_caps,
+        }];
+        let pass = auth_binding::bind_all(&inputs, &targets);
+        ledger::emit_pass_events(&inputs, &targets, &pass);
+        lockfile.auth_bindings = pass.bindings;
+    }
+
+    // 6. Write lockfile
     lockfile_writer::write_lockfile(&opts.lockfile_path, &lockfile)?;
 
     Ok(lockfile)
@@ -374,4 +402,36 @@ fn build_platform_manifest(
         overrides: Default::default(),
         auth: Default::default(),
     }
+}
+
+/// Stitch `Target::auth_capabilities()` (Phase 4) and
+/// `TargetConfig.provides:` (Phase 1) into the candidate list the binding
+/// algorithm consumes. Built-in targets currently advertise no intrinsic
+/// capabilities (Phase 4 fills these in), so today this returns the
+/// per-manifest `provides:` overrides only.
+fn collect_target_capabilities(
+    bom: &BomManifest,
+    target_name: &str,
+) -> Vec<sindri_core::auth::AuthCapability> {
+    bom.targets
+        .get(target_name)
+        .map(|tc| tc.provides.clone())
+        .unwrap_or_default()
+}
+
+/// Walk the resolved component list and pair each component's address
+/// with its declared [`AuthRequirements`]. Components without an attached
+/// manifest (the common case until OCI fetch lands) contribute nothing.
+fn build_component_auth_inputs(
+    lockfile: &Lockfile,
+) -> Vec<(String, sindri_core::auth::AuthRequirements)> {
+    let mut out = Vec::new();
+    for c in &lockfile.components {
+        if let Some(m) = &c.manifest {
+            if !m.auth.is_empty() {
+                out.push((c.id.to_address(), m.auth.clone()));
+            }
+        }
+    }
+    out
 }

@@ -305,6 +305,114 @@ pub enum AuthSource {
 }
 
 // =============================================================================
+// Auth binding (DDD-07 — aggregate root of the Auth-Bindings domain)
+// =============================================================================
+
+/// Status of an [`AuthBinding`] once the resolver has walked the candidate
+/// chain (DDD-07 §"Lifecycle states", excluding the transient `Redeemed`
+/// state which lives only at apply time).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+pub enum AuthBindingStatus {
+    /// A candidate source matched and was selected.
+    Bound,
+    /// No source matched, but the requirement is `optional: true` —
+    /// install proceeds with a warning.
+    Deferred,
+    /// No source matched and the requirement is non-optional — Gate 5
+    /// (Phase 2) will deny apply.
+    Failed,
+}
+
+/// A candidate that was considered but rejected by the binding algorithm
+/// (ADR-027 §3 "considered-but-rejected list").
+///
+/// Persisted into the lockfile so `sindri auth show` can explain *why* a
+/// particular source did not win.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+pub struct RejectedCandidate {
+    /// The capability id that was considered.
+    pub capability_id: String,
+    /// The source kind (the discriminant of [`AuthSource`]).
+    pub source_kind: String,
+    /// Reason for rejection (e.g. `"audience-mismatch"`,
+    /// `"scope-mismatch"`, `"duplicate"`).
+    pub reason: String,
+}
+
+/// The aggregate root of the Auth-Bindings domain (DDD-07 §"Core
+/// Aggregate"). Computed at resolve time; persisted in the per-target
+/// lockfile.
+///
+/// The binding records *references only* — no resolved credential value
+/// can ever live here (DDD-07 invariant 3 "no value capture").
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+pub struct AuthBinding {
+    /// Deterministic id: `sha256(component_address || requirement.name ||
+    /// target_id)` truncated to 16 hex chars. Stable across hosts so
+    /// lockfile diffs reflect intent changes only (DDD-07 invariant 4).
+    pub id: String,
+    /// Component address (e.g. `npm:claude-code`).
+    pub component: String,
+    /// Requirement name within the component manifest.
+    pub requirement: String,
+    /// Audience canonicalised to lower-case. Equal to
+    /// `req.audience == source.audience` (DDD-07 invariant 1).
+    pub audience: String,
+    /// Target name (key in `BomManifest.targets`).
+    pub target: String,
+    /// The bound source (None if status is `Deferred` or `Failed`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<AuthSource>,
+    /// Capability priority that won (0 if none).
+    #[serde(default)]
+    pub priority: i32,
+    /// Lifecycle state of the binding.
+    pub status: AuthBindingStatus,
+    /// Reason string when `status` is `Deferred` or `Failed`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+    /// Other candidates that were considered but rejected (ordered as
+    /// walked).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub considered: Vec<RejectedCandidate>,
+}
+
+/// Discriminant string for an [`AuthSource`] — used by the binding
+/// algorithm's tie-breaker and by [`RejectedCandidate::source_kind`].
+///
+/// The order also defines the deterministic tie-breaker when capability
+/// priorities are equal (ADR-027 §3 "Stable order"):
+/// `FromSecretsStore` > `FromEnv` > `FromFile` > `FromCli` >
+/// `FromUpstreamCredentials` > `FromOAuth` > `Prompt`.
+pub fn auth_source_kind(s: &AuthSource) -> &'static str {
+    match s {
+        AuthSource::FromSecretsStore { .. } => "from-secrets-store",
+        AuthSource::FromEnv { .. } => "from-env",
+        AuthSource::FromFile { .. } => "from-file",
+        AuthSource::FromCli { .. } => "from-cli",
+        AuthSource::FromUpstreamCredentials => "from-upstream-credentials",
+        AuthSource::FromOAuth { .. } => "from-oauth",
+        AuthSource::Prompt => "prompt",
+    }
+}
+
+/// Sort rank for [`auth_source_kind`] — lower is preferred.
+pub fn auth_source_rank(s: &AuthSource) -> u8 {
+    match s {
+        AuthSource::FromSecretsStore { .. } => 0,
+        AuthSource::FromEnv { .. } => 1,
+        AuthSource::FromFile { .. } => 2,
+        AuthSource::FromCli { .. } => 3,
+        AuthSource::FromUpstreamCredentials => 4,
+        AuthSource::FromOAuth { .. } => 5,
+        AuthSource::Prompt => 6,
+    }
+}
+
+// =============================================================================
 // Secret reference (minimal, until `sindri-secrets` lands)
 // =============================================================================
 

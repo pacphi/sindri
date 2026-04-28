@@ -1,0 +1,97 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.sindri.dev/v4/lock.json",
+  "title": "Lockfile",
+  "description": "Sindri v4 per-target lockfile (sindri.lock / sindri.<target>.lock). ADR-018 (per-target lockfiles), ADR-027 §3 (auth_bindings, Phase 1 observability-only).",
+  "type": "object",
+  "required": ["version", "bom_hash", "target", "components"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "description": "Lockfile schema version. Currently 1."
+    },
+    "bom_hash": {
+      "type": "string",
+      "description": "SHA-256 (hex) of the source BOM manifest used to produce this lockfile."
+    },
+    "target": {
+      "type": "string",
+      "description": "Target name this lockfile pins (key of `BomManifest.targets`)."
+    },
+    "components": {
+      "type": "array",
+      "description": "Resolved components in topological order.",
+      "items": { "type": "object" }
+    },
+    "auth_bindings": {
+      "type": "array",
+      "description": "Auth bindings produced by the resolver's binding pass (ADR-027 §3, DDD-07 aggregate root). Phase 1 of the auth-aware implementation plan ships this field as observability-only — the apply path does not yet consume these entries (Phase 2 will). Existing lockfiles deserialize unchanged because the field defaults to an empty list.",
+      "default": [],
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "component",
+          "requirement",
+          "audience",
+          "target",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Deterministic 16-hex-char id: sha256(component || requirement || target). Stable across hosts (DDD-07 invariant 4)."
+          },
+          "component": {
+            "type": "string",
+            "description": "Component address (`backend:name[@qualifier]`)."
+          },
+          "requirement": {
+            "type": "string",
+            "description": "Requirement name within the component manifest."
+          },
+          "audience": {
+            "type": "string",
+            "description": "Canonicalised (lower-cased) audience string. Equal to req.audience == source.audience (DDD-07 invariant 1)."
+          },
+          "target": {
+            "type": "string",
+            "description": "Target name from the BOM manifest."
+          },
+          "source": {
+            "description": "Bound AuthSource (omitted when status is `deferred` or `failed`).",
+            "type": "object"
+          },
+          "priority": {
+            "type": "integer",
+            "description": "Capability priority that won. 0 when no source bound.",
+            "default": 0
+          },
+          "status": {
+            "type": "string",
+            "enum": ["bound", "deferred", "failed"],
+            "description": "Binding lifecycle state (DDD-07 §Lifecycle states)."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Free-form reason when status is `deferred` or `failed`."
+          },
+          "considered": {
+            "type": "array",
+            "description": "Candidates that were considered but rejected, with reasons (audience-mismatch, scope-mismatch, ...).",
+            "default": [],
+            "items": {
+              "type": "object",
+              "required": ["capability_id", "source_kind", "reason"],
+              "properties": {
+                "capability_id": { "type": "string" },
+                "source_kind": { "type": "string" },
+                "reason": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

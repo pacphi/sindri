@@ -1061,6 +1061,7 @@ mod tests {
             bom_hash: "abc".to_string(),
             target: "local".to_string(),
             components: vec![comp],
+            auth_bindings: Vec::new(),
         }
     }
 
@@ -1095,6 +1096,7 @@ mod tests {
             bom_hash: "x".to_string(),
             target: "local".to_string(),
             components: vec![comp],
+            auth_bindings: Vec::new(),
         };
         let dir = TempDir::new().unwrap();
         let path = write_lockfile(&dir, &lf);
@@ -1164,6 +1166,7 @@ mod tests {
             bom_hash: "x".to_string(),
             target: "local".to_string(),
             components: vec![],
+            auth_bindings: Vec::new(),
         };
         let dir = TempDir::new().unwrap();
         let path = write_lockfile(&dir, &lf);
