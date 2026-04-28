@@ -58,6 +58,7 @@ pub fn run(args: ResolveArgs) -> i32 {
         require_checksums: None,
         offline: Some(args.offline),
         audit: None,
+        auth: sindri_core::policy::AuthPolicy::default(),
     };
     if args.strict {
         policy.preset = sindri_core::policy::PolicyPreset::Strict;

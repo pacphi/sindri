@@ -22,7 +22,9 @@
 
 use crate::commands::apply_lifecycle::{install_one_with_bindings, ApplyError, ApplyOptions};
 use sindri_core::component::ComponentManifest;
-use sindri_core::exit_codes::{EXIT_RESOLUTION_CONFLICT, EXIT_STALE_LOCKFILE, EXIT_SUCCESS};
+use sindri_core::exit_codes::{
+    EXIT_POLICY_DENIED, EXIT_RESOLUTION_CONFLICT, EXIT_STALE_LOCKFILE, EXIT_SUCCESS,
+};
 use sindri_core::lockfile::ResolvedComponent;
 use sindri_core::platform::Platform;
 use sindri_extensions::redeemer::ledger as redeem_ledger;
@@ -103,6 +105,19 @@ async fn run_async(args: ApplyArgs) -> i32 {
             eprintln!("Lockfile is stale — `sindri.yaml` has changed. Run `sindri resolve` first.");
             return EXIT_STALE_LOCKFILE;
         }
+    }
+
+    // Gate 5: auth-resolvable admission (ADR-027 §5, Phase 2B).
+    // Evaluates the lockfile's auth_bindings BEFORE any side effects so
+    // a denied apply never partially installs.
+    let effective_policy = sindri_policy::load_effective_policy().policy;
+    let gate5 = sindri_policy::check_gate5(&lockfile.auth_bindings, &effective_policy.auth);
+    if !gate5.allowed {
+        eprintln!("[gate5] {}", gate5.message);
+        if let Some(fix) = &gate5.fix {
+            eprintln!("        fix: {}", fix);
+        }
+        return EXIT_POLICY_DENIED;
     }
 
     // reason: only `local` is wired through to a real Target in Wave 2A;
