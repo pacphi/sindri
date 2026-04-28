@@ -95,6 +95,57 @@ pub fn fetch_auth_capabilities<T: PluginTransport + ?Sized>(
     }
 }
 
+/// Fetch an interactive credential prompt response from a remote target via
+/// [`PluginTransport`] (Phase 2A — ADR-027 §6, plan §"Open Q2").
+///
+/// The CLI sends:
+/// ```jsonc
+/// {"method": "prompt_for_credential",
+///  "params": {"prompt": "...", "secret": true, "timeout_secs": 60}}
+/// ```
+///
+/// Plugins return:
+/// ```jsonc
+/// {"result": {"value": "<entered string>"}}
+/// ```
+///
+/// Behaviour, per ADR-027 §"Plugin protocol extension":
+/// - On success: returns `Ok(value)`. The value lives only in this call's
+///   stack frame and is dropped by the redeemer caller after one
+///   redemption pass — never persisted, never logged.
+/// - On `method-not-supported`: returns
+///   `Err(PluginRpcError{code: "method-not-supported", ...})` so callers
+///   can fall back to local stdin (the [`Target::prompt_for_credential`]
+///   trait default) or surface a precise diagnostic.
+/// - On decode / transport error: returns `Err(_)`.
+///
+/// Note: unlike [`fetch_auth_capabilities`], we **don't** soften
+/// `method-not-supported` to a default value here — the caller has to make
+/// an explicit policy choice about how to behave, because a missing
+/// `prompt_for_credential` in a remote target is a different failure mode
+/// from an empty capability list.
+pub fn prompt_for_credential_via_plugin<T: PluginTransport + ?Sized>(
+    transport: &T,
+    prompt: &str,
+    secret: bool,
+    timeout_secs: u64,
+) -> Result<String, PluginRpcError> {
+    let params = serde_json::json!({
+        "prompt": prompt,
+        "secret": secret,
+        "timeout_secs": timeout_secs,
+    });
+    let result = transport.call("prompt_for_credential", params)?;
+    let value = result
+        .get("value")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| PluginRpcError {
+            code: "decode-error".to_string(),
+            message: "missing string field `value` in prompt_for_credential response".to_string(),
+        })?;
+    Ok(value.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -202,5 +253,38 @@ mod tests {
         });
         let err = fetch_auth_capabilities(&t).unwrap_err();
         assert_eq!(err.code, "transport-broken");
+    }
+
+    #[test]
+    fn prompt_for_credential_round_trips_value() {
+        let t = MockTransport::ok(serde_json::json!({
+            "value": "user-entered-secret"
+        }));
+        let v = prompt_for_credential_via_plugin(&t, "API key:", true, 60).unwrap();
+        assert_eq!(v, "user-entered-secret");
+        assert_eq!(
+            t.last_method.borrow().as_deref(),
+            Some("prompt_for_credential")
+        );
+    }
+
+    #[test]
+    fn prompt_for_credential_missing_value_field_errors() {
+        let t = MockTransport::ok(serde_json::json!({}));
+        let err = prompt_for_credential_via_plugin(&t, "x", false, 0).unwrap_err();
+        assert_eq!(err.code, "decode-error");
+    }
+
+    #[test]
+    fn prompt_for_credential_method_not_supported_propagates() {
+        // Unlike fetch_auth_capabilities, the prompt RPC must SURFACE the
+        // method-not-supported error rather than swallow it — callers
+        // need an explicit fallback decision.
+        let t = MockTransport::err(PluginRpcError {
+            code: METHOD_NOT_SUPPORTED.to_string(),
+            message: "no prompt support".to_string(),
+        });
+        let err = prompt_for_credential_via_plugin(&t, "x", false, 0).unwrap_err();
+        assert!(err.is_method_not_supported());
     }
 }

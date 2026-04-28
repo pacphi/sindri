@@ -26,8 +26,8 @@ use sindri_core::component::ComponentManifest;
 use sindri_core::lockfile::ResolvedComponent;
 use sindri_core::platform::Platform;
 use sindri_extensions::{
-    ConfigureContext, ConfigureExecutor, ExtensionError, HookContext, HooksExecutor,
-    ValidateContext, ValidateExecutor,
+    AuthRedeemer, ComponentBindings, ConfigureContext, ConfigureExecutor, ExtensionError,
+    HookContext, HooksExecutor, RedeemedEnv, ValidateContext, ValidateExecutor,
 };
 use sindri_targets::Target;
 use std::path::PathBuf;
@@ -42,6 +42,10 @@ pub struct ApplyOptions {
     /// Filesystem root for `~`-expansion in [`ConfigureExecutor`]. Defaults
     /// to `$HOME` when `None`.
     pub home_dir: Option<PathBuf>,
+    /// If `true`, the redeemer is bypassed entirely for this run (apply
+    /// `--skip-auth`). The bypass is logged as `AuthSkippedByUser` per
+    /// component by the caller before invoking the lifecycle.
+    pub skip_auth: bool,
 }
 
 /// Outcome record for a single component's apply.
@@ -91,16 +95,49 @@ pub async fn install_one(
     platform: &Platform,
     options: &ApplyOptions,
 ) -> Result<ApplyOutcome, ApplyError> {
+    install_one_with_bindings(comp, manifest, target, platform, options, None).await
+}
+
+/// Variant of [`install_one`] that also runs the auth redeemer for this
+/// component's bindings (Phase 2A). When `bindings` is `None` (or empty),
+/// behaviour is identical to [`install_one`].
+///
+/// The redemption flow per ADR-027 §6:
+/// 1. **Install / Both** scope bindings are redeemed *before* `pre_install`,
+///    so the credential reaches the install command's environment.
+/// 2. **Runtime** scope bindings are redeemed *after* `post_install`, so
+///    the installed tool sees them on first run; cleanup happens at the
+///    end of this function regardless of which scope ran.
+pub async fn install_one_with_bindings(
+    comp: &ResolvedComponent,
+    manifest: Option<&ComponentManifest>,
+    target: &dyn Target,
+    platform: &Platform,
+    options: &ApplyOptions,
+    bindings: Option<&ComponentBindings<'_>>,
+) -> Result<ApplyOutcome, ApplyError> {
     let mut outcome = ApplyOutcome::default();
     let component_name = comp.id.name.as_str();
     let version = comp.version.0.as_str();
     let hooks = manifest.and_then(|m| m.capabilities.hooks.as_ref());
 
     let hooks_executor = HooksExecutor::new();
+    let redeemer = AuthRedeemer::new();
 
-    // Step 1: pre-install hook.
+    // Step 0a: redeem Install/Both bindings (before pre-install).
+    let mut install_env = RedeemedEnv::empty();
+    if !options.skip_auth {
+        if let Some(cb) = bindings {
+            install_env = redeemer
+                .redeem_install_scope(cb, target)
+                .map_err(|e: ExtensionError| ApplyError::Extension(e))?;
+        }
+    }
+
+    // Step 1: pre-install hook (with redeemed env, if any).
     if let Some(h) = hooks {
-        let ctx = hook_ctx(component_name, version, target);
+        let env_pairs = install_env.env_borrowed();
+        let ctx = hook_ctx_with_env(component_name, version, target, &env_pairs);
         hooks_executor.run_pre_install(h, &ctx).await?;
         if h.pre_install.is_some() {
             outcome.hooks_ran += 1;
@@ -145,12 +182,28 @@ pub async fn install_one(
 
     // Step 5: post-install hook.
     if let Some(h) = hooks {
-        let ctx = hook_ctx(component_name, version, target);
+        let env_pairs = install_env.env_borrowed();
+        let ctx = hook_ctx_with_env(component_name, version, target, &env_pairs);
         hooks_executor.run_post_install(h, &ctx).await?;
         if h.post_install.is_some() {
             outcome.hooks_ran += 1;
         }
     }
+
+    // Step 5b: redeem Runtime-scope bindings (after install completes).
+    let mut runtime_env = RedeemedEnv::empty();
+    if !options.skip_auth {
+        if let Some(cb) = bindings {
+            runtime_env = redeemer
+                .redeem_runtime_scope(cb, target)
+                .map_err(|e: ExtensionError| ApplyError::Extension(e))?;
+        }
+    }
+
+    // Step 6: cleanup. Always runs — idempotent, best-effort. Persist=true
+    // entries survive; transient files are deleted.
+    redeemer.cleanup(&install_env, target.name());
+    redeemer.cleanup(&runtime_env, target.name());
 
     Ok(outcome)
 }
@@ -164,6 +217,24 @@ fn hook_ctx<'a>(component: &'a str, version: &'a str, target: &'a dyn Target) ->
         version,
         target,
         env: &[],
+        workdir: ".",
+    }
+}
+
+/// Same as [`hook_ctx`] but threads a borrowed env slice through to the
+/// hook command. Used when the redeemer has produced env vars that must
+/// reach the install command.
+fn hook_ctx_with_env<'a>(
+    component: &'a str,
+    version: &'a str,
+    target: &'a dyn Target,
+    env: &'a [(&'a str, &'a str)],
+) -> HookContext<'a> {
+    HookContext {
+        component,
+        version,
+        target,
+        env,
         workdir: ".",
     }
 }
@@ -321,6 +392,7 @@ mod tests {
         ApplyOptions {
             env_dir: Some(env.path().to_path_buf()),
             home_dir: Some(home.path().to_path_buf()),
+            skip_auth: false,
         }
     }
 

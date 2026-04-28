@@ -207,6 +207,13 @@ enum Commands {
         dry_run: bool,
         #[arg(long, default_value = "local")]
         target: String,
+        /// Bypass auth-aware credential redemption (Phase 2A, ADR-027).
+        /// Use only as an emergency override. Every component whose
+        /// redemption was skipped emits an `AuthSkippedByUser` ledger
+        /// event so the bypass is auditable. Required-binding presence
+        /// is still enforced by Gate 5 unless that gate is also relaxed.
+        #[arg(long)]
+        skip_auth: bool,
     },
 }
 
@@ -458,10 +465,12 @@ fn main() {
             yes,
             dry_run,
             target,
+            skip_auth,
         }) => commands::apply::run(commands::apply::ApplyArgs {
             yes,
             dry_run,
             target,
+            skip_auth,
         }),
         None => {
             use clap::CommandFactory;
