@@ -1,6 +1,7 @@
 use crate::error::ResolverError;
 use sindri_core::component::{Backend, ComponentId};
 use sindri_core::lockfile::{Lockfile, ResolvedComponent};
+use sindri_core::platform::Platform;
 use sindri_core::registry::ComponentEntry;
 use sindri_core::version::Version;
 use std::fs;
@@ -77,6 +78,11 @@ pub fn read_lockfile(path: &Path) -> Result<Lockfile, ResolverError> {
 /// `policy.require_signed_registries=true`, apply will fail closed for
 /// components missing this field.
 ///
+/// `platforms` carries the component's platform constraints (from its
+/// `component.yaml`) so that `--offline` resolves can run Gate 1 without a
+/// network call (Wave 6A / ADR-008). Pass `None` when the component manifest
+/// has not been loaded.
+///
 /// Per ADR-003 audit-delta (Wave 3A.2): the registry-level `manifest_digest`
 /// remains as an integrity tie-in for "this lockfile was resolved against
 /// this exact `index.yaml` snapshot." The new `component_digest` is the
@@ -87,6 +93,7 @@ pub fn resolved_from_entry(
     _bom_address: &str,
     registry_manifest_digest: Option<&str>,
     component_digest: Option<&str>,
+    platforms: Option<Vec<Platform>>,
 ) -> ResolvedComponent {
     let id = ComponentId {
         backend: chosen_backend.clone(),
@@ -105,6 +112,9 @@ pub fn resolved_from_entry(
         manifest: None,
         manifest_digest: registry_manifest_digest.map(|s| s.to_string()),
         component_digest: component_digest.map(|s| s.to_string()),
+        // Wave 6A: platform constraints from the component manifest, used by
+        // the offline Gate 1 path (ADR-008).
+        platforms,
     }
 }
 
@@ -153,7 +163,8 @@ mod tests {
         // non-OCI location) MUST leave `component_digest` as None. The
         // contract is documented on `resolved_from_entry`.
         let e = entry("local-tool", "registry:local:/tmp/fixtures/registry");
-        let resolved = resolved_from_entry(&e, Backend::Binary, "binary:local-tool", None, None);
+        let resolved =
+            resolved_from_entry(&e, Backend::Binary, "binary:local-tool", None, None, None);
         assert!(resolved.component_digest.is_none());
     }
 
@@ -161,7 +172,8 @@ mod tests {
     fn resolved_component_carries_digest_when_provided() {
         let e = entry("nodejs", "ghcr.io/sindri-dev/registry-core/nodejs:22.0.0");
         let digest = "sha256:deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef";
-        let resolved = resolved_from_entry(&e, Backend::Mise, "mise:nodejs", None, Some(digest));
+        let resolved =
+            resolved_from_entry(&e, Backend::Mise, "mise:nodejs", None, Some(digest), None);
         assert_eq!(resolved.component_digest.as_deref(), Some(digest));
     }
 }

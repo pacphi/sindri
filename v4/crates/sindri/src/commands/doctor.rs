@@ -1053,6 +1053,7 @@ mod tests {
             manifest: Some(manifest),
             manifest_digest: None,
             component_digest: None,
+            platforms: None,
         };
         Lockfile {
             version: 1,
@@ -1086,6 +1087,7 @@ mod tests {
             manifest: None,
             manifest_digest: None,
             component_digest: None,
+            platforms: None,
         };
         let lf = Lockfile {
             version: 1,

@@ -32,7 +32,7 @@ pub fn run(args: ResolveArgs) -> i32 {
         return EXIT_SCHEMA_OR_RESOLVE_ERROR;
     }
 
-    // Determine lockfile path — per-target (ADR-018)
+    // Determine lockfile path -- per-target (ADR-018)
     let lock_name = if args.target == "local" {
         "sindri.lock".to_string()
     } else {
@@ -92,6 +92,13 @@ pub fn run(args: ResolveArgs) -> i32 {
         prefetch_component_digests(&manifest_path, &registry)
     };
 
+    // Wave 6A: locate the registry cache root so the resolver can load
+    // per-component manifests and persist their `platforms` lists in the
+    // lockfile. This enables Gate 1 (ADR-008) to fire on subsequent
+    // `--offline` resolves without any network calls.
+    let registry_cache_root =
+        sindri_core::paths::home_dir().map(|h| h.join(".sindri").join("cache").join("registries"));
+
     let opts = sindri_resolver::ResolveOptions {
         manifest_path: manifest_path.clone(),
         lockfile_path: lockfile_path.clone(),
@@ -102,6 +109,7 @@ pub fn run(args: ResolveArgs) -> i32 {
         registry_manifest_digest,
         target_kind,
         component_digests,
+        registry_cache_root,
     };
 
     match sindri_resolver::resolve(&opts, &registry, &policy, &platform) {
@@ -114,7 +122,7 @@ pub fn run(args: ResolveArgs) -> i32 {
                 );
             } else {
                 println!(
-                    "Resolved {} component(s) → {}",
+                    "Resolved {} component(s) -> {}",
                     lockfile.components.len(),
                     lockfile_path.display()
                 );

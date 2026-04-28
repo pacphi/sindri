@@ -21,6 +21,7 @@ platforms:
 install:
   binary:
     url_template: "https://github.com/cli/cli/releases/download/v{version}/gh_{version}_{os}_{arch}.tar.gz"
+    checksums: {}
     install_path: "~/.local/bin/gh"
 
 depends_on: []

@@ -148,6 +148,7 @@ mod tests {
             manifest: None,
             manifest_digest: None,
             component_digest: None,
+            platforms: None,
         };
         let ctx = InstallContext::new(&comp, None, &target);
         let err = ScriptBackend.install(&ctx).await.unwrap_err();

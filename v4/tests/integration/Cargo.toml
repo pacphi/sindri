@@ -60,3 +60,7 @@ tokio = { workspace = true }
 [[test]]
 name = "secrets_oauth_token_flow"
 path = "tests/secrets_oauth_token_flow.rs"
+
+[[test]]
+name = "offline_gate1_denies_unsupported_platform"
+path = "tests/offline_gate1_denies_unsupported_platform.rs"
