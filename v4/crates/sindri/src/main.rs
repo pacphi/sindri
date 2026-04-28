@@ -369,8 +369,18 @@ enum TargetSubcmds {
         #[arg(long)]
         value: Option<String>,
     },
-    /// EXPERIMENTAL: diff sindri.yaml against the on-disk infra lock for a target
-    Update { name: String },
+    /// Reconcile `targets.<name>.infra` in sindri.yaml with the on-disk infra
+    /// lock — Terraform-plan-style classifier with destructive-prompt gating
+    /// (Wave 5E, audit D2).
+    Update {
+        name: String,
+        /// Skip the interactive confirmation before destructive actions.
+        #[arg(long)]
+        auto_approve: bool,
+        /// Disable colorized plan output.
+        #[arg(long)]
+        no_color: bool,
+    },
     /// Plugin management (ADR-019)
     Plugin {
         #[command(subcommand)]
@@ -634,7 +644,15 @@ fn main() {
                 TargetSubcmds::Start { name } => TargetCmd::Start { name },
                 TargetSubcmds::Stop { name } => TargetCmd::Stop { name },
                 TargetSubcmds::Auth { name, value } => TargetCmd::Auth { name, value },
-                TargetSubcmds::Update { name } => TargetCmd::Update { name },
+                TargetSubcmds::Update {
+                    name,
+                    auto_approve,
+                    no_color,
+                } => TargetCmd::Update {
+                    name,
+                    auto_approve,
+                    no_color,
+                },
                 TargetSubcmds::Plugin { cmd } => {
                     let sub = match cmd {
                         TargetPluginSubcmds::Ls => PluginSub::Ls,
