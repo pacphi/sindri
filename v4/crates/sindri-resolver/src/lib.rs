@@ -692,10 +692,15 @@ mod strict_oci_tests {
     }
 
     #[test]
-    fn exit_code_for_source_not_production_grade_is_admission_2() {
+    fn exit_code_for_source_not_production_grade_is_strict_oci_denied_7() {
+        // ADR-012 §7: strict-OCI denial uses its own exit code so CI can
+        // distinguish it from generic policy denials (EXIT_POLICY_DENIED = 2).
         let err = ResolverError::SourceNotProductionGrade {
             offenders: vec![("mise:nodejs".into(), "local-path".into())],
         };
-        assert_eq!(err.exit_code(), 2);
+        assert_eq!(
+            err.exit_code(),
+            sindri_core::exit_codes::EXIT_STRICT_OCI_DENIED
+        );
     }
 }

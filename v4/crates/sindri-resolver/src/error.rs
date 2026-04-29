@@ -1,3 +1,6 @@
+use sindri_core::exit_codes::{
+    EXIT_POLICY_DENIED, EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_STALE_LOCKFILE, EXIT_STRICT_OCI_DENIED,
+};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -45,15 +48,17 @@ pub enum ResolverError {
 impl ResolverError {
     pub fn exit_code(&self) -> i32 {
         match self {
-            ResolverError::AdmissionDenied { .. }
-            | ResolverError::SourceNotProductionGrade { .. } => 2,
-            ResolverError::LockfileStale => 5,
+            // Strict-OCI source denial gets its own exit code so CI can
+            // distinguish it from generic admission failures (ADR-028, ADR-012).
+            ResolverError::SourceNotProductionGrade { .. } => EXIT_STRICT_OCI_DENIED,
+            ResolverError::AdmissionDenied { .. } => EXIT_POLICY_DENIED,
+            ResolverError::LockfileStale => EXIT_STALE_LOCKFILE,
             ResolverError::NotFound(_)
             | ResolverError::VersionConflict(_)
             | ResolverError::CycleDetected(_)
             | ResolverError::Registry(_)
-            | ResolverError::Serialization(_) => 4,
-            ResolverError::Io(_) => 4,
+            | ResolverError::Serialization(_)
+            | ResolverError::Io(_) => EXIT_SCHEMA_OR_RESOLVE_ERROR,
         }
     }
 }
