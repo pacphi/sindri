@@ -1,5 +1,162 @@
 {
   "$defs": {
+    "AuthCapability": {
+      "description": "What a target advertises it can fulfill (ADR-027 §1).\n\nReturned by `Target::auth_capabilities()` (added in Phase 1) and\ndeclarable per-target via `TargetConfig.provides`.",
+      "properties": {
+        "audience": {
+          "description": "Audience the produced credential is valid for. Must match a\nrequirement's audience (ADR-026 §\"Audience binding\") to bind.",
+          "type": "string"
+        },
+        "id": {
+          "description": "Capability id (e.g. `github_token`, `anthropic_api_key`, `aws_sso`).",
+          "type": "string"
+        },
+        "priority": {
+          "default": 0,
+          "description": "Priority for resolver tie-breaking (higher = preferred). Default `0`.",
+          "format": "int32",
+          "type": "integer"
+        },
+        "source": {
+          "$ref": "#/$defs/AuthSource",
+          "description": "Where this credential physically comes from when redeemed."
+        }
+      },
+      "required": [
+        "id",
+        "audience",
+        "source"
+      ],
+      "type": "object"
+    },
+    "AuthSource": {
+      "description": "Where a credential value physically comes from when redeemed (ADR-027 §1).",
+      "oneOf": [
+        {
+          "description": "Resolve via `sindri-secrets` (Vault, S3, KV).",
+          "properties": {
+            "backend": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "from-secrets-store",
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "backend",
+            "path"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Resolve from environment variable on the target.",
+          "properties": {
+            "kind": {
+              "const": "from-env",
+              "type": "string"
+            },
+            "var": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "var"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Resolve from a file readable on the target.",
+          "properties": {
+            "kind": {
+              "const": "from-file",
+              "type": "string"
+            },
+            "mode": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Delegate to an installed CLI (mirrors `cli:` of ADR-020).",
+          "properties": {
+            "command": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "from-cli",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "command"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Reuse the target's own upstream auth (e.g. the target's session token\ndoubles as a child-workload credential).",
+          "properties": {
+            "kind": {
+              "const": "from-upstream-credentials",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Run an OAuth device flow\n(ADR-026 → `DiscoveryHints.oauth_provider`).",
+          "properties": {
+            "kind": {
+              "const": "from-oauth",
+              "type": "string"
+            },
+            "provider": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "provider"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Interactive prompt (TTY only; rejected in `--ci` mode by Gate 5).",
+          "properties": {
+            "kind": {
+              "const": "prompt",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        }
+      ]
+    },
     "BomEntry": {
       "description": "An entry in the BOM manifest referencing a component",
       "properties": {
@@ -69,6 +226,17 @@
     },
     "RegistryConfig": {
       "properties": {
+        "identity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RegistryIdentity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The expected SAN URI + OIDC issuer for keyless mode. Required when\n`verification_mode == \"keyless\"`; ignored otherwise."
+        },
         "name": {
           "type": "string"
         },
@@ -82,13 +250,45 @@
             }
           ]
         },
+        "trust_overrides": {
+          "description": "Wave 6A.1 — per-component trust scoping (ADR-014, follow-up to PR #228 + #237).\n\nEach entry narrows the trust set for components whose canonical\naddress matches `component_glob`. Most-specific glob wins\n(longest-pattern tie-break); when no entry matches, the verifier\nfalls back to the registry-level `trust` / `identity` fields.\n\nFail-closed semantics: under\n`policy.require_signed_registries=true` a component that matches\nneither an override **nor** registry-level trust is rejected.",
+          "items": {
+            "$ref": "#/$defs/TrustOverride"
+          },
+          "type": "array"
+        },
         "url": {
           "type": "string"
+        },
+        "verification_mode": {
+          "description": "Wave 6A — ADR-014 D1: cosign verification mode for this registry.\n\n- `key-based` (default, omit-able): existing flow, loads\n  `~/.sindri/trust/<name>/cosign-*.pub`.\n- `keyless`: short-lived Fulcio cert + Rekor inclusion proof.\n  When set, the registry SHOULD also populate `identity` so the\n  verifier can SAN-match.\n\nField is `Option<String>` rather than the typed\n`sindri_registry::VerificationMode` to keep the core crate free\nof a registry-crate dep (avoids a cycle); the registry crate\nparses + validates the string at load time.",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "required": [
         "name",
         "url"
+      ],
+      "type": "object"
+    },
+    "RegistryIdentity": {
+      "description": "Mirror of `sindri_registry::keyless::KeylessIdentity` — duplicated\nhere so `sindri-core` doesn't depend on `sindri-registry` (which\nwould introduce a cycle, since the registry crate already depends on\ncore for `BomEntry` etc.). The registry crate converts via\n`From<&RegistryIdentity>`.",
+      "properties": {
+        "issuer": {
+          "description": "The expected OIDC issuer URL (e.g.\n`https://token.actions.githubusercontent.com`).",
+          "type": "string"
+        },
+        "san_uri": {
+          "description": "The expected SAN URI extension in the Fulcio-issued certificate\n(e.g. a GitHub Actions workflow run URL).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "san_uri",
+        "issuer"
       ],
       "type": "object"
     },
@@ -106,6 +306,13 @@
         "infra": true,
         "kind": {
           "type": "string"
+        },
+        "provides": {
+          "description": "User-visible overrides of (or additions to) the target's intrinsic\nauth capabilities (ADR-027 §\"Per-target manifest extension\"). Empty by\ndefault; existing target configs deserialize unchanged.",
+          "items": {
+            "$ref": "#/$defs/AuthCapability"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -121,6 +328,40 @@
       },
       "required": [
         "signer"
+      ],
+      "type": "object"
+    },
+    "TrustOverride": {
+      "description": "Per-component trust scope (Wave 6A.1).\n\nLets a single registry publish artifacts signed by multiple teams /\nkeys / Fulcio identities — a common pattern when an organisation\nshares one OCI registry across product groups.\n\nEither [`Self::keys`] (key-based override) or [`Self::identity`]\n(keyless override) should be set; setting both is allowed and means\nthe component can verify under either mode (whichever the cosign\nsignature actually used).",
+      "properties": {
+        "component_glob": {
+          "description": "Glob pattern matched against the component's canonical address\n(e.g. `\"mise:nodejs\"`, `\"team-foo/*\"`, `\"team-bar/specific@v1\"`).\n`*` matches any run of characters except `/`; `**` matches any\nrun including `/`. Most-specific match (longest pattern) wins.",
+          "type": "string"
+        },
+        "identity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RegistryIdentity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Keyless trust override — SAN URI + OIDC issuer pair the\nFulcio-issued cert must match exactly."
+        },
+        "keys": {
+          "description": "Key-based trust override — list of paths to PEM-encoded P-256\npublic keys. Resolved relative to the manifest file at load time.\nVerifier accepts if any key matches.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "component_glob"
       ],
       "type": "object"
     },

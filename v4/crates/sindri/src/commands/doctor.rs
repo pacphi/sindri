@@ -1197,6 +1197,7 @@ mod tests {
             manifest_digest: None,
             component_digest: None,
             platforms: None,
+            source: None,
         };
         Lockfile {
             version: 1,
@@ -1232,6 +1233,7 @@ mod tests {
             manifest_digest: None,
             component_digest: None,
             platforms: None,
+            source: None,
         };
         let lf = Lockfile {
             version: 1,

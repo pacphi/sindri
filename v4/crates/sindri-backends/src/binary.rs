@@ -143,6 +143,7 @@ mod tests {
             manifest_digest: None,
             component_digest: None,
             platforms: None,
+            source: None,
         };
         let ctx = InstallContext::new(&c, None, &mock);
         // Empty-checksum path: backend logs a warn and returns Ok without

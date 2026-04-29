@@ -265,6 +265,8 @@ sources." Neither weakens the supply-chain story:
 
 ## References
 
+- [SOURCES.md](../SOURCES.md) — maintainer guide: when to reach for each source,
+  composition rules, `--strict-oci` semantics
 - ADR-003 (OCI-only registry distribution) §"Local development loader"
 - ADR-014 (Signed registries with cosign) §"Trust model"
 - ADR-016 (Registry tag cadence)

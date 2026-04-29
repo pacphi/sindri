@@ -1,8 +1,8 @@
 # Sindri v4 Registry
 
-This document covers the OCI registry design, cosign verification flow, the publish workflow, and sequence diagrams for the two critical runtime operations: `resolve` and `apply`. It is aimed at registry maintainers and platform engineers who need to operate or mirror a Sindri registry. Component authors who only want to write manifests should start with [AUTHORING.md](AUTHORING.md).
+This document covers the OCI registry design, cosign verification flow, the publish workflow, and sequence diagrams for the two critical runtime operations: `resolve` and `apply`. It is aimed at registry maintainers and platform engineers who need to operate or mirror a Sindri registry. Component authors who only want to write manifests should start with [AUTHORING.md](AUTHORING.md). For the layer *above* OCI — how the four registry source modes (`oci`, `local-path`, `git`, `local-oci`) compose and when to reach for each — see [SOURCES.md](SOURCES.md).
 
-Design decisions are documented in [ADR-003](architecture/adr/003-oci-only-registry-distribution.md) (OCI-only transport), [ADR-014](architecture/adr/014-signed-registries-cosign.md) (cosign signing), and [ADR-016](architecture/adr/016-registry-tag-cadence.md) (tag cadence).
+Design decisions are documented in [ADR-003](architecture/adr/003-oci-only-registry-distribution.md) (OCI-only transport), [ADR-014](architecture/adr/014-signed-registries-cosign.md) (cosign signing), [ADR-016](architecture/adr/016-registry-tag-cadence.md) (tag cadence), and [ADR-028](ADRs/028-component-source-modes.md) (component source modes).
 
 ---
 

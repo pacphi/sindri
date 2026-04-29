@@ -1,6 +1,7 @@
 use crate::auth::AuthBinding;
 use crate::component::{Backend, ComponentId, ComponentManifest};
 use crate::platform::Platform;
+use crate::source_descriptor::SourceDescriptor;
 use crate::version::Version;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -94,6 +95,17 @@ pub struct ResolvedComponent {
     /// pre-Wave-6A lockfiles that omit the field entirely.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub platforms: Option<Vec<Platform>>,
+    /// Lockfile-stable [`SourceDescriptor`] for this component (DDD-08,
+    /// ADR-028). Records which source produced the resolved blob so
+    /// `sindri apply` can refetch identically.
+    ///
+    /// Phase 1 backwards-compat: pre-Phase-1.3 lockfiles do not carry this
+    /// field. Readers reconstruct an `Oci { ... }` descriptor from the
+    /// historical `oci_digest` field when this is `None` — see
+    /// `sindri_resolver::lockfile_writer::backfill_legacy_source` for the
+    /// shim and the warning emitted on first read.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<SourceDescriptor>,
 }
 
 #[cfg(test)]
@@ -117,6 +129,7 @@ mod tests {
             manifest_digest,
             component_digest: None,
             platforms: None,
+            source: None,
         }
     }
 

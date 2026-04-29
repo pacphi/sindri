@@ -51,10 +51,10 @@ for existing users.
 - [ ] Move `sindri-registry/src/local.rs` to `sindri-registry/src/source/local_path.rs`.
 - [ ] Implement `Source` for `LocalPathSource`. `fetch_index` walks the path, reads
   `component.yaml` files, builds an in-memory `RegistryIndex`.
-- [ ] Add a deprecation type alias `pub type LocalRegistry = LocalPathSource;` retained
-  for one release.
-- [ ] Tests: re-target the existing `LocalRegistry` test suite at the new type via the
-  alias; add three new tests covering the scope filter.
+- [ ] Remove the old `LocalRegistry` symbol outright (v4 has no external consumers,
+  so no transitional alias is kept).
+- [ ] Tests: re-target the existing tests at `LocalPathSource`; add three new tests
+  covering the scope filter.
 
 #### 1.3 Resolver wiring
 
@@ -206,8 +206,12 @@ exist.
 
 - [ ] Append a section to `v4/docs/MIGRATION_FROM_V3.md` (or seed the file) explaining
   how v3's "resolve from GitHub" maps to a v4 `git` source, and how v3's bundled
-  registry pattern maps to `local-oci`.
+  registry pattern maps to `local-oci`. Cross-link to
+  [`v4/docs/SOURCES.md`](../SOURCES.md) (the maintainer guide, authored in
+  Phase 1) rather than duplicating its decision matrix.
 - [ ] Cross-link from ADR-003 §"Air-gapped / offline" once the migration doc lands.
+- [ ] Update SOURCES.md "Phase status" table as Phases 2/3 land so its source-by-source
+  status stays accurate.
 
 ### Acceptance criteria
 

@@ -66,6 +66,7 @@ mod tests {
             manifest_digest: None,
             component_digest: None,
             platforms: None,
+            source: None,
         }
     }
 

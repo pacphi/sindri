@@ -212,9 +212,10 @@ is true. CI templates flip this on; inner-loop development leaves it off.
 - `oci.rs`           — `OciSource`; wraps existing `RegistryClient`
 - `local_oci.rs`     — `LocalOciSource`; reads OCI image layout via `oci-spec`/`sigstore-rs`
 
-`sindri-registry/src/local.rs` (the existing `LocalRegistry`) is refactored into
-`source/local_path.rs` with no behavior change; the public API gains the new
-`Source` trait but keeps the old `LocalRegistry` type alias for one release.
+The existing `sindri-registry/src/local.rs` is refactored into
+`source/local_path.rs` and the `LocalRegistry` symbol is removed outright —
+v4 has no external consumers, so the old name is replaced by `LocalPathSource`
+without a transitional alias.
 
 ## Ubiquitous Language additions
 
@@ -225,3 +226,8 @@ is true. CI templates flip this on; inner-loop development leaves it off.
 | **Strict OCI mode**   | The CI/production gate (`--strict-oci`) that fails resolve unless every source is OCI-with-signature. |
 | **Bundle / local-oci**| An on-disk OCI image layout (v1.1) consumed without network access.                                 |
 | **Source scope**      | Optional component-name allowlist on a source; non-matching components fall through to the next source. |
+
+## See also
+
+- [SOURCES.md](../SOURCES.md) — maintainer-facing guide to when each source is the right tool, with concrete use cases and a `local-path` vs `local-oci` comparison.
+- [ADR-028](../ADRs/028-component-source-modes.md) — the decision record this domain implements.

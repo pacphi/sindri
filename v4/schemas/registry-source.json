@@ -1,0 +1,184 @@
+{
+  "$defs": {
+    "ComponentName": {
+      "description": "Newtype wrapper around the canonical component name (the `name` field of\na `ComponentEntry`). Kept small and stringy in Phase 1 so we don't have\nto thread a richer type through every `ComponentEntry` call site; future\nphases may promote this into `sindri-core` and tighten validation.",
+      "type": "string"
+    },
+    "GitSource": {
+      "description": "Phase-3 stub — resolves components from a Git repository.",
+      "properties": {
+        "git_ref": {
+          "description": "Branch, tag, or sha.",
+          "type": "string"
+        },
+        "require_signed": {
+          "default": false,
+          "description": "When `true`, unsigned commits are rejected.",
+          "type": "boolean"
+        },
+        "scope": {
+          "description": "Optional component-name allow-list.",
+          "items": {
+            "$ref": "#/$defs/ComponentName"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "subdir": {
+          "description": "Optional sub-directory inside the repo where `index.yaml` lives.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "url": {
+          "description": "Repository URL.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "git_ref"
+      ],
+      "type": "object"
+    },
+    "LocalOciSource": {
+      "description": "Phase-2 stub — reads OCI image layouts on disk.",
+      "properties": {
+        "layout_path": {
+          "description": "OCI image-layout directory (v1.1).",
+          "type": "string"
+        },
+        "scope": {
+          "description": "Optional component-name allow-list.",
+          "items": {
+            "$ref": "#/$defs/ComponentName"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "layout_path"
+      ],
+      "type": "object"
+    },
+    "LocalPathSource": {
+      "description": "A filesystem-path registry source — DDD-08 §\"`LocalPathSource`\".\n\n`path` is a directory containing `index.yaml` at its root. Per-component\n`component.yaml` files live under `components/<name>/component.yaml`\n(or `collections/<name>/component.yaml` for collection kinds).",
+      "properties": {
+        "path": {
+          "description": "Root directory of the on-disk registry layout.",
+          "type": "string"
+        },
+        "scope": {
+          "description": "Optional component-name allow-list. When `Some`, the resolver skips\nany component whose name is not in this list and falls through to the\nnext source in declared order.",
+          "items": {
+            "$ref": "#/$defs/ComponentName"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "type": "object"
+    },
+    "OciSource": {
+      "description": "Phase-2 stub — the production OCI client wrapper. Carries the descriptor\nshape from DDD-08 so the enum variant is real today, but every trait method\nreturns [`SourceError::NotImplemented`] until Phase 2 wires it to\n[`crate::client::RegistryClient`].",
+      "properties": {
+        "scope": {
+          "description": "Optional component-name allow-list.",
+          "items": {
+            "$ref": "#/$defs/ComponentName"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "tag": {
+          "description": "Tag (e.g. `2026.05`).",
+          "type": "string"
+        },
+        "url": {
+          "description": "Canonical `oci://host/path` URL.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "tag"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.sindri.dev/v4/registry-source.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Aggregate enum that lets the resolver iterate sources without importing\nevery variant. New variants beyond the four canonicalized in ADR-028\nrequire an ADR.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/LocalPathSource",
+      "description": "Filesystem path source — the canonical inner-loop authoring path.",
+      "properties": {
+        "type": {
+          "const": "local-path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    {
+      "$ref": "#/$defs/OciSource",
+      "description": "Production OCI source (Phase 2).",
+      "properties": {
+        "type": {
+          "const": "oci",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    {
+      "$ref": "#/$defs/LocalOciSource",
+      "description": "On-disk OCI image layout — the air-gap path (Phase 2).",
+      "properties": {
+        "type": {
+          "const": "local-oci",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    {
+      "$ref": "#/$defs/GitSource",
+      "description": "Git source (Phase 3).",
+      "properties": {
+        "type": {
+          "const": "git",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    }
+  ],
+  "title": "RegistrySource"
+}
