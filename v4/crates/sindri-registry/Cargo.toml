@@ -39,6 +39,8 @@ flate2 = { workspace = true }
 tar = { workspace = true }
 # Phase 3.1 — `GitSource` reads commits via libgit2 bindings (vendored).
 git2 = { workspace = true }
+# Phase 4.5 — advisory file lock for best-effort git-cache eviction.
+fs4 = "0.12"
 
 [features]
 default = ["keyless"]
@@ -58,6 +60,9 @@ keyless = ["dep:x509-cert", "dep:pkcs8"]
 [dev-dependencies]
 tempfile = { workspace = true }
 tokio = { workspace = true }
+# Phase 4.5 cache-eviction tests need to age cache directories deterministically.
+# `filetime` is already a transitive dep (via tar) so this only enables direct use.
+filetime = "0.2"
 rand_core = { version = "0.6", features = ["std"] }
 serde_json = { workspace = true }
 # Wave 5A — D7: in-process HTTP mock server for OCI Distribution Spec tests.

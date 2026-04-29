@@ -89,6 +89,13 @@ Deferred to v4.1 for a full spec (open question Q9), but the mechanism is standa
 `skopeo copy oci://ghcr.io/sindri-dev/registry-core:2026.04 oci://my-host/registry-core:2026.04`.
 `sindri resolve --offline` uses the cached index and fails loudly if the cache is stale.
 
+The full source-mode story landed in v4 under
+[ADR-028](028-component-source-modes.md): the `local-oci` source reads
+prefetched OCI image layouts directly off disk and is the recommended
+air-gap path. See [`SOURCES.md`](../SOURCES.md#local-oci--the-air-gap--pre-staged-source)
+for end-to-end usage and [`MIGRATION_FROM_V3.md`](../MIGRATION_FROM_V3.md#registry-sources)
+for how this maps onto v3's bundled-registry pattern.
+
 ### Auth for private registries
 
 OCI auth uses the standard Docker credential store (`docker/config.json` or platform

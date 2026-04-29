@@ -187,9 +187,10 @@ mode, the resolver prints a loud warning at the top of every report listing
 the source mix — strict-OCI is opt-in, but you should never be surprised by
 it.
 
-CI templates that enable `--strict-oci` will ship under `v4/docs/ci/` as part
-of Phase 4 of the implementation plan; this guide will link to them once they
-land.
+A copy-pasteable GitHub Actions workflow that enables `--strict-oci` on
+every PR lives at [`ci/strict-oci.yml`](ci/strict-oci.yml). Drop it into
+your repository's `.github/workflows/` directory and your CI fails the
+moment a `LocalPath` or `Git` source is introduced.
 
 ---
 
@@ -219,6 +220,85 @@ Resolution rules:
   (the `SourceDescriptor`). `sindri apply` re-reads only the lockfile —
   if a descriptor cannot be re-resolved (e.g. the `local-path` directory
   was deleted), apply fails loudly.
+
+### Project + global merge semantics (Phase 4.1, ADR-028 §4.1)
+
+Sindri reads two registry-source lists when it resolves:
+
+1. The **global** list at `~/.sindri/config.yaml` under `registry.sources:`
+2. The **project** list at `./sindri.yaml` under `registry.sources:`
+
+The effective list the resolver consults is built by these rules:
+
+- **`registry.sources` merges.** By default project sources are *prepended*
+  to global sources — project entries take priority because they appear
+  first and "first match wins."  Set `registry.replace_global: true` in the
+  project file to *replace* the global list entirely (project sources only).
+- **`registry.policy` does not merge.** When the project file declares a
+  `registry.policy` block, that block replaces the global policy wholesale.
+  Field-level merging is intentionally not supported — keeping the model
+  simple makes it auditable.
+- **`registry.replace_global` does not merge.** It is a project-file flag;
+  declaring it in the global file has no effect.
+
+#### Worked example A — default (prepend)
+
+Global `~/.sindri/config.yaml`:
+
+```yaml
+registry:
+  sources:
+    - type: oci
+      ref: ghcr.io/sindri-dev/registry-core:2026.04
+```
+
+Project `./sindri.yaml`:
+
+```yaml
+registry:
+  sources:
+    - type: local-path
+      path: ./my-components
+      scope: [acme-internal-tool]
+```
+
+Effective resolved list (prepend):
+
+1. `local-path` `./my-components`  (scope: `[acme-internal-tool]`)
+2. `oci`        `ghcr.io/sindri-dev/registry-core:2026.04`
+
+`acme-internal-tool` resolves from the local path; everything else falls
+through to the OCI source.
+
+#### Worked example B — `replace_global: true`
+
+Same global file. Project `./sindri.yaml`:
+
+```yaml
+registry:
+  replace_global: true
+  sources:
+    - type: local-oci
+      layout: ./vendor/registry-core
+```
+
+Effective resolved list (replace):
+
+1. `local-oci` `./vendor/registry-core`
+
+The global OCI source is discarded entirely. Air-gapped CI uses this shape
+to guarantee the only source consulted is the prefetched layout.
+
+#### Worked example C — policy override
+
+Global file declares no policy; project file declares
+`registry.policy.strict_oci: true`. The effective policy is
+`{ strict_oci: true }`. Conversely, if global declares
+`registry.policy.strict_oci: true` and project declares an empty
+`registry.policy: {}`, the effective policy is whatever the empty block
+evaluates to (defaults — strict_oci off). Project policy is project policy;
+inheriting global policy fields *into* a partially-declared project block is
+not supported.
 
 ---
 

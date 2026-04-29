@@ -7,6 +7,7 @@ pub mod closure;
 pub mod error;
 pub mod ledger;
 pub mod lockfile_writer;
+pub mod source_explain;
 pub mod version;
 
 pub use error::ResolverError;
@@ -239,6 +240,11 @@ fn resolve_online(
             if addr.contains(exp) {
                 let explanation = backend_choice::explain_choice(&node.entry, platform);
                 println!("{}", explanation);
+                // ADR-028 Phase 4.2: also surface registry-source
+                // consultation order alongside backend choice.
+                let source_explanation =
+                    source_explain::format_explain(&addr, sources, &node.entry);
+                println!("{}", source_explanation);
             }
         }
 
@@ -411,6 +417,11 @@ fn resolve_offline(
             if addr.contains(exp) {
                 let explanation = backend_choice::explain_choice(&node.entry, platform);
                 println!("{}", explanation);
+                // ADR-028 Phase 4.2: also surface registry-source
+                // consultation order alongside backend choice.
+                let source_explanation =
+                    source_explain::format_explain(&addr, sources, &node.entry);
+                println!("{}", source_explanation);
             }
         }
 
