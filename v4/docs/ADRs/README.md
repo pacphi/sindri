@@ -60,6 +60,8 @@ Each ADR states what was decided, why, and what is explicitly rejected.
 | [018](018-per-target-lockfiles.md)           | Per-target lockfiles                        | Accepted |
 | [019](019-subprocess-json-target-plugins.md) | Subprocess-JSON target plugin protocol      | Accepted |
 | [020](020-unified-auth-prefixed-values.md)   | Unified auth prefixed-value model           | Accepted |
+| [026](026-auth-aware-components.md)          | Auth-aware components                       | Proposed |
+| [027](027-target-auth-injection.md)          | Target → component auth injection           | Proposed |
 
 ### Product Scope
 
