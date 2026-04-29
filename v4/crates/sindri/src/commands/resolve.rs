@@ -15,6 +15,11 @@ pub struct ResolveArgs {
     pub explain: Option<String>,
     pub target: String,
     pub json: bool,
+    /// `--strict-oci` flag (DDD-08, ADR-028 — Phase 2). When `true`
+    /// overrides `registry.policy.strict_oci` in `sindri.yaml`; when
+    /// `false` the config-file value is consulted (which itself defaults
+    /// to `false`).
+    pub strict_oci: bool,
 }
 
 pub fn run(args: ResolveArgs) -> i32 {
@@ -100,6 +105,12 @@ pub fn run(args: ResolveArgs) -> i32 {
     let registry_cache_root =
         sindri_core::paths::home_dir().map(|h| h.join(".sindri").join("cache").join("registries"));
 
+    // Strict-OCI gate (DDD-08, ADR-028 — Phase 2).
+    // Per ADR-028 Q3: the CLI flag overrides `registry.policy.strict_oci`
+    // when both are set. We treat the flag as "if true, force on; if
+    // false, fall back to the config file value (default false)".
+    let strict_oci = args.strict_oci || read_strict_oci(&manifest_path);
+
     let opts = sindri_resolver::ResolveOptions {
         manifest_path: manifest_path.clone(),
         lockfile_path: lockfile_path.clone(),
@@ -111,6 +122,7 @@ pub fn run(args: ResolveArgs) -> i32 {
         target_kind,
         component_digests,
         registry_cache_root,
+        strict_oci,
     };
 
     match sindri_resolver::resolve(&opts, &registry, &policy, &platform) {
@@ -157,6 +169,25 @@ pub fn run(args: ResolveArgs) -> i32 {
             code
         }
     }
+}
+
+/// Read `registry.policy.strict_oci` from `sindri.yaml` (DDD-08, ADR-028 —
+/// Phase 2). Returns `false` when the field is absent or the manifest
+/// cannot be parsed — the CLI's `--strict-oci` flag still applies.
+fn read_strict_oci(manifest_path: &Path) -> bool {
+    let content = match std::fs::read_to_string(manifest_path) {
+        Ok(c) => c,
+        Err(_) => return false,
+    };
+    let bom: BomManifest = match serde_yaml::from_str(&content) {
+        Ok(b) => b,
+        Err(_) => return false,
+    };
+    bom.registry
+        .as_ref()
+        .and_then(|r| r.policy.as_ref())
+        .and_then(|p| p.strict_oci)
+        .unwrap_or(false)
 }
 
 /// Read the `kind` of the requested target from the BOM. Returns `None` if

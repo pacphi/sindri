@@ -1,3 +1,6 @@
+use sindri_core::exit_codes::{
+    EXIT_POLICY_DENIED, EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_STALE_LOCKFILE, EXIT_STRICT_OCI_DENIED,
+};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -10,6 +13,28 @@ pub enum ResolverError {
     CycleDetected(String),
     #[error("Admission denied [{code}]: {message}")]
     AdmissionDenied { code: String, message: String },
+    /// Strict-OCI admission gate failure (DDD-08, ADR-028 — Phase 2).
+    ///
+    /// Raised when `--strict-oci` (or `registry.policy.strict_oci`) is on
+    /// and one or more lockfile components were produced by a source that
+    /// returns `false` from
+    /// `sindri_registry::source::Source::supports_strict_oci`.
+    /// `offenders` carries `(component_address, source_kind)` pairs so the
+    /// CLI can render an actionable error message.
+    #[error(
+        "Admission denied [ADM_SOURCE_NOT_PRODUCTION_GRADE]: {} offending component(s) produced by non-production-grade sources: {}",
+        offenders.len(),
+        offenders
+            .iter()
+            .map(|(c, s)| format!("{} (source={})", c, s))
+            .collect::<Vec<_>>()
+            .join(", ")
+    )]
+    SourceNotProductionGrade {
+        /// `(component_address, source_kind)` for each offender, in
+        /// lockfile order so output is deterministic.
+        offenders: Vec<(String, String)>,
+    },
     #[error("Registry error: {0}")]
     Registry(String),
     #[error("IO error: {0}")]
@@ -23,14 +48,17 @@ pub enum ResolverError {
 impl ResolverError {
     pub fn exit_code(&self) -> i32 {
         match self {
-            ResolverError::AdmissionDenied { .. } => 2,
-            ResolverError::LockfileStale => 5,
+            // Strict-OCI source denial gets its own exit code so CI can
+            // distinguish it from generic admission failures (ADR-028, ADR-012).
+            ResolverError::SourceNotProductionGrade { .. } => EXIT_STRICT_OCI_DENIED,
+            ResolverError::AdmissionDenied { .. } => EXIT_POLICY_DENIED,
+            ResolverError::LockfileStale => EXIT_STALE_LOCKFILE,
             ResolverError::NotFound(_)
             | ResolverError::VersionConflict(_)
             | ResolverError::CycleDetected(_)
             | ResolverError::Registry(_)
-            | ResolverError::Serialization(_) => 4,
-            ResolverError::Io(_) => 4,
+            | ResolverError::Serialization(_)
+            | ResolverError::Io(_) => EXIT_SCHEMA_OR_RESOLVE_ERROR,
         }
     }
 }

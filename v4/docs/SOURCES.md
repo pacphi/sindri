@@ -227,11 +227,13 @@ Resolution rules:
 | Source        | Status                                         | Phase |
 | ------------- | ---------------------------------------------- | ----- |
 | `local-path`  | **Implemented** — `LocalPathSource`            | 1     |
-| `oci`         | Stub (returns `NotImplemented`); real impl wraps existing `RegistryClient` | 2 |
-| `local-oci`   | Stub; reads OCI image layout via `oci-spec`/`sigstore-rs` | 2 |
+| `oci`         | **Implemented** — `OciSource` wraps the existing `RegistryClient` (oci-client + cosign + cache) † | 2 |
+| `local-oci`   | **Implemented** — `LocalOciSource` reads OCI image-layout v1.1 directories † | 2 |
 | `git`         | Stub; `git2`-backed, sparse checkout, commit-pinned | 3 |
-| `--strict-oci` admission gate | Pending                        | 2     |
+| `--strict-oci` admission gate | **Implemented** — CLI flag + `registry.policy.strict_oci` config | 2 |
 | `sindri registry serve` / `prefetch` CLI verbs | Pending      | 3     |
+
+† `fetch_component_blob` is gated behind `NotImplemented` and lands in Phase 3 alongside `sindri registry prefetch`. `fetch_index`, `lockfile_descriptor`, and `supports_strict_oci` are fully implemented — both sources are usable as resolution sources today.
 
 See [`plan/source-modes-implementation.md`](plan/source-modes-implementation.md)
 for the full sprint breakdown.

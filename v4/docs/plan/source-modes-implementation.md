@@ -165,6 +165,22 @@ exist.
 - [ ] Q1 from ADR-028 (`--with-binaries`) is **deferred**; this phase does registry
   artifact only.
 
+#### 3.0 Prerequisites carried over from Phase 2
+
+- [ ] Implement real `OciSource::fetch_component_blob` (per-component OCI layer
+  streaming). Phase 2 stubbed this as `NotImplemented` because Phase 2's
+  acceptance only required index-level fetch; `sindri registry prefetch`
+  (§3.3) needs real layer bytes, so this lands as a Phase 3 prerequisite.
+- [ ] Implement real `LocalOciSource::fetch_component_blob` (read layer blobs
+  from the on-disk OCI image layout by digest). Same rationale as above —
+  `prefetch` round-trip from `OciSource` to `LocalOciSource` requires both
+  sides to stream real bytes.
+- [ ] Audit the `OciSource::supports_strict_oci()` trust-scope logic for
+  third-party registries: Phase 2 left the per-component override matching
+  to the resolver wiring above the source rather than duplicating it inside
+  the source. Confirm this is correct or pull the override check into the
+  source if Phase 3's wiring patterns demand it.
+
 ### Acceptance criteria
 
 - `sindri lock` resolves a component from a `GitSource` pointing at a feature branch

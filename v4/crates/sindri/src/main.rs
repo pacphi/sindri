@@ -52,6 +52,13 @@ enum Commands {
         cmd: RegistrySubcmds,
     },
     /// Resolve sindri.yaml into sindri.lock (Sprint 3)
+    ///
+    /// Equivalent to the `lock` verb in the source-modes plan; Sindri v4
+    /// keeps a single `resolve` command that writes the per-target
+    /// lockfile. The `--strict-oci` flag (DDD-08, ADR-028 — Phase 2)
+    /// fails the resolve when any component's source is not OCI / local-
+    /// OCI; it overrides `registry.policy.strict_oci` in `sindri.yaml`
+    /// when both are set.
     Resolve {
         #[arg(short, long, default_value = "sindri.yaml")]
         manifest: String,
@@ -65,6 +72,12 @@ enum Commands {
         explain: Option<String>,
         #[arg(long, default_value = "local")]
         target: String,
+        /// Reject any lockfile that contains a non-production-grade
+        /// source (DDD-08, ADR-028 — Phase 2). Overrides
+        /// `registry.policy.strict_oci` in `sindri.yaml` when both are
+        /// set. CI templates flip this on.
+        #[arg(long = "strict-oci")]
+        strict_oci: bool,
     },
     /// Policy management (ADR-008)
     Policy {
@@ -696,6 +709,7 @@ fn run() -> i32 {
             strict,
             explain,
             target,
+            strict_oci,
         }) => commands::resolve::run(commands::resolve::ResolveArgs {
             manifest,
             offline,
@@ -704,6 +718,7 @@ fn run() -> i32 {
             explain,
             target,
             json: false,
+            strict_oci,
         }),
         Some(Commands::Bom {
             format,

@@ -42,6 +42,10 @@ semver = "1"
 # OCI client (successor to oci-distribution; ADR-003). Wired into sindri-registry
 # scaffold in Wave 3A.1; live OCI fetch lands in Wave 3A.2.
 oci-client = { version = "0.16", default-features = false, features = ["rustls-tls"] }
+# OCI image-layout v1.1 spec types — used by `LocalOciSource` to read/walk
+# on-disk layouts (DDD-08, ADR-028 — Phase 2). Pure-data structs, no I/O.
+# Apache-2.0 licensed.
+oci-spec = "0.7"
 # cosign / sigstore verification (ADR-014). Trust-key loading lands in Wave 3A.1;
 # signature-manifest verification lands in Wave 3A.2. We intentionally keep the
 # feature surface small to minimise compile time.

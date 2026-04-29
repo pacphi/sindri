@@ -5,15 +5,18 @@
 //! cache and trust state. The resolver consults sources in declared order and
 //! takes the first match per component (DDD-03 §"Resolution Algorithm").
 //!
-//! Phase 1 (this module) ships the trait surface, the [`RegistrySource`]
-//! enum, the [`SourceContext`] / [`SourceError`] / [`SourceDescriptor`] types,
-//! and the [`LocalPathSource`] implementation. The remaining variants
-//! ([`OciSource`], [`LocalOciSource`], [`GitSource`]) exist as stubs whose
-//! trait methods return [`SourceError::NotImplemented`]; their full
-//! implementations land in Phase 2 (OCI / local-oci) and Phase 3 (git) of
-//! the source-modes implementation plan.
+//! ## Phase status
+//!
+//! | Variant      | Status                              | Phase |
+//! | ------------ | ----------------------------------- | ----- |
+//! | `LocalPath`  | Implemented (real filesystem walk)  | 1     |
+//! | `Oci`        | Implemented ([`OciSource`])         | 2     |
+//! | `LocalOci`   | Implemented ([`LocalOciSource`])    | 2     |
+//! | `Git`        | Stub — `SourceError::NotImplemented`| 3     |
 
+pub mod local_oci;
 pub mod local_path;
+pub mod oci;
 
 use crate::index::RegistryIndex;
 use schemars::JsonSchema;
@@ -22,11 +25,9 @@ use sindri_core::version::Version;
 use std::path::PathBuf;
 use thiserror::Error;
 
+pub use local_oci::{LocalOciSource, LocalOciSourceConfig};
 pub use local_path::LocalPathSource;
-// `SourceDescriptor` lives in `sindri-core` so the lockfile types can carry
-// it without depending on this crate. Re-export it here so existing
-// `sindri_registry::source::SourceDescriptor` paths keep working.
-pub use sindri_core::source_descriptor::SourceDescriptor;
+pub use oci::{OciSource, OciSourceConfig};
 
 /// Newtype wrapper around the canonical component name (the `name` field of
 /// a `ComponentEntry`). Kept small and stringy in Phase 1 so we don't have
@@ -131,6 +132,11 @@ pub struct ComponentBlob {
     pub digest: Option<String>,
 }
 
+// `SourceDescriptor` lives in `sindri-core` so the lockfile types can carry
+// it without depending on this crate. Re-export it here so existing
+// `sindri_registry::source::SourceDescriptor` paths keep working.
+pub use sindri_core::source_descriptor::SourceDescriptor;
+
 /// Reconstruct an OCI descriptor from a legacy `registry: <ref>` string
 /// recorded in pre-Phase-1.3 lockfiles. Returns `None` if the input is
 /// empty.
@@ -183,31 +189,6 @@ pub trait Source {
     fn supports_strict_oci(&self) -> bool;
 }
 
-/// Phase-2 stub — the production OCI client wrapper. Carries the descriptor
-/// shape from DDD-08 so the enum variant is real today, but every trait method
-/// returns [`SourceError::NotImplemented`] until Phase 2 wires it to
-/// [`crate::client::RegistryClient`].
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
-pub struct OciSource {
-    /// Canonical `oci://host/path` URL.
-    pub url: String,
-    /// Tag (e.g. `2026.05`).
-    pub tag: String,
-    /// Optional component-name allow-list.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub scope: Option<Vec<ComponentName>>,
-}
-
-/// Phase-2 stub — reads OCI image layouts on disk.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
-pub struct LocalOciSource {
-    /// OCI image-layout directory (v1.1).
-    pub layout_path: PathBuf,
-    /// Optional component-name allow-list.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub scope: Option<Vec<ComponentName>>,
-}
-
 /// Phase-3 stub — resolves components from a Git repository.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct GitSource {
@@ -229,15 +210,23 @@ pub struct GitSource {
 /// Aggregate enum that lets the resolver iterate sources without importing
 /// every variant. New variants beyond the four canonicalized in ADR-028
 /// require an ADR.
+///
+/// The serializable variants carry `*Config` payloads (plain data) rather
+/// than the live `*Source` runtime objects so the enum can be
+/// `Serialize/Deserialize/JsonSchema` without dragging in network/cache
+/// state. To run a source, materialize it via the variant-specific
+/// constructors ([`OciSource::new`] / [`LocalOciSource::new`]) or call
+/// the [`RegistrySource::dispatch_*`] helpers which build a one-shot
+/// runtime instance under the hood.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum RegistrySource {
     /// Filesystem path source — the canonical inner-loop authoring path.
     LocalPath(LocalPathSource),
     /// Production OCI source (Phase 2).
-    Oci(OciSource),
+    Oci(OciSourceConfig),
     /// On-disk OCI image layout — the air-gap path (Phase 2).
-    LocalOci(LocalOciSource),
+    LocalOci(LocalOciSourceConfig),
     /// Git source (Phase 3).
     Git(GitSource),
 }
@@ -262,12 +251,25 @@ impl RegistrySource {
         }
     }
 
-    /// Dispatch [`Source::fetch_index`] across enum variants.
+    /// Short discriminator used by `--explain` and the strict-OCI report.
+    pub fn kind(&self) -> &'static str {
+        match self {
+            RegistrySource::LocalPath(_) => "local-path",
+            RegistrySource::Oci(_) => "oci",
+            RegistrySource::LocalOci(_) => "local-oci",
+            RegistrySource::Git(_) => "git",
+        }
+    }
+
+    /// Dispatch [`Source::fetch_index`] across enum variants. Materializes
+    /// the runtime source object on the fly for `Oci` / `LocalOci`.
     pub fn dispatch_fetch_index(&self, ctx: &SourceContext) -> Result<RegistryIndex, SourceError> {
         match self {
             RegistrySource::LocalPath(s) => s.fetch_index(ctx),
-            RegistrySource::Oci(_) => Err(SourceError::NotImplemented("oci")),
-            RegistrySource::LocalOci(_) => Err(SourceError::NotImplemented("local-oci")),
+            RegistrySource::Oci(cfg) => OciSource::new(cfg.clone())
+                .map_err(|e| SourceError::Io(e.to_string()))?
+                .fetch_index(ctx),
+            RegistrySource::LocalOci(cfg) => LocalOciSource::new(cfg.clone()).fetch_index(ctx),
             RegistrySource::Git(_) => Err(SourceError::NotImplemented("git")),
         }
     }
@@ -281,16 +283,22 @@ impl RegistrySource {
     ) -> Result<ComponentBlob, SourceError> {
         match self {
             RegistrySource::LocalPath(s) => s.fetch_component_blob(id, version, ctx),
-            RegistrySource::Oci(_) => Err(SourceError::NotImplemented("oci")),
-            RegistrySource::LocalOci(_) => Err(SourceError::NotImplemented("local-oci")),
+            RegistrySource::Oci(cfg) => OciSource::new(cfg.clone())
+                .map_err(|e| SourceError::Io(e.to_string()))?
+                .fetch_component_blob(id, version, ctx),
+            RegistrySource::LocalOci(cfg) => {
+                LocalOciSource::new(cfg.clone()).fetch_component_blob(id, version, ctx)
+            }
             RegistrySource::Git(_) => Err(SourceError::NotImplemented("git")),
         }
     }
 
-    /// Dispatch [`Source::lockfile_descriptor`] across enum variants. The
-    /// stub variants synthesize a best-effort descriptor from their config so
-    /// the lockfile shape is testable in Phase 1; later phases replace this
-    /// with the real signed-fetch result.
+    /// Dispatch [`Source::lockfile_descriptor`] across enum variants.
+    ///
+    /// For OCI variants the descriptor is built from the static config —
+    /// callers that have already fetched and want the manifest_digest
+    /// populated should hold an [`OciSource`] / [`LocalOciSource`]
+    /// directly and call [`Source::lockfile_descriptor`] on it.
     pub fn dispatch_lockfile_descriptor(&self) -> SourceDescriptor {
         match self {
             RegistrySource::LocalPath(s) => s.lockfile_descriptor(),
@@ -314,13 +322,19 @@ impl RegistrySource {
         }
     }
 
-    /// Dispatch [`Source::supports_strict_oci`] across enum variants.
+    /// Dispatch [`Source::supports_strict_oci`] across enum variants. Note
+    /// the result is conservative for `Oci` / `LocalOci` because we have no
+    /// live runtime state on the `RegistrySource` enum — production callers
+    /// should drive the live [`OciSource`] / [`LocalOciSource`] objects
+    /// instead. The resolver's strict-OCI gate consults this exclusively
+    /// after marking each materialized source verified, so the conservative
+    /// answer here is "no" until the runtime version says otherwise.
     pub fn dispatch_supports_strict_oci(&self) -> bool {
         match self {
             RegistrySource::LocalPath(s) => s.supports_strict_oci(),
-            // The OCI / LocalOCI variants only flip to `true` once Phase 2
-            // wires real signature verification. Today they're stubs and
-            // therefore non-strict.
+            // The static-config form has no verification state attached.
+            // Live verification flips on through the materialized runtime
+            // sources; the gate consults those, not the enum.
             RegistrySource::Oci(_) => false,
             RegistrySource::LocalOci(_) => false,
             RegistrySource::Git(_) => false,
@@ -367,7 +381,7 @@ mod tests {
 
     #[test]
     fn legacy_ref_reconstructs_oci_descriptor() {
-        let d = oci_descriptor_from_legacy_ref("ghcr.io/sindri-dev/registry-core:2026.04")
+        let d = super::oci_descriptor_from_legacy_ref("ghcr.io/sindri-dev/registry-core:2026.04")
             .expect("valid ref");
         match d {
             SourceDescriptor::Oci { url, tag, .. } => {
@@ -379,26 +393,58 @@ mod tests {
     }
 
     #[test]
-    fn stub_variants_return_not_implemented_for_fetch() {
-        let oci = RegistrySource::Oci(OciSource {
+    fn enum_oci_descriptor_records_url_and_tag() {
+        let s = RegistrySource::Oci(OciSourceConfig {
             url: "oci://example/x".into(),
             tag: "1.0".into(),
             scope: None,
+            registry_name: "example".into(),
         });
-        let ctx = SourceContext::default();
-        match oci.dispatch_fetch_index(&ctx) {
-            Err(SourceError::NotImplemented(v)) => assert_eq!(v, "oci"),
-            other => panic!("expected NotImplemented, got {other:?}"),
+        match s.dispatch_lockfile_descriptor() {
+            SourceDescriptor::Oci { url, tag, .. } => {
+                assert_eq!(url, "oci://example/x");
+                assert_eq!(tag, "1.0");
+            }
+            _ => panic!("expected Oci descriptor"),
         }
     }
 
     #[test]
-    fn stub_variants_are_not_strict_oci() {
-        let oci = RegistrySource::Oci(OciSource {
+    fn enum_kinds_are_stable() {
+        let lp = RegistrySource::LocalPath(LocalPathSource::new("/x"));
+        let o = RegistrySource::Oci(OciSourceConfig {
+            url: "oci://x/y".into(),
+            tag: "1".into(),
+            scope: None,
+            registry_name: "x".into(),
+        });
+        let lo = RegistrySource::LocalOci(LocalOciSourceConfig {
+            layout_path: PathBuf::from("/x"),
+            scope: None,
+            registry_name: "x".into(),
+            artifact_ref: None,
+        });
+        let g = RegistrySource::Git(GitSource {
+            url: "https://x".into(),
+            git_ref: "main".into(),
+            subdir: None,
+            scope: None,
+            require_signed: false,
+        });
+        assert_eq!(lp.kind(), "local-path");
+        assert_eq!(o.kind(), "oci");
+        assert_eq!(lo.kind(), "local-oci");
+        assert_eq!(g.kind(), "git");
+    }
+
+    #[test]
+    fn enum_oci_does_not_claim_strict_without_runtime_verification() {
+        let s = RegistrySource::Oci(OciSourceConfig {
             url: "oci://example/x".into(),
             tag: "1.0".into(),
             scope: None,
+            registry_name: "example".into(),
         });
-        assert!(!oci.dispatch_supports_strict_oci());
+        assert!(!s.dispatch_supports_strict_oci());
     }
 }
