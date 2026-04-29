@@ -177,7 +177,7 @@ sindri diff --target e2b-sandbox --json
 **Synopsis**
 
 ```
-sindri apply [--yes] [--dry-run] [--target <name>]
+sindri apply [--yes] [--dry-run] [--target <name>] [--skip-auth]
 ```
 
 Executes the lockfile against the target following the eight-step pipeline defined in [ADR-024](architecture/adr/024-script-component-lifecycle-contract.md): collision validation → pre-install hooks → backend install → configure → validate → post-install hooks → project-init hooks → project-init steps. Prompts for confirmation unless `--yes` is set.
@@ -191,6 +191,7 @@ Returns exit code 3 if any component install fails or if collision validation re
 | `--yes` | false | Skip confirmation prompt |
 | `--dry-run` | false | Print plan and exit without applying |
 | `--target <name>` | `local` | Apply to this target (only `local` is fully wired in Wave 2A; remote targets land in Wave 3) |
+| `--skip-auth` | false | **Bypass auth redemption** (Phase 2A, ADR-027). See "Skip-auth semantics" below. |
 
 **Examples**
 
@@ -200,6 +201,22 @@ sindri apply --yes
 sindri apply --dry-run
 sindri apply --target e2b-sandbox --yes
 ```
+
+**Skip-auth semantics**
+
+`--skip-auth` disables the auth redeemer for this run. Use this **only** as an emergency override — for example, to install a component with a broken `auth:` declaration so you can edit it.
+
+**Auditable**: every component whose redemption was skipped emits a single `AuthSkippedByUser` ledger event under `~/.sindri/ledger.jsonl`. The bypass shows up clearly in `sindri log`.
+
+**Not a Gate 5 bypass**: required-binding presence is still validated by admission Gate 5 (Phase 2B). If you need to install with required credentials genuinely missing, additionally relax the policy:
+
+```yaml
+# sindri.policy.yaml
+auth:
+  on_unresolved_required: warn   # default: deny
+```
+
+**Run-time consequences**: the installed tool will fail at first run with whatever native "missing credential" error it produces (e.g. `anthropic.AuthenticationError: invalid x-api-key`). That is intended.
 
 ---
 

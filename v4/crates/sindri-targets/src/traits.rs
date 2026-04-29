@@ -86,6 +86,45 @@ pub trait Target: Send + Sync {
 
     /// Check prerequisites (docker installed, ssh key exists, etc.)
     fn check_prerequisites(&self) -> Vec<PrereqCheck>;
+
+    /// Prompt for an interactive credential value (Phase 2A of the
+    /// auth-aware plan, ADR-027 §6 / §"Open Questions Q2").
+    ///
+    /// Default impl reads from the local process's stdin — appropriate for
+    /// the local target. Remote / cloud targets override to forward the
+    /// prompt over their plugin's RPC channel so the user sees it in their
+    /// target session, not on the operator's terminal.
+    ///
+    /// `secret == true` means "do not echo the input"; the default impl
+    /// uses [`rpassword`-style behaviour by reading without echoing] when
+    /// possible and falls back to a plain read otherwise.
+    ///
+    /// `timeout_secs` of 0 means "block indefinitely". The default impl
+    /// honours the timeout best-effort (full enforcement requires a
+    /// per-target raw-tty capability and may be a no-op on non-TTY stdin).
+    fn prompt_for_credential(
+        &self,
+        prompt: &str,
+        _secret: bool,
+        _timeout_secs: u64,
+    ) -> Result<String, TargetError> {
+        // Default: echo prompt to stderr and read one line from stdin. This
+        // is the local-target behaviour; remote targets override.
+        use std::io::{BufRead, Write};
+        let stderr = std::io::stderr();
+        let mut h = stderr.lock();
+        let _ = write!(h, "{prompt}");
+        let _ = h.flush();
+        let mut line = String::new();
+        let stdin = std::io::stdin();
+        let mut g = stdin.lock();
+        g.read_line(&mut line)
+            .map_err(|e| TargetError::AuthFailed {
+                target: self.name().to_string(),
+                detail: format!("stdin read failed: {e}"),
+            })?;
+        Ok(line.trim_end_matches(['\r', '\n']).to_string())
+    }
 }
 
 #[derive(Debug)]

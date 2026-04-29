@@ -17,6 +17,7 @@ pub mod configure;
 pub mod error;
 pub mod hooks;
 pub mod project_init;
+pub mod redeemer;
 pub mod validate;
 
 pub use collision::{CollisionContext, CollisionPlan, CollisionResolver};
@@ -24,4 +25,7 @@ pub use configure::{ConfigureContext, ConfigureExecutor};
 pub use error::ExtensionError;
 pub use hooks::{HookContext, HooksExecutor};
 pub use project_init::{ComponentRef, ProjectInitContext, ProjectInitExecutor};
+pub use redeemer::{
+    group_bindings_by_component, AuthRedeemer, ComponentBindings, RedeemedEnv, TempFile,
+};
 pub use validate::{ValidateContext, ValidateExecutor};

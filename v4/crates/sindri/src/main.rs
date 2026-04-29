@@ -257,6 +257,13 @@ enum Commands {
         /// `--resume` to clear-then-resume (effectively a full re-apply).
         #[arg(long)]
         clear_state: bool,
+        /// Bypass auth-aware credential redemption (Phase 2A, ADR-027).
+        /// Use only as an emergency override. Every component whose
+        /// redemption was skipped emits an `AuthSkippedByUser` ledger
+        /// event so the bypass is auditable. Required-binding presence
+        /// is still enforced by Gate 5 unless that gate is also relaxed.
+        #[arg(long)]
+        skip_auth: bool,
     },
     /// Open `$EDITOR` on a sindri config with save-time validation (ADR-011)
     Edit {
@@ -805,6 +812,7 @@ fn main() {
             no_bom,
             resume,
             clear_state,
+            skip_auth,
         }) => commands::apply::run(commands::apply::ApplyArgs {
             yes,
             dry_run,
@@ -812,6 +820,7 @@ fn main() {
             no_bom,
             resume,
             clear_state,
+            skip_auth,
         }),
         Some(Commands::Edit {
             target,
