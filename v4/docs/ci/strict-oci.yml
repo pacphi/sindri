@@ -1,0 +1,84 @@
+# Sindri v4 — `--strict-oci` CI snippet (ADR-028, Phase 4.3).
+#
+# Drop this file into `.github/workflows/sindri-strict-oci.yml` in the
+# repository where your `sindri.yaml` and `sindri.lock` live. The job runs
+# `sindri resolve --strict-oci` on every push to `main` and on every pull
+# request that targets `main`. The flag enforces that every component
+# recorded in the lockfile was served by an `oci` or `local-oci` source
+# whose cosign signature verifies — any `local-path` or `git` source
+# fails the build with `AdmissionCode::SourceNotProductionGrade`.
+#
+# See `v4/docs/SOURCES.md` for the full source-mode reference and
+# `v4/docs/ADRs/028-component-source-modes.md` for the decision record.
+#
+# This file is a documentation artifact, not a workflow that runs on the
+# Sindri repo's CI. It is intended to be copied verbatim by users.
+
+name: sindri-strict-oci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  # `id-token: write` is required only when your sindri.yaml uses keyless
+  # OIDC cosign verification (ADR-014 D1). Leave it commented if you do
+  # not use keyless trust.
+  # id-token: write
+
+jobs:
+  strict-oci:
+    name: sindri resolve --strict-oci
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install sindri
+        # Replace `<version>` with the v4 release you pin to (e.g. `4.0.0`).
+        # The official installer reads `SINDRI_VERSION` and drops the binary
+        # into `~/.sindri/bin/sindri`, then prints the install path.
+        env:
+          SINDRI_VERSION: latest
+        run: |
+          curl -fsSL https://sindri.dev/install.sh | bash
+          echo "$HOME/.sindri/bin" >> "$GITHUB_PATH"
+
+      - name: Configure registry auth
+        # Required only when `registry.sources[*].url` points at a private
+        # OCI registry. `SINDRI_REGISTRY_TOKEN` should be a personal access
+        # token or service-principal token with `read:packages` scope.
+        # Storing it as a repository secret keeps the workflow file safe
+        # to commit.
+        if: ${{ env.SINDRI_REGISTRY_TOKEN != '' }}
+        env:
+          SINDRI_REGISTRY_TOKEN: ${{ secrets.SINDRI_REGISTRY_TOKEN }}
+        run: |
+          # Sindri honours `~/.docker/config.json` for OCI auth — write a
+          # token-scoped entry for the registry your sindri.yaml uses.
+          mkdir -p "$HOME/.docker"
+          # Replace `ghcr.io` below with the host of your registry.
+          jq -n --arg auth "$(printf 'token:%s' "$SINDRI_REGISTRY_TOKEN" | base64 -w0)" \
+            '{auths: {"ghcr.io": {auth: $auth}}}' > "$HOME/.docker/config.json"
+
+      - name: Resolve with strict OCI
+        # `--strict-oci` rejects the lockfile if any recorded
+        # `SourceDescriptor` is `LocalPath` or `Git`. Use it on every PR
+        # to guarantee production builds only see signed, content-addressed
+        # sources (`oci` and `local-oci`).
+        run: |
+          sindri resolve --strict-oci
+
+      - name: Validate lockfile is committed
+        # `sindri resolve` rewrites the lockfile in-place; CI should fail
+        # the moment a PR drifts from a freshly-resolved lockfile so that
+        # apply-time integrity checks remain meaningful.
+        run: |
+          if ! git diff --quiet -- 'sindri*.lock'; then
+            echo "::error::Lockfile is out of date — run 'sindri resolve --strict-oci' locally and commit the result."
+            git diff -- 'sindri*.lock'
+            exit 1
+          fi

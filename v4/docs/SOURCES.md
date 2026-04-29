@@ -187,9 +187,10 @@ mode, the resolver prints a loud warning at the top of every report listing
 the source mix — strict-OCI is opt-in, but you should never be surprised by
 it.
 
-CI templates that enable `--strict-oci` will ship under `v4/docs/ci/` as part
-of Phase 4 of the implementation plan; this guide will link to them once they
-land.
+A copy-pasteable GitHub Actions workflow that enables `--strict-oci` on
+every PR lives at [`ci/strict-oci.yml`](ci/strict-oci.yml). Drop it into
+your repository's `.github/workflows/` directory and your CI fails the
+moment a `LocalPath` or `Git` source is introduced.
 
 ---
 
