@@ -199,11 +199,14 @@ exist.
 
 #### 4.1 sindri.yaml schema and merge semantics
 
-- [ ] Update `v4/schemas/bom.json` to allow `registry.sources: [...]` with the four
-  variants. Keep the legacy single-OCI shape valid for one release; warn on use.
-- [ ] Update the `init` template to write the new shape (single `oci` source).
+- [x] Update `v4/schemas/bom.json` to allow `registry.sources: [...]` with the four
+  variants. (Done — `BomManifest.registries: Vec<RegistryConfig>` replaced by
+  `BomManifest.registry: RegistrySection { sources, policy, replace_global }`. Schema
+  regenerated. See PR `refactor(v4): migrate registry config to registry.sources: shape`.)
+- [x] Update the `init` template to write the new shape (single `oci` source). (Done.)
 - [ ] Document merge semantics: project sources prepend to global sources by default;
-  `registry.replace_global: true` overrides.
+  `registry.replace_global: true` overrides. (Pending — `replace_global` field is wired
+  and serializes correctly; runtime multi-file merge logic is a separate Phase 4 task.)
 
 #### 4.2 `--explain` for sources
 

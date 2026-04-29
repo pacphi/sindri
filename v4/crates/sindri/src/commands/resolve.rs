@@ -125,7 +125,11 @@ pub fn run(args: ResolveArgs) -> i32 {
         strict_oci,
     };
 
-    match sindri_resolver::resolve(&opts, &registry, &policy, &platform) {
+    // ADR-028 Phase 4.1: read registry.sources from the BOM and pass them to
+    // the resolver for scope-filtered source dispatch.
+    let sources = read_registry_sources(&manifest_path);
+
+    match sindri_resolver::resolve_with_sources(&opts, &registry, &sources, &policy, &platform) {
         Ok(lockfile) => {
             // Auth-binding summary (Phase 1, ADR-027 §3 — observability-only).
             let (resolved_n, deferred_n, failed_n) = auth_binding_counts(&lockfile);
@@ -172,7 +176,7 @@ pub fn run(args: ResolveArgs) -> i32 {
 }
 
 /// Read `registry.policy.strict_oci` from `sindri.yaml` (DDD-08, ADR-028 —
-/// Phase 2). Returns `false` when the field is absent or the manifest
+/// Phase 4.1). Returns `false` when the field is absent or the manifest
 /// cannot be parsed — the CLI's `--strict-oci` flag still applies.
 fn read_strict_oci(manifest_path: &Path) -> bool {
     let content = match std::fs::read_to_string(manifest_path) {
@@ -183,11 +187,24 @@ fn read_strict_oci(manifest_path: &Path) -> bool {
         Ok(b) => b,
         Err(_) => return false,
     };
-    bom.registry
-        .as_ref()
-        .and_then(|r| r.policy.as_ref())
-        .and_then(|p| p.strict_oci)
-        .unwrap_or(false)
+    bom.registry.policy.strict_oci
+}
+
+/// Read `registry.sources` from `sindri.yaml` and convert to the resolver's
+/// `RegistrySource` enum (ADR-028 §"Resolver wiring", Phase 4.1).
+///
+/// Returns an empty Vec when the manifest cannot be read or has no sources
+/// declared — the resolver falls back to the legacy OCI-cache path.
+fn read_registry_sources(manifest_path: &Path) -> Vec<sindri_registry::source::RegistrySource> {
+    let content = match std::fs::read_to_string(manifest_path) {
+        Ok(c) => c,
+        Err(_) => return Vec::new(),
+    };
+    let bom: BomManifest = match serde_yaml::from_str(&content) {
+        Ok(b) => b,
+        Err(_) => return Vec::new(),
+    };
+    sindri_registry::source::sources_from_config(&bom.registry.sources)
 }
 
 /// Read the `kind` of the requested target from the BOM. Returns `None` if

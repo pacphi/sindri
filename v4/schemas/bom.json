@@ -186,6 +186,140 @@
       ],
       "type": "object"
     },
+    "GitSourceConfig": {
+      "description": "Config DTO for the `git` source variant (ADR-028).",
+      "properties": {
+        "ref": {
+          "description": "Branch, tag, or commit SHA. The resolver pins this to a commit sha\nin the lockfile at resolution time (Phase 3).",
+          "type": "string"
+        },
+        "require-signed": {
+          "description": "When `true`, unsigned or unverifiable commits are rejected (Phase 3).",
+          "type": "boolean"
+        },
+        "scope": {
+          "description": "Optional component-name allow-list.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "subdir": {
+          "description": "Optional sub-directory inside the repository where `index.yaml` lives.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "url": {
+          "description": "Repository URL (https or ssh).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "ref"
+      ],
+      "type": "object"
+    },
+    "LocalOciSourceConfig": {
+      "description": "Config DTO for the `local-oci` source variant (ADR-028).",
+      "properties": {
+        "artifact_ref": {
+          "description": "Optional manifest digest to pin a specific artifact when the layout\ncontains more than one registry artifact.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "layout": {
+          "description": "Path to an OCI image layout directory (v1.1 spec).",
+          "type": "string"
+        },
+        "registry_name": {
+          "description": "Logical registry name used by the cosign trust loader. Defaults to\n`\"sindri/core\"`; third-party publishers override this.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scope": {
+          "description": "Optional component-name allow-list.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "layout"
+      ],
+      "type": "object"
+    },
+    "LocalPathSourceConfig": {
+      "description": "Config DTO for the `local-path` source variant (ADR-028).",
+      "properties": {
+        "path": {
+          "description": "Filesystem path to the local component directory.",
+          "type": "string"
+        },
+        "scope": {
+          "description": "Optional component-name allow-list.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "type": "object"
+    },
+    "OciSourceConfig": {
+      "description": "Config DTO for the `oci` source variant (ADR-028).\n\nCarries only the fields needed to express the source in `sindri.yaml`;\nthe runtime `OciSource` in `sindri-registry` adds the network client and\ncosign verifier. The field names here match the YAML shape exactly.",
+      "properties": {
+        "registry_name": {
+          "description": "Logical registry name used by the cosign trust loader. Defaults to\n`\"sindri/core\"`; third-party publishers override this.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scope": {
+          "description": "Optional component-name allow-list. When set, only the named\ncomponents are satisfied from this source; others fall through.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "tag": {
+          "description": "Registry tag (e.g. `2026.04`).",
+          "type": "string"
+        },
+        "url": {
+          "description": "Canonical `oci://host/path` URL (e.g. `oci://ghcr.io/sindri-dev/registry-core`).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "tag"
+      ],
+      "type": "object"
+    },
     "OverrideEntry": {
       "properties": {
         "address": {
@@ -224,103 +358,97 @@
       },
       "type": "object"
     },
-    "RegistryConfig": {
-      "properties": {
-        "identity": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/RegistryIdentity"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "The expected SAN URI + OIDC issuer for keyless mode. Required when\n`verification_mode == \"keyless\"`; ignored otherwise."
-        },
-        "name": {
-          "type": "string"
-        },
-        "trust": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/TrustConfig"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "trust_overrides": {
-          "description": "Wave 6A.1 — per-component trust scoping (ADR-014, follow-up to PR #228 + #237).\n\nEach entry narrows the trust set for components whose canonical\naddress matches `component_glob`. Most-specific glob wins\n(longest-pattern tie-break); when no entry matches, the verifier\nfalls back to the registry-level `trust` / `identity` fields.\n\nFail-closed semantics: under\n`policy.require_signed_registries=true` a component that matches\nneither an override **nor** registry-level trust is rejected.",
-          "items": {
-            "$ref": "#/$defs/TrustOverride"
-          },
-          "type": "array"
-        },
-        "url": {
-          "type": "string"
-        },
-        "verification_mode": {
-          "description": "Wave 6A — ADR-014 D1: cosign verification mode for this registry.\n\n- `key-based` (default, omit-able): existing flow, loads\n  `~/.sindri/trust/<name>/cosign-*.pub`.\n- `keyless`: short-lived Fulcio cert + Rekor inclusion proof.\n  When set, the registry SHOULD also populate `identity` so the\n  verifier can SAN-match.\n\nField is `Option<String>` rather than the typed\n`sindri_registry::VerificationMode` to keep the core crate free\nof a registry-crate dep (avoids a cycle); the registry crate\nparses + validates the string at load time.",
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "name",
-        "url"
-      ],
-      "type": "object"
-    },
-    "RegistryIdentity": {
-      "description": "Mirror of `sindri_registry::keyless::KeylessIdentity` — duplicated\nhere so `sindri-core` doesn't depend on `sindri-registry` (which\nwould introduce a cycle, since the registry crate already depends on\ncore for `BomEntry` etc.). The registry crate converts via\n`From<&RegistryIdentity>`.",
-      "properties": {
-        "issuer": {
-          "description": "The expected OIDC issuer URL (e.g.\n`https://token.actions.githubusercontent.com`).",
-          "type": "string"
-        },
-        "san_uri": {
-          "description": "The expected SAN URI extension in the Fulcio-issued certificate\n(e.g. a GitHub Actions workflow run URL).",
-          "type": "string"
-        }
-      },
-      "required": [
-        "san_uri",
-        "issuer"
-      ],
-      "type": "object"
-    },
     "RegistryPolicy": {
-      "description": "Registry-wide policy block (ADR-028 §\"Trust scopes\").",
+      "description": "Registry-wide trust and verification policy (ADR-028 §\"Trust scopes\").",
       "properties": {
         "strict_oci": {
-          "description": "When `true`, every component recorded in the lockfile MUST be\nserved by a source that returns `true` from\n`Source::supports_strict_oci()`. The CLI `--strict-oci` flag sets\nthis same gate; when both are present, the flag wins.",
-          "type": [
-            "boolean",
-            "null"
-          ]
+          "description": "When `true`, every component recorded in the lockfile MUST be served\nby a source that returns `true` from `Source::supports_strict_oci()`.\n\nEquivalent to passing `--strict-oci` on every `sindri lock` /\n`sindri resolve` invocation (ADR-028 Q3). The CLI flag overrides this\nconfig knob when both are set.\n\nDefault: `false`.",
+          "type": "boolean"
         }
       },
       "type": "object"
     },
     "RegistrySection": {
-      "description": "Top-level `registry:` block on `sindri.yaml`. Carries policy-level\nswitches that apply to every registry source declared in `registries:`.",
+      "description": "Top-level `registry:` section in `sindri.yaml` (ADR-028, DDD-08).\n\nHolds the ordered list of [`RegistrySource`](sindri_registry::source::RegistrySource)\nentries, shared trust/verification policy, and global-source merge\nsemantics. The list is consulted in declared order; the first source whose\nscope matches a component wins (DDD-03 §\"Resolution Algorithm\").",
       "properties": {
         "policy": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/RegistryPolicy"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Registry-wide policy knobs."
+          "$ref": "#/$defs/RegistryPolicy",
+          "description": "Shared trust and verification policy applied across all sources."
+        },
+        "replace_global": {
+          "description": "When `true`, the project-level `sources` list entirely replaces the\nglobal sources (if any) rather than prepending to them (ADR-028 §4.1).\n\nDefault: `false` (project sources prepend to global sources).",
+          "type": "boolean"
+        },
+        "sources": {
+          "description": "Ordered list of registry sources.  The resolver uses first-match-wins\nper component name (DDD-08 §\"Source scope\").\n\nWhen absent or empty, the resolver falls back to the legacy OCI index\ncached at `~/.sindri/cache/registries/`.",
+          "items": {
+            "$ref": "#/$defs/RegistrySourceConfig"
+          },
+          "type": "array"
         }
       },
       "type": "object"
+    },
+    "RegistrySourceConfig": {
+      "description": "Typed config entry for a single source in `registry.sources:` (ADR-028\n§\"Configuration shape\"). Uses `#[serde(tag = \"type\")]` so the YAML\ndiscriminator matches the ADR-028 / DDD-08 vocabulary (`oci`,\n`local-path`, `git`, `local-oci`).\n\nThese config DTOs live in `sindri-core` so the BOM manifest can carry\nthem without creating a circular dependency (sindri-registry already\ndepends on sindri-core). The resolver converts them to `RegistrySource`\ntrait-enum instances via `sindri_registry::source::sources_from_config`.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/OciSourceConfig",
+          "description": "Production OCI registry — the signed distribution path.\n\n```yaml\n- type: oci\n  url: oci://ghcr.io/sindri-dev/registry-core\n  tag: \"2026.04\"\n  scope: [nodejs, rust]           # optional\n```",
+          "properties": {
+            "type": {
+              "const": "oci",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "$ref": "#/$defs/LocalPathSourceConfig",
+          "description": "Local filesystem path — the inner-loop authoring source.\n\n```yaml\n- type: local-path\n  path: ./components\n  scope: [my-component]           # optional\n```",
+          "properties": {
+            "type": {
+              "const": "local-path",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "$ref": "#/$defs/GitSourceConfig",
+          "description": "Git repository source (Phase 3).\n\n```yaml\n- type: git\n  url: https://github.com/acme/components.git\n  ref: main\n  subdir: components              # optional\n  require-signed: false           # optional\n```",
+          "properties": {
+            "type": {
+              "const": "git",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "$ref": "#/$defs/LocalOciSourceConfig",
+          "description": "On-disk OCI image layout — the air-gap / offline bundle path.\n\n```yaml\n- type: local-oci\n  layout: ./vendor/registry-core\n  scope: [nodejs]                 # optional\n```",
+          "properties": {
+            "type": {
+              "const": "local-oci",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        }
+      ]
     },
     "TargetConfig": {
       "properties": {
@@ -347,51 +475,6 @@
       },
       "required": [
         "kind"
-      ],
-      "type": "object"
-    },
-    "TrustConfig": {
-      "properties": {
-        "signer": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "signer"
-      ],
-      "type": "object"
-    },
-    "TrustOverride": {
-      "description": "Per-component trust scope (Wave 6A.1).\n\nLets a single registry publish artifacts signed by multiple teams /\nkeys / Fulcio identities — a common pattern when an organisation\nshares one OCI registry across product groups.\n\nEither [`Self::keys`] (key-based override) or [`Self::identity`]\n(keyless override) should be set; setting both is allowed and means\nthe component can verify under either mode (whichever the cosign\nsignature actually used).",
-      "properties": {
-        "component_glob": {
-          "description": "Glob pattern matched against the component's canonical address\n(e.g. `\"mise:nodejs\"`, `\"team-foo/*\"`, `\"team-bar/specific@v1\"`).\n`*` matches any run of characters except `/`; `**` matches any\nrun including `/`. Most-specific match (longest pattern) wins.",
-          "type": "string"
-        },
-        "identity": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/RegistryIdentity"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Keyless trust override — SAN URI + OIDC issuer pair the\nFulcio-issued cert must match exactly."
-        },
-        "keys": {
-          "description": "Key-based trust override — list of paths to PEM-encoded P-256\npublic keys. Resolved relative to the manifest file at load time.\nVerifier accepts if any key matches.",
-          "items": {
-            "type": "string"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "component_glob"
       ],
       "type": "object"
     },
@@ -471,23 +554,9 @@
         }
       ]
     },
-    "registries": {
-      "default": [],
-      "items": {
-        "$ref": "#/$defs/RegistryConfig"
-      },
-      "type": "array"
-    },
     "registry": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/RegistrySection"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "description": "Optional registry-level policy block (DDD-08, ADR-028 — Phase 2).\n\nCurrently carries only `strict_oci`, the config-file twin of the\n`--strict-oci` CLI flag. Per ADR-028 Q3 the flag overrides the\nconfig when both are set."
+      "$ref": "#/$defs/RegistrySection",
+      "description": "Registry source configuration (ADR-028 §\"Configuration shape\", DDD-08).\n\nDeclares the ordered list of registry sources consulted during\nresolution, shared trust policy, and global-source merge behaviour.\nWhen absent (or `sources` is empty) the resolver falls back to the\nOCI registry index cached at `~/.sindri/cache/registries/`\n(legacy pre-ADR-028 behaviour preserved for backwards compatibility).\n\n```yaml\nregistry:\n  sources:\n    - type: oci\n      url: oci://ghcr.io/sindri-dev/registry-core\n      tag: \"2026.04\"\n  policy:\n    strict_oci: true\n  replace_global: false\n```"
     },
     "secrets": {
       "additionalProperties": {

@@ -27,15 +27,18 @@ pub fn run(args: InitArgs) -> i32 {
     let components = template_components(args.template.as_deref());
     let policy_preset = args.policy.as_deref().unwrap_or("default");
 
-    // Generate sindri.yaml with ADR-013 YAML-LSP schema pragma
+    // Generate sindri.yaml with ADR-013 YAML-LSP schema pragma.
+    // Uses the ADR-028 registry.sources shape (Phase 4.1).
     let manifest_content = format!(
         r#"# yaml-language-server: $schema=https://schemas.sindri.dev/v4/bom.json
 # @schema {{ "id": "https://schemas.sindri.dev/v4/bom.json" }}
 name: {name}
 
-registries:
-  - name: core
-    url: registry:local:./registry-core  # Replace with OCI registry URL
+registry:
+  sources:
+    - type: oci
+      url: oci://ghcr.io/sindri-dev/registry-core  # Replace with your registry URL
+      tag: "2026.04"
 
 components:
 {components}

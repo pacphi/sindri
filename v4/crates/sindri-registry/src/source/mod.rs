@@ -194,7 +194,10 @@ pub trait Source {
 pub struct GitSource {
     /// Repository URL.
     pub url: String,
-    /// Branch, tag, or sha.
+    /// Branch, tag, or sha. Serialized as `ref:` in `sindri.yaml` (ADR-028
+    /// §"Configuration shape"). The resolver pins this to a commit sha in the
+    /// lockfile at resolution time (Phase 3).
+    #[serde(rename = "ref")]
     pub git_ref: String,
     /// Optional sub-directory inside the repo where `index.yaml` lives.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -202,8 +205,13 @@ pub struct GitSource {
     /// Optional component-name allow-list.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scope: Option<Vec<ComponentName>>,
-    /// When `true`, unsigned commits are rejected.
-    #[serde(default)]
+    /// When `true`, unsigned commits are rejected. Serialized as
+    /// `require-signed:` in `sindri.yaml` (ADR-028 §"Configuration shape").
+    #[serde(
+        default,
+        rename = "require-signed",
+        skip_serializing_if = "std::ops::Not::not"
+    )]
     pub require_signed: bool,
 }
 
@@ -338,6 +346,77 @@ impl RegistrySource {
             RegistrySource::Oci(_) => false,
             RegistrySource::LocalOci(_) => false,
             RegistrySource::Git(_) => false,
+        }
+    }
+}
+
+// =============================================================================
+// Config DTO → trait enum conversions (ADR-028 §"Resolver wiring", Phase 4.1)
+// =============================================================================
+
+/// Convert a slice of `sindri-core` config DTOs into a `Vec<RegistrySource>`
+/// for use by the resolver. Called by `sindri resolve` after reading the BOM.
+///
+/// Scope lists are converted from `Vec<String>` to `Vec<ComponentName>`.
+/// Registry-level fields (`registry_name`, `artifact_ref`) are forwarded to
+/// the runtime source configs in `sindri-registry`.
+pub fn sources_from_config(
+    cfgs: &[sindri_core::manifest::RegistrySourceConfig],
+) -> Vec<RegistrySource> {
+    cfgs.iter().map(registry_source_from_config).collect()
+}
+
+fn registry_source_from_config(
+    cfg: &sindri_core::manifest::RegistrySourceConfig,
+) -> RegistrySource {
+    use sindri_core::manifest::RegistrySourceConfig as C;
+    match cfg {
+        C::Oci(c) => {
+            let rn = c
+                .registry_name
+                .clone()
+                .unwrap_or_else(|| sindri_core::registry::CORE_REGISTRY_NAME.to_string());
+            RegistrySource::Oci(OciSourceConfig {
+                url: c.url.clone(),
+                tag: c.tag.clone(),
+                scope: c
+                    .scope
+                    .as_ref()
+                    .map(|v| v.iter().map(|s| ComponentName::from(s.as_str())).collect()),
+                registry_name: rn,
+            })
+        }
+        C::LocalPath(c) => RegistrySource::LocalPath(LocalPathSource {
+            path: c.path.clone(),
+            scope: c
+                .scope
+                .as_ref()
+                .map(|v| v.iter().map(|s| ComponentName::from(s.as_str())).collect()),
+        }),
+        C::Git(c) => RegistrySource::Git(GitSource {
+            url: c.url.clone(),
+            git_ref: c.git_ref.clone(),
+            subdir: c.subdir.clone(),
+            scope: c
+                .scope
+                .as_ref()
+                .map(|v| v.iter().map(|s| ComponentName::from(s.as_str())).collect()),
+            require_signed: c.require_signed,
+        }),
+        C::LocalOci(c) => {
+            let rn = c
+                .registry_name
+                .clone()
+                .unwrap_or_else(|| sindri_core::registry::CORE_REGISTRY_NAME.to_string());
+            RegistrySource::LocalOci(LocalOciSourceConfig {
+                layout_path: c.layout.clone(),
+                scope: c
+                    .scope
+                    .as_ref()
+                    .map(|v| v.iter().map(|s| ComponentName::from(s.as_str())).collect()),
+                registry_name: rn,
+                artifact_ref: c.artifact_ref.clone(),
+            })
         }
     }
 }

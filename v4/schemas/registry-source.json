@@ -7,13 +7,12 @@
     "GitSource": {
       "description": "Phase-3 stub — resolves components from a Git repository.",
       "properties": {
-        "git_ref": {
-          "description": "Branch, tag, or sha.",
+        "ref": {
+          "description": "Branch, tag, or sha. Serialized as `ref:` in `sindri.yaml` (ADR-028\n§\"Configuration shape\"). The resolver pins this to a commit sha in the\nlockfile at resolution time (Phase 3).",
           "type": "string"
         },
-        "require_signed": {
-          "default": false,
-          "description": "When `true`, unsigned commits are rejected.",
+        "require-signed": {
+          "description": "When `true`, unsigned commits are rejected. Serialized as\n`require-signed:` in `sindri.yaml` (ADR-028 §\"Configuration shape\").",
           "type": "boolean"
         },
         "scope": {
@@ -40,7 +39,7 @@
       },
       "required": [
         "url",
-        "git_ref"
+        "ref"
       ],
       "type": "object"
     },
@@ -54,8 +53,8 @@
             "null"
           ]
         },
-        "layout_path": {
-          "description": "Path to the OCI image-layout v1.1 directory.",
+        "layout": {
+          "description": "Path to the OCI image-layout v1.1 directory.\n\nSerialized as `layout:` in `sindri.yaml` (ADR-028 §\"Configuration shape\").",
           "type": "string"
         },
         "registry_name": {
@@ -75,7 +74,7 @@
         }
       },
       "required": [
-        "layout_path"
+        "layout"
       ],
       "type": "object"
     },

@@ -55,12 +55,11 @@ fn write_bom(tmp: &TempDir, components: &[&str]) -> std::path::PathBuf {
         schema: None,
         name: Some("strict-oci-test".into()),
         components: vec![],
-        registries: vec![],
+        registry: sindri_core::manifest::RegistrySection::default(),
         targets: HashMap::new(),
         preferences: None,
         r#override: None,
         secrets: HashMap::new(),
-        registry: None,
     };
     for c in components {
         bom.components.push(BomEntry {

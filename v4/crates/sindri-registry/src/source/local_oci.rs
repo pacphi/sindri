@@ -55,6 +55,9 @@ const REGISTRY_CORE_ANNOTATION_VALUE: &str = "registry-core";
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct LocalOciSourceConfig {
     /// Path to the OCI image-layout v1.1 directory.
+    ///
+    /// Serialized as `layout:` in `sindri.yaml` (ADR-028 §"Configuration shape").
+    #[serde(rename = "layout")]
     pub layout_path: PathBuf,
     /// Optional component-name allow-list.
     #[serde(default, skip_serializing_if = "Option::is_none")]
