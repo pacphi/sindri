@@ -29,3 +29,14 @@ install:
       macos-aarch64: "sha256:a0423acd5954932a817d531a8160b67cf0456ea6c9e68c11c054c19ea7a6714b"
 
 depends_on: []
+
+auth:
+  tokens:
+    - name: github_token
+      description: "GitHub token used by the gh CLI; avoids the unauthenticated rate-limit cliff in CI."
+      scope: runtime
+      optional: true
+      audience: "https://api.github.com"
+      redemption:
+        kind: env-var
+        env-name: GITHUB_TOKEN

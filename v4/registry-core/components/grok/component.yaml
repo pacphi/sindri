@@ -26,3 +26,14 @@ install:
 
 depends_on:
   - "mise:nodejs"
+
+auth:
+  tokens:
+    - name: xai_api_key
+      description: "xAI API key used by the Grok CLI."
+      scope: runtime
+      optional: false
+      audience: "urn:xai:api"
+      redemption:
+        kind: env-var
+        env-name: XAI_API_KEY

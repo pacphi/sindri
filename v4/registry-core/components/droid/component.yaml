@@ -26,3 +26,14 @@ install:
 
 depends_on:
   - "mise:nodejs"
+
+auth:
+  tokens:
+    - name: factory_api_key
+      description: "Factory API key used by the Droid CLI."
+      scope: runtime
+      optional: false
+      audience: "urn:factory:api"
+      redemption:
+        kind: env-var
+        env-name: FACTORY_API_KEY

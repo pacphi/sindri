@@ -26,3 +26,14 @@ install:
 
 depends_on:
   - "mise:nodejs"
+
+auth:
+  tokens:
+    - name: openai_api_key
+      description: "OpenAI API key used by the Codex CLI."
+      scope: runtime
+      optional: false
+      audience: "urn:openai:api"
+      redemption:
+        kind: env-var
+        env-name: OPENAI_API_KEY
