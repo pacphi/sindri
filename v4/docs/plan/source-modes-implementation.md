@@ -206,8 +206,12 @@ exist.
 
 - [ ] Append a section to `v4/docs/MIGRATION_FROM_V3.md` (or seed the file) explaining
   how v3's "resolve from GitHub" maps to a v4 `git` source, and how v3's bundled
-  registry pattern maps to `local-oci`.
+  registry pattern maps to `local-oci`. Cross-link to
+  [`v4/docs/SOURCES.md`](../SOURCES.md) (the maintainer guide, authored in
+  Phase 1) rather than duplicating its decision matrix.
 - [ ] Cross-link from ADR-003 §"Air-gapped / offline" once the migration doc lands.
+- [ ] Update SOURCES.md "Phase status" table as Phases 2/3 land so its source-by-source
+  status stays accurate.
 
 ### Acceptance criteria
 

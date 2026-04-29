@@ -226,3 +226,8 @@ without a transitional alias.
 | **Strict OCI mode**   | The CI/production gate (`--strict-oci`) that fails resolve unless every source is OCI-with-signature. |
 | **Bundle / local-oci**| An on-disk OCI image layout (v1.1) consumed without network access.                                 |
 | **Source scope**      | Optional component-name allowlist on a source; non-matching components fall through to the next source. |
+
+## See also
+
+- [SOURCES.md](../SOURCES.md) — maintainer-facing guide to when each source is the right tool, with concrete use cases and a `local-path` vs `local-oci` comparison.
+- [ADR-028](../ADRs/028-component-source-modes.md) — the decision record this domain implements.
