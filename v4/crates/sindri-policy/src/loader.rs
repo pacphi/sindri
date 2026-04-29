@@ -1,4 +1,4 @@
-use sindri_core::policy::{AuditConfig, InstallPolicy, PolicyAction, PolicyPreset};
+use sindri_core::policy::{AuditConfig, AuthPolicy, InstallPolicy, PolicyAction, PolicyPreset};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -26,6 +26,7 @@ pub fn preset_default() -> InstallPolicy {
         require_checksums: Some(false),
         offline: Some(false),
         audit: None,
+        auth: AuthPolicy::default(),
     }
 }
 
@@ -48,6 +49,7 @@ pub fn preset_strict() -> InstallPolicy {
         audit: Some(AuditConfig {
             require_justification: true,
         }),
+        auth: AuthPolicy::default(),
     }
 }
 
@@ -61,6 +63,7 @@ pub fn preset_offline() -> InstallPolicy {
         require_checksums: Some(false),
         offline: Some(true),
         audit: None,
+        auth: AuthPolicy::default(),
     }
 }
 
@@ -144,6 +147,9 @@ fn merge_policy(base: &mut InstallPolicy, overlay: &InstallPolicy) {
     if overlay.audit.is_some() {
         base.audit = overlay.audit.clone();
     }
+    // Auth policy: overlay always wins. Defaults are documented as
+    // strict-deny so accidental omission cannot relax them.
+    base.auth = overlay.auth.clone();
 }
 
 pub fn global_policy_path() -> PathBuf {

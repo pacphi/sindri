@@ -108,6 +108,7 @@ fn admission_gate_denies_unsupported_platform() {
         require_checksums: None,
         offline: Some(true),
         audit: None,
+        auth: Default::default(),
     };
 
     let checker = AdmissionChecker::new(&policy, &target);

@@ -36,6 +36,7 @@ fn permissive_policy() -> InstallPolicy {
         require_checksums: None,
         offline: Some(true),
         audit: None,
+        auth: Default::default(),
     }
 }
 
