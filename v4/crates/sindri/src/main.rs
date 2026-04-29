@@ -410,6 +410,18 @@ enum RegistrySubcmds {
         #[arg(long = "sign-with")]
         sign_with: Option<String>,
     },
+    /// Resolve an OCI ref's closure into an OCI image layout or tarball
+    /// for offline / air-gap use (Phase 3.3, ADR-028).
+    Prefetch {
+        /// `oci://host/path:tag` of the upstream registry artifact.
+        oci_ref: String,
+        /// Write the closure as a tarball at this path.
+        #[arg(long, conflicts_with = "layout")]
+        target: Option<String>,
+        /// Write the closure as an OCI image layout directory at this path.
+        #[arg(long, conflicts_with = "target")]
+        layout: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -725,6 +737,15 @@ fn run() -> i32 {
                     addr,
                     root,
                     sign_with,
+                },
+                RegistrySubcmds::Prefetch {
+                    oci_ref,
+                    target,
+                    layout,
+                } => RegistryCmd::Prefetch {
+                    oci_ref,
+                    target,
+                    layout,
                 },
             };
             commands::registry::run(registry_cmd)

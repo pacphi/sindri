@@ -3,6 +3,7 @@ use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
 use sindri_registry::signing::TrustedKey;
 use sindri_registry::{CosignVerifier, OciRef, RegistryClient};
 
+pub mod prefetch;
 pub mod serve;
 
 pub enum RegistryCmd {
@@ -37,6 +38,13 @@ pub enum RegistryCmd {
         root: String,
         sign_with: Option<String>,
     },
+    /// Resolve the closure of one OCI ref into a tarball or OCI image
+    /// layout (Phase 3.3, ADR-028).
+    Prefetch {
+        oci_ref: String,
+        target: Option<String>,
+        layout: Option<String>,
+    },
 }
 
 pub fn run(cmd: RegistryCmd) -> i32 {
@@ -55,6 +63,11 @@ pub fn run(cmd: RegistryCmd) -> i32 {
             root,
             sign_with,
         } => serve::run(&addr, &root, sign_with),
+        RegistryCmd::Prefetch {
+            oci_ref,
+            target,
+            layout,
+        } => prefetch::run(&oci_ref, target.as_deref(), layout.as_deref()),
     }
 }
 

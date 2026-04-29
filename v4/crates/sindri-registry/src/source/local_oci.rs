@@ -48,8 +48,8 @@ use super::{
 const SINDRI_INDEX_MEDIA_TYPE: &str = "application/vnd.sindri.registry.index.v1+yaml";
 /// Annotation that lets the layout author tag a manifest as the registry-core
 /// artifact when the layer's media type is generic (`application/vnd.oci.image.layer.v1.tar+gzip`).
-pub(crate) const REGISTRY_CORE_ANNOTATION_KEY: &str = "org.sindri.registry.kind";
-pub(crate) const REGISTRY_CORE_ANNOTATION_VALUE: &str = "registry-core";
+pub const REGISTRY_CORE_ANNOTATION_KEY: &str = "org.sindri.registry.kind";
+pub const REGISTRY_CORE_ANNOTATION_VALUE: &str = "registry-core";
 
 /// Annotations identifying a per-component manifest inside the OCI layout
 /// produced by `sindri registry prefetch` (Phase 3.3, ADR-028).
@@ -61,9 +61,9 @@ pub(crate) const REGISTRY_CORE_ANNOTATION_VALUE: &str = "registry-core";
 ///
 /// `org.sindri.component.oci-ref` — the per-component OCI ref the prefetch
 /// tool resolved against (purely informational; lookup uses backend+name).
-pub(crate) const COMPONENT_BACKEND_ANNOTATION: &str = "org.sindri.component.backend";
-pub(crate) const COMPONENT_NAME_ANNOTATION: &str = "org.sindri.component.name";
-pub(crate) const COMPONENT_OCI_REF_ANNOTATION: &str = "org.sindri.component.oci-ref";
+pub const COMPONENT_BACKEND_ANNOTATION: &str = "org.sindri.component.backend";
+pub const COMPONENT_NAME_ANNOTATION: &str = "org.sindri.component.name";
+pub const COMPONENT_OCI_REF_ANNOTATION: &str = "org.sindri.component.oci-ref";
 
 /// Plain, serializable config for a [`LocalOciSource`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -454,8 +454,10 @@ fn read_blob(layout: &Path, digest: &str) -> Result<Vec<u8>, SourceError> {
     })
 }
 
-/// Compute the on-disk path for a blob digest.
-pub(crate) fn blob_path(layout: &Path, digest: &str) -> PathBuf {
+/// Compute the on-disk path for a blob digest in an OCI image layout
+/// (`<layout>/blobs/<alg>/<hex>`). Exposed so the `sindri registry
+/// prefetch` encoder can write to the same paths the read path resolves.
+pub fn blob_path(layout: &Path, digest: &str) -> PathBuf {
     let (alg, hex) = match digest.split_once(':') {
         Some(parts) => parts,
         None => return layout.join("blobs").join("sha256").join(digest),
@@ -663,7 +665,9 @@ pub struct ComponentFixtureManifest {
     pub layer_bytes: Vec<u8>,
 }
 
-pub(crate) fn write_blob(layout: &Path, digest: &str, bytes: &[u8]) -> std::io::Result<()> {
+/// Write a blob into the OCI image layout at `<layout>/blobs/<alg>/<hex>`.
+/// Exposed for `sindri registry prefetch` (Phase 3.3, ADR-028).
+pub fn write_blob(layout: &Path, digest: &str, bytes: &[u8]) -> std::io::Result<()> {
     let path = blob_path(layout, digest);
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
