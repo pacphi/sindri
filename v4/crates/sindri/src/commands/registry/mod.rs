@@ -32,11 +32,11 @@ pub enum RegistryCmd {
         path: String,
     },
     /// Embedded OCI registry over a components directory (Phase 3.2,
-    /// ADR-028).
+    /// ADR-028). Serves pre-signed bytes verbatim from the layout on disk.
+    /// `--sign-with` was removed in Phase 3 follow-up; re-signing is Phase 5.
     Serve {
         addr: String,
         root: String,
-        sign_with: Option<String>,
     },
     /// Resolve the closure of one OCI ref into a tarball or OCI image
     /// layout (Phase 3.3, ADR-028).
@@ -58,11 +58,7 @@ pub fn run(cmd: RegistryCmd) -> i32 {
         RegistryCmd::Trust { name, signer } => trust(&name, &signer),
         RegistryCmd::Verify { name, url } => verify(&name, &url),
         RegistryCmd::FetchChecksums { path } => fetch_checksums(&path),
-        RegistryCmd::Serve {
-            addr,
-            root,
-            sign_with,
-        } => serve::run(&addr, &root, sign_with),
+        RegistryCmd::Serve { addr, root } => serve::run(&addr, &root),
         RegistryCmd::Prefetch {
             oci_ref,
             target,

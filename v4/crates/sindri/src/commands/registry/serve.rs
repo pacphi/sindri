@@ -19,6 +19,16 @@
 //!   The subdirectory name becomes the repository name. Useful for
 //!   serving multiple per-component artifacts side by side.
 //!
+//! ## Flags
+//!
+//! - `--root <path>` — required; see layout convention above.
+//! - `--addr <host:port>` — optional; default `127.0.0.1:5000`.
+//!
+//! Note: `--sign-with` was removed in Phase 3 follow-up. The server is
+//! read-only and does not re-sign manifests; it serves the pre-signed bytes
+//! written by `sindri registry prefetch`. Re-signing support is deferred to
+//! Phase 5.
+//!
 //! ## Endpoints
 //!
 //! Implements the read-only subset of the OCI Distribution Spec needed by
@@ -84,26 +94,18 @@ impl ServerState {
 
 /// Run the embedded registry. Blocks until SIGINT (Ctrl-C) is received,
 /// then shuts down cleanly.
-pub fn run(addr: &str, root: &str, sign_with: Option<String>) -> i32 {
+///
+/// `--sign-with` was stripped in Phase 3 follow-up because the flag
+/// parsed but never performed any signing — shipping a no-op flag is
+/// misleading. Re-signing support is tracked in Phase 5 (`registry serve
+/// --sign-with <key>`); for now the server serves pre-signed bytes verbatim.
+pub fn run(addr: &str, root: &str) -> i32 {
     let root = PathBuf::from(root);
     if !root.exists() {
         eprintln!("registry serve: --root {} does not exist", root.display());
         return EXIT_SCHEMA_OR_RESOLVE_ERROR;
     }
     let single_repo = root.join("oci-layout").exists() || root.join("index.json").exists();
-
-    if let Some(key) = sign_with {
-        // Phase 3.2 implementation note: `--sign-with` is accepted on the
-        // CLI for forward compatibility but not actively wired into the
-        // serve path because the server only re-emits bytes that already
-        // exist on disk (which the prefetch / build pipeline signed). We
-        // log the chosen key path so operators can confirm the flag was
-        // recognized.
-        tracing::info!(
-            "registry serve: --sign-with {} accepted; serving pre-signed bytes verbatim",
-            key
-        );
-    }
 
     let state = Arc::new(ServerState { root, single_repo });
 

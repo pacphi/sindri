@@ -401,11 +401,21 @@ impl Source for GitSourceRuntime {
         })
     }
 
+    /// Return the descriptor that the resolver writes into the lockfile.
+    ///
+    /// The descriptor records `(url, commit_sha, subdir)` only — never an
+    /// absolute cache path. The on-disk cache lives at
+    /// `~/.sindri/cache/git/<sha256(url)>/<commit_sha>/`, deterministically
+    /// derived from the descriptor on every host. Recording an absolute path
+    /// would break portability the moment two operators share a lockfile;
+    /// derivation is identical at resolve-time and apply-time, so cache hits
+    /// behave correctly without explicit path tracking.
+    ///
+    /// The `commit_sha` is the *resolved* sha when [`Self::ensure_checkout`]
+    /// has already run, or the raw user-supplied ref as a placeholder when
+    /// the descriptor is requested before a fetch — matching the best-effort
+    /// behaviour of the static-config dispatch helper.
     fn lockfile_descriptor(&self) -> SourceDescriptor {
-        // Descriptor records the *resolved* sha when one is available, never
-        // the user-supplied ref. Callers that haven't yet driven a fetch get
-        // the raw ref-as-string back as a placeholder, matching the
-        // best-effort behaviour of the static-config dispatch helper.
         let commit_sha = self
             .resolved_sha()
             .unwrap_or_else(|| self.config.git_ref.clone());

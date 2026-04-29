@@ -394,7 +394,11 @@ enum RegistrySubcmds {
     FetchChecksums { path: String },
     /// Run an embedded OCI registry over a components directory (Phase 3.2,
     /// ADR-028). Developer convenience for testing — single-process,
-    /// read-only, no garbage collection. Press Ctrl-C to stop.
+    /// read-only, no garbage collection. Serves pre-signed bytes verbatim.
+    /// Press Ctrl-C to stop.
+    ///
+    /// Note: `--sign-with` is not available; the server is read-only and
+    /// does not re-sign manifests. Re-signing support is planned for Phase 5.
     Serve {
         /// Directory containing an OCI image layout (or a directory of
         /// them, one per repository).
@@ -403,12 +407,6 @@ enum RegistrySubcmds {
         /// `host:port` to listen on. Default `127.0.0.1:5000`.
         #[arg(long, default_value = "127.0.0.1:5000")]
         addr: String,
-        /// Optional cosign key file to declare in the served manifest's
-        /// trust set. Phase 3.2 honors the flag for forward compatibility
-        /// but does not actively re-sign — the served bytes are emitted
-        /// verbatim from the underlying layout.
-        #[arg(long = "sign-with")]
-        sign_with: Option<String>,
     },
     /// Resolve an OCI ref's closure into an OCI image layout or tarball
     /// for offline / air-gap use (Phase 3.3, ADR-028).
@@ -729,15 +727,7 @@ fn run() -> i32 {
                 RegistrySubcmds::Trust { name, signer } => RegistryCmd::Trust { name, signer },
                 RegistrySubcmds::Verify { name, url } => RegistryCmd::Verify { name, url },
                 RegistrySubcmds::FetchChecksums { path } => RegistryCmd::FetchChecksums { path },
-                RegistrySubcmds::Serve {
-                    root,
-                    addr,
-                    sign_with,
-                } => RegistryCmd::Serve {
-                    addr,
-                    root,
-                    sign_with,
-                },
+                RegistrySubcmds::Serve { root, addr } => RegistryCmd::Serve { addr, root },
                 RegistrySubcmds::Prefetch {
                     oci_ref,
                     target,
