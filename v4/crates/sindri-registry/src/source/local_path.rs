@@ -5,10 +5,6 @@
 //! `component.yaml` files) and produces a [`RegistryIndex`] in memory. It is
 //! the canonical inner-loop authoring path: edit a `component.yaml`, re-run
 //! `sindri lock`, see the change without round-tripping through OCI.
-//!
-//! This module is a refactor of the previous `crate::local::LocalRegistry`.
-//! The legacy type is preserved as a deprecated alias (see `crate::local`)
-//! for one release.
 
 use crate::error::RegistryError;
 use crate::index::RegistryIndex;
@@ -40,8 +36,7 @@ pub struct LocalPathSource {
 }
 
 impl LocalPathSource {
-    /// Construct from a path string. Convenience for migrating existing
-    /// `LocalRegistry::new(path)` call sites.
+    /// Construct from a path string.
     pub fn new(path: impl Into<PathBuf>) -> Self {
         Self {
             path: path.into(),
@@ -55,15 +50,13 @@ impl LocalPathSource {
         self
     }
 
-    /// Read `index.yaml` from the root and parse it. Mirrors the legacy
-    /// `LocalRegistry::load_index` behaviour exactly.
+    /// Read `index.yaml` from the root and parse it.
     pub fn load_index(&self) -> Result<RegistryIndex, RegistryError> {
         let content = fs::read_to_string(self.path.join("index.yaml"))?;
         RegistryIndex::from_yaml(&content).map_err(RegistryError::Yaml)
     }
 
-    /// Load a single `component.yaml` blob by `(backend, name)`. Mirrors the
-    /// legacy `LocalRegistry::load_component` behaviour exactly.
+    /// Load a single `component.yaml` blob by `(backend, name)`.
     pub fn load_component(
         &self,
         backend: &str,
@@ -209,8 +202,7 @@ depends_on: []
         stdfs::write(sub.join("component.yaml"), yaml).unwrap();
     }
 
-    /// Existing-behaviour smoke test (carried over from the legacy
-    /// `LocalRegistry` so the alias keeps working).
+    /// `load_index` round-trips a written `index.yaml`.
     #[test]
     fn load_index_round_trips() {
         let dir = TempDir::new().unwrap();

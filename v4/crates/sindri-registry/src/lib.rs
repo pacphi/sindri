@@ -17,7 +17,6 @@ pub mod error;
 pub mod index;
 pub mod keyless;
 pub mod lint;
-pub mod local;
 pub mod oci_ref;
 pub mod signing;
 pub mod source;
@@ -32,8 +31,6 @@ pub use keyless::{
     EnvelopeKind, KeylessIdentity, KeylessTrustRoot, KeylessVerifier, SignatureEnvelope,
     VerificationMode,
 };
-#[allow(deprecated)]
-pub use local::LocalRegistry;
 pub use oci_ref::{OciRef, OciReference};
 pub use signing::{CosignVerifier, TrustedKey};
 pub use source::{

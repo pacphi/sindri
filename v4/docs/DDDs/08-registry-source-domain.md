@@ -212,9 +212,10 @@ is true. CI templates flip this on; inner-loop development leaves it off.
 - `oci.rs`           — `OciSource`; wraps existing `RegistryClient`
 - `local_oci.rs`     — `LocalOciSource`; reads OCI image layout via `oci-spec`/`sigstore-rs`
 
-`sindri-registry/src/local.rs` (the existing `LocalRegistry`) is refactored into
-`source/local_path.rs` with no behavior change; the public API gains the new
-`Source` trait but keeps the old `LocalRegistry` type alias for one release.
+The existing `sindri-registry/src/local.rs` is refactored into
+`source/local_path.rs` and the `LocalRegistry` symbol is removed outright —
+v4 has no external consumers, so the old name is replaced by `LocalPathSource`
+without a transitional alias.
 
 ## Ubiquitous Language additions
 

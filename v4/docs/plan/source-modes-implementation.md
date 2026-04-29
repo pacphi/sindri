@@ -51,10 +51,10 @@ for existing users.
 - [ ] Move `sindri-registry/src/local.rs` to `sindri-registry/src/source/local_path.rs`.
 - [ ] Implement `Source` for `LocalPathSource`. `fetch_index` walks the path, reads
   `component.yaml` files, builds an in-memory `RegistryIndex`.
-- [ ] Add a deprecation type alias `pub type LocalRegistry = LocalPathSource;` retained
-  for one release.
-- [ ] Tests: re-target the existing `LocalRegistry` test suite at the new type via the
-  alias; add three new tests covering the scope filter.
+- [ ] Remove the old `LocalRegistry` symbol outright (v4 has no external consumers,
+  so no transitional alias is kept).
+- [ ] Tests: re-target the existing tests at `LocalPathSource`; add three new tests
+  covering the scope filter.
 
 #### 1.3 Resolver wiring
 
