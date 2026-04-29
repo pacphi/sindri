@@ -48,8 +48,22 @@ use super::{
 const SINDRI_INDEX_MEDIA_TYPE: &str = "application/vnd.sindri.registry.index.v1+yaml";
 /// Annotation that lets the layout author tag a manifest as the registry-core
 /// artifact when the layer's media type is generic (`application/vnd.oci.image.layer.v1.tar+gzip`).
-const REGISTRY_CORE_ANNOTATION_KEY: &str = "org.sindri.registry.kind";
-const REGISTRY_CORE_ANNOTATION_VALUE: &str = "registry-core";
+pub(crate) const REGISTRY_CORE_ANNOTATION_KEY: &str = "org.sindri.registry.kind";
+pub(crate) const REGISTRY_CORE_ANNOTATION_VALUE: &str = "registry-core";
+
+/// Annotations identifying a per-component manifest inside the OCI layout
+/// produced by `sindri registry prefetch` (Phase 3.3, ADR-028).
+///
+/// `org.sindri.component.backend` — the component's `backend` field
+/// (e.g. `"mise"`, `"brew"`).
+///
+/// `org.sindri.component.name` — the component's `name` field.
+///
+/// `org.sindri.component.oci-ref` — the per-component OCI ref the prefetch
+/// tool resolved against (purely informational; lookup uses backend+name).
+pub(crate) const COMPONENT_BACKEND_ANNOTATION: &str = "org.sindri.component.backend";
+pub(crate) const COMPONENT_NAME_ANNOTATION: &str = "org.sindri.component.name";
+pub(crate) const COMPONENT_OCI_REF_ANNOTATION: &str = "org.sindri.component.oci-ref";
 
 /// Plain, serializable config for a [`LocalOciSource`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -213,6 +227,57 @@ impl LocalOciSource {
         Ok((digest.to_string(), bytes))
     }
 
+    /// Walk `index.json` for a per-component manifest matching `id`. The
+    /// match is by the `org.sindri.component.{backend,name}` annotations
+    /// written by `sindri registry prefetch` (Phase 3.3).
+    fn locate_component_manifest(
+        &self,
+        id: &ComponentId,
+    ) -> Result<(String, Vec<u8>), SourceError> {
+        let index_path = self.config.layout_path.join("index.json");
+        let raw = fs::read(&index_path).map_err(|e| match e.kind() {
+            std::io::ErrorKind::NotFound => SourceError::Io(format!(
+                "{}: not an OCI layout (missing index.json)",
+                self.config.layout_path.display()
+            )),
+            _ => SourceError::Io(format!("{}: {}", index_path.display(), e)),
+        })?;
+        let index: serde_json::Value = serde_json::from_slice(&raw)
+            .map_err(|e| SourceError::InvalidData(format!("index.json parse: {}", e)))?;
+        let manifests = index
+            .get("manifests")
+            .and_then(|m| m.as_array())
+            .ok_or_else(|| {
+                SourceError::InvalidData("index.json missing 'manifests' array".into())
+            })?;
+
+        for desc in manifests {
+            let annotations = match desc.get("annotations").and_then(|a| a.as_object()) {
+                Some(a) => a,
+                None => continue,
+            };
+            let backend = annotations
+                .get(COMPONENT_BACKEND_ANNOTATION)
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let name = annotations
+                .get(COMPONENT_NAME_ANNOTATION)
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            if backend == id.backend && name == id.name.as_str() {
+                let digest = desc.get("digest").and_then(|d| d.as_str()).ok_or_else(|| {
+                    SourceError::InvalidData("component manifest descriptor missing digest".into())
+                })?;
+                return self.read_manifest_blob(digest);
+            }
+        }
+        Err(SourceError::NotFound(format!(
+            "component {}/{} not in OCI layout (no per-component manifest with matching annotations)",
+            id.backend,
+            id.name.as_str()
+        )))
+    }
+
     /// Phase-2 fetch: locate the artifact, walk its layers, parse the
     /// `index.yaml` payload from the first matching layer.
     fn read_index_from_layout(&self) -> Result<RegistryIndex, SourceError> {
@@ -263,23 +328,21 @@ impl Source for LocalOciSource {
         Ok(index)
     }
 
-    /// Fetch a single component blob by id.
+    /// Fetch a single component blob by id (Phase 3.0, ADR-028).
     ///
-    /// **Phase 2 stub — currently returns `NotImplemented`.**
+    /// Walks `<layout>/index.json` for a per-component manifest tagged with
+    /// `org.sindri.component.{backend,name}` annotations matching `id`,
+    /// then reads the layer blob from `<layout>/blobs/sha256/<digest>`.
     ///
-    /// Reading layer blobs from an on-disk OCI image layout by digest
-    /// requires the per-component layer path convention established by
-    /// `sindri registry prefetch` (Phase 3, plan §3.3). Until that lands,
-    /// callers must use `fetch_index()` and `lockfile_descriptor()` for
-    /// index-level metadata.
+    /// The bytes are digest-verified against the manifest's declared layer
+    /// digest before being returned.
     fn fetch_component_blob(
         &self,
         id: &ComponentId,
         _version: &Version,
         _ctx: &SourceContext,
     ) -> Result<ComponentBlob, SourceError> {
-        // Honor the scope filter at the blob level too — this is a real
-        // semantic guard, not a placeholder, so it fires before the stub.
+        // Honor the scope filter at the blob level too.
         if !self
             .config
             .scope
@@ -290,10 +353,31 @@ impl Source for LocalOciSource {
             return Err(SourceError::NotFound(id.name.as_str().to_string()));
         }
 
-        // Per-component layer streaming from the on-disk layout is a Phase 3
-        // prerequisite for the `prefetch` round-trip. Phase 2 only exposes
-        // index-level metadata via fetch_index() and lockfile_descriptor().
-        Err(SourceError::NotImplemented("local-oci:fetch_component_blob — reading layer blobs from the on-disk OCI image layout lands in Phase 3 alongside `sindri registry prefetch`"))
+        let (_manifest_digest, manifest_bytes) = self.locate_component_manifest(id)?;
+
+        let manifest: serde_json::Value = serde_json::from_slice(&manifest_bytes)
+            .map_err(|e| SourceError::InvalidData(format!("component manifest json: {}", e)))?;
+        let layers = manifest
+            .get("layers")
+            .and_then(|l| l.as_array())
+            .ok_or_else(|| {
+                SourceError::InvalidData("component manifest missing 'layers'".into())
+            })?;
+        let first = layers
+            .first()
+            .ok_or_else(|| SourceError::InvalidData("component manifest has zero layers".into()))?;
+        let digest = first
+            .get("digest")
+            .and_then(|d| d.as_str())
+            .ok_or_else(|| SourceError::InvalidData("layer missing 'digest'".into()))?;
+
+        let bytes = read_blob(&self.config.layout_path, digest)?;
+        verify_layer_bytes(digest, &bytes)?;
+
+        Ok(ComponentBlob {
+            bytes,
+            digest: Some(digest.to_string()),
+        })
     }
 
     fn lockfile_descriptor(&self) -> SourceDescriptor {
@@ -338,6 +422,29 @@ fn manifest_is_registry_core(bytes: &[u8]) -> bool {
     false
 }
 
+/// Verify that `bytes` hash to `expected_digest` (`sha256:<hex>`).
+///
+/// Local-OCI mirrors the live `OciSource` digest-verification pass: even
+/// though the bytes came off our own disk, double-checking guards against
+/// silent layout corruption and gives the round-trip parity test
+/// (`prefetch` → `LocalOciSource`) a hard equality contract.
+pub(crate) fn verify_layer_bytes(expected_digest: &str, bytes: &[u8]) -> Result<(), SourceError> {
+    let want = expected_digest.strip_prefix("sha256:").ok_or_else(|| {
+        SourceError::InvalidData(format!(
+            "layer digest {} is not sha256-prefixed",
+            expected_digest
+        ))
+    })?;
+    let actual = hex::encode(Sha256::digest(bytes));
+    if actual != want {
+        return Err(SourceError::InvalidData(format!(
+            "layer digest mismatch — expected {}, computed sha256:{}",
+            expected_digest, actual
+        )));
+    }
+    Ok(())
+}
+
 /// Read a blob by `sha256:<hex>` digest from `<layout>/blobs/sha256/<hex>`.
 fn read_blob(layout: &Path, digest: &str) -> Result<Vec<u8>, SourceError> {
     let path = blob_path(layout, digest);
@@ -348,7 +455,7 @@ fn read_blob(layout: &Path, digest: &str) -> Result<Vec<u8>, SourceError> {
 }
 
 /// Compute the on-disk path for a blob digest.
-fn blob_path(layout: &Path, digest: &str) -> PathBuf {
+pub(crate) fn blob_path(layout: &Path, digest: &str) -> PathBuf {
     let (alg, hex) = match digest.split_once(':') {
         Some(parts) => parts,
         None => return layout.join("blobs").join("sha256").join(digest),
@@ -356,18 +463,15 @@ fn blob_path(layout: &Path, digest: &str) -> PathBuf {
     layout.join("blobs").join(alg).join(hex)
 }
 
-/// Pull a `sha256:...` digest out of an `oci_ref` string of the form
-/// `host/path@sha256:...`.
-fn digest_from_oci_ref(oci_ref: &str) -> Option<String> {
-    oci_ref
-        .rsplit_once('@')
-        .map(|(_, digest)| digest.to_string())
-}
-
 /// Test-only helper: build a deterministic three-component OCI image layout
 /// at `dest`. Used by the Phase-2 acceptance tests (`local_oci_fixture.rs`)
 /// to avoid committing binary blobs. Public-but-doc-hidden so the fixture
 /// generator in `tests/` can call it without a separate build artifact.
+///
+/// Phase 3.0 extension: every fixture also includes per-component manifests
+/// (annotated with `org.sindri.component.{backend,name}`) so the new
+/// `LocalOciSource::fetch_component_blob` round-trip test path can resolve
+/// per-component layer bytes without first standing up a real OCI registry.
 #[doc(hidden)]
 pub fn build_test_fixture(dest: &Path, signed: bool) -> std::io::Result<FixtureLayout> {
     use std::io::Write;
@@ -426,14 +530,75 @@ pub fn build_test_fixture(dest: &Path, signed: bool) -> std::io::Result<FixtureL
     let manifest_digest = format!("sha256:{}", hex::encode(Sha256::digest(&manifest_bytes)));
     write_blob(dest, &manifest_digest, &manifest_bytes)?;
 
+    let mut manifests_json: Vec<serde_json::Value> = vec![serde_json::json!({
+        "mediaType": "application/vnd.oci.image.manifest.v1+json",
+        "digest": manifest_digest,
+        "size": manifest_bytes.len(),
+    })];
+
+    // Per-component manifests (Phase 3.0). Each component's "layer" is a
+    // tiny synthetic `component.yaml`-shaped blob whose contents are stable
+    // across runs so digest comparisons in the round-trip parity tests are
+    // meaningful.
+    let mut component_manifests: Vec<ComponentFixtureManifest> = Vec::with_capacity(entries.len());
+    for (backend, name, version, license) in &entries {
+        let comp_yaml = format!(
+            "metadata:\n  name: {name}\n  version: \"{version}\"\n  description: test\n  license: {license}\n  tags: []\nplatforms: []\ninstall: {{}}\ndepends_on: []\n",
+            name = name,
+            version = version,
+            license = license,
+        );
+        let comp_layer_bytes = comp_yaml.as_bytes().to_vec();
+        let comp_layer_digest =
+            format!("sha256:{}", hex::encode(Sha256::digest(&comp_layer_bytes)));
+        write_blob(dest, &comp_layer_digest, &comp_layer_bytes)?;
+
+        let comp_manifest = serde_json::json!({
+            "schemaVersion": 2,
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "config": {
+                "mediaType": "application/vnd.oci.image.config.v1+json",
+                "digest": config_digest,
+                "size": config_bytes.len(),
+            },
+            "layers": [{
+                "mediaType": "application/vnd.sindri.component.v1+yaml",
+                "digest": comp_layer_digest,
+                "size": comp_layer_bytes.len(),
+            }],
+        });
+        let comp_manifest_bytes =
+            serde_json::to_vec(&comp_manifest).expect("serialize component manifest");
+        let comp_manifest_digest = format!(
+            "sha256:{}",
+            hex::encode(Sha256::digest(&comp_manifest_bytes))
+        );
+        write_blob(dest, &comp_manifest_digest, &comp_manifest_bytes)?;
+
+        manifests_json.push(serde_json::json!({
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": comp_manifest_digest,
+            "size": comp_manifest_bytes.len(),
+            "annotations": {
+                COMPONENT_BACKEND_ANNOTATION: backend,
+                COMPONENT_NAME_ANNOTATION: name,
+                COMPONENT_OCI_REF_ANNOTATION: format!("local-oci://test/{}", name),
+            }
+        }));
+
+        component_manifests.push(ComponentFixtureManifest {
+            backend: (*backend).into(),
+            name: (*name).into(),
+            manifest_digest: comp_manifest_digest,
+            layer_digest: comp_layer_digest,
+            layer_bytes: comp_layer_bytes,
+        });
+    }
+
     let mut index = serde_json::json!({
         "schemaVersion": 2,
         "mediaType": "application/vnd.oci.image.index.v1+json",
-        "manifests": [{
-            "mediaType": "application/vnd.oci.image.manifest.v1+json",
-            "digest": manifest_digest,
-            "size": manifest_bytes.len(),
-        }]
+        "manifests": manifests_json,
     });
 
     if signed {
@@ -464,6 +629,7 @@ pub fn build_test_fixture(dest: &Path, signed: bool) -> std::io::Result<FixtureL
         layout_path: dest.to_path_buf(),
         manifest_digest,
         layer_digest,
+        components: component_manifests,
     })
 }
 
@@ -477,9 +643,27 @@ pub struct FixtureLayout {
     pub manifest_digest: String,
     /// Digest of the `index.yaml` layer.
     pub layer_digest: String,
+    /// Per-component fixture manifests (Phase 3.0).
+    pub components: Vec<ComponentFixtureManifest>,
 }
 
-fn write_blob(layout: &Path, digest: &str, bytes: &[u8]) -> std::io::Result<()> {
+/// Per-component manifest fixture metadata produced by [`build_test_fixture`].
+#[doc(hidden)]
+#[derive(Debug, Clone)]
+pub struct ComponentFixtureManifest {
+    /// Component backend (`mise`, `brew`, …).
+    pub backend: String,
+    /// Component name.
+    pub name: String,
+    /// Per-component manifest digest written into `index.json`.
+    pub manifest_digest: String,
+    /// Layer digest pointed at by the per-component manifest.
+    pub layer_digest: String,
+    /// Layer bytes — the synthetic `component.yaml` body the test asserts on.
+    pub layer_bytes: Vec<u8>,
+}
+
+pub(crate) fn write_blob(layout: &Path, digest: &str, bytes: &[u8]) -> std::io::Result<()> {
     let path = blob_path(layout, digest);
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
@@ -602,6 +786,94 @@ mod tests {
         });
         let _ = src.fetch_index(&SourceContext::default()).unwrap();
         assert_eq!(src.manifest_digest().unwrap(), layout.manifest_digest);
+    }
+
+    #[test]
+    fn fetch_component_blob_returns_layer_bytes() {
+        let tmp = TempDir::new().unwrap();
+        let layout = build_test_fixture(tmp.path(), false).unwrap();
+
+        let src = LocalOciSource::new(LocalOciSourceConfig {
+            layout_path: layout.layout_path.clone(),
+            scope: None,
+            registry_name: CORE_REGISTRY_NAME.into(),
+            artifact_ref: None,
+        });
+
+        let nodejs = layout
+            .components
+            .iter()
+            .find(|c| c.name == "nodejs")
+            .expect("fixture has nodejs");
+        let id = ComponentId {
+            backend: nodejs.backend.clone(),
+            name: ComponentName::from(nodejs.name.as_str()),
+        };
+        let blob = src
+            .fetch_component_blob(&id, &Version::new("20.10.0"), &SourceContext::default())
+            .unwrap();
+        assert_eq!(blob.bytes, nodejs.layer_bytes);
+        assert_eq!(blob.digest.as_deref(), Some(nodejs.layer_digest.as_str()));
+    }
+
+    #[test]
+    fn fetch_component_blob_unknown_id_yields_not_found() {
+        let tmp = TempDir::new().unwrap();
+        let layout = build_test_fixture(tmp.path(), false).unwrap();
+
+        let src = LocalOciSource::new(LocalOciSourceConfig {
+            layout_path: layout.layout_path,
+            scope: None,
+            registry_name: CORE_REGISTRY_NAME.into(),
+            artifact_ref: None,
+        });
+        let id = ComponentId {
+            backend: "mise".into(),
+            name: ComponentName::from("does-not-exist"),
+        };
+        let err = src
+            .fetch_component_blob(&id, &Version::new("1.0.0"), &SourceContext::default())
+            .unwrap_err();
+        match err {
+            SourceError::NotFound(msg) => assert!(msg.contains("does-not-exist")),
+            other => panic!("expected NotFound, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn fetch_component_blob_corrupted_layer_yields_invalid_data() {
+        let tmp = TempDir::new().unwrap();
+        let layout = build_test_fixture(tmp.path(), false).unwrap();
+
+        // Corrupt the nodejs component's layer blob in place; the stored
+        // bytes should no longer hash to the manifest's declared digest.
+        let nodejs = layout
+            .components
+            .iter()
+            .find(|c| c.name == "nodejs")
+            .unwrap();
+        let layer_path = blob_path(&layout.layout_path, &nodejs.layer_digest);
+        fs::write(&layer_path, b"corrupted").unwrap();
+
+        let src = LocalOciSource::new(LocalOciSourceConfig {
+            layout_path: layout.layout_path,
+            scope: None,
+            registry_name: CORE_REGISTRY_NAME.into(),
+            artifact_ref: None,
+        });
+        let id = ComponentId {
+            backend: nodejs.backend.clone(),
+            name: ComponentName::from(nodejs.name.as_str()),
+        };
+        let err = src
+            .fetch_component_blob(&id, &Version::new("20.10.0"), &SourceContext::default())
+            .unwrap_err();
+        match err {
+            SourceError::InvalidData(msg) => {
+                assert!(msg.contains("digest mismatch"), "got {}", msg)
+            }
+            other => panic!("expected InvalidData, got {:?}", other),
+        }
     }
 
     #[test]
