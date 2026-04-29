@@ -18,6 +18,7 @@ use sindri_core::{
     component::ComponentManifest, manifest::BomManifest, policy::InstallPolicy,
     registry::RegistryIndex,
 };
+use sindri_registry::source::RegistrySource;
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -62,6 +63,8 @@ fn build_schemas() -> Vec<SchemaSpec> {
         build_spec::<ComponentManifest>("component.json"),
         build_spec::<InstallPolicy>("policy.json"),
         build_spec::<RegistryIndex>("registry-index.json"),
+        // DDD-08, ADR-028 — registry source variants for sindri.yaml.
+        build_spec::<RegistrySource>("registry-source.json"),
     ]
 }
 
@@ -202,13 +205,14 @@ mod tests {
     #[test]
     fn all_specs_have_canonical_id() {
         let specs = build_schemas();
-        assert_eq!(specs.len(), 4, "expected 4 schemas");
+        assert_eq!(specs.len(), 5, "expected 5 schemas");
 
         let expected_ids = [
             "https://schemas.sindri.dev/v4/bom.json",
             "https://schemas.sindri.dev/v4/component.json",
             "https://schemas.sindri.dev/v4/policy.json",
             "https://schemas.sindri.dev/v4/registry-index.json",
+            "https://schemas.sindri.dev/v4/registry-source.json",
         ];
 
         for (spec, expected) in specs.iter().zip(expected_ids.iter()) {
@@ -232,7 +236,8 @@ mod tests {
                 "bom.json",
                 "component.json",
                 "policy.json",
-                "registry-index.json"
+                "registry-index.json",
+                "registry-source.json"
             ]
         );
     }

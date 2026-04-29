@@ -7,6 +7,60 @@
       ],
       "type": "string"
     },
+    "AuthRequirements": {
+      "description": "What credentials a component needs to install and/or run.\n\nMounted on `ComponentManifest.auth` as `#[serde(default)]`. Existing\nmanifests (which omit `auth:`) deserialize as `AuthRequirements::default()`,\nfor which [`AuthRequirements::is_empty`] returns `true`.",
+      "properties": {
+        "certs": {
+          "description": "X.509 / PEM materials.",
+          "items": {
+            "$ref": "#/$defs/CertRequirement"
+          },
+          "type": "array"
+        },
+        "oauth": {
+          "description": "OAuth-flow credentials (RFC 8628 device flow today; auth-code in\nfuture).",
+          "items": {
+            "$ref": "#/$defs/OAuthRequirement"
+          },
+          "type": "array"
+        },
+        "ssh": {
+          "description": "SSH key material (private + optional passphrase).",
+          "items": {
+            "$ref": "#/$defs/SshKeyRequirement"
+          },
+          "type": "array"
+        },
+        "tokens": {
+          "description": "API tokens / static bearer secrets (anything that lives as a single\nstring).",
+          "items": {
+            "$ref": "#/$defs/TokenRequirement"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "AuthScope": {
+      "description": "When in the lifecycle a credential is needed.",
+      "oneOf": [
+        {
+          "const": "install",
+          "description": "Needed only while install/configure scripts run.",
+          "type": "string"
+        },
+        {
+          "const": "runtime",
+          "description": "Needed when the installed tool is invoked by the user.",
+          "type": "string"
+        },
+        {
+          "const": "both",
+          "description": "Both phases.",
+          "type": "string"
+        }
+      ]
+    },
     "BinaryInstallConfig": {
       "properties": {
         "checksums": {
@@ -83,6 +137,47 @@
       },
       "required": [
         "crate"
+      ],
+      "type": "object"
+    },
+    "CertRequirement": {
+      "description": "X.509 / PEM certificate-material requirement.",
+      "properties": {
+        "audience": {
+          "description": "Audience the certificate authenticates against.",
+          "type": "string"
+        },
+        "description": {
+          "description": "Human-friendly description.",
+          "type": "string"
+        },
+        "name": {
+          "description": "Stable id (e.g. `client_cert`).",
+          "type": "string"
+        },
+        "optional": {
+          "default": false,
+          "description": "If true, install proceeds without a bound source.",
+          "type": "boolean"
+        },
+        "redemption": {
+          "$ref": "#/$defs/Redemption",
+          "default": {
+            "env-name": "",
+            "kind": "env-var"
+          },
+          "description": "Where the cert should be placed at apply time."
+        },
+        "scope": {
+          "$ref": "#/$defs/AuthScope",
+          "default": "both",
+          "description": "When the material is needed."
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "audience"
       ],
       "type": "object"
     },
@@ -183,6 +278,33 @@
             "$ref": "#/$defs/FileTemplate"
           },
           "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "DiscoveryHints": {
+      "description": "Component-side aliases that help the resolver auto-bind without explicit\n`targets.<n>.provides` configuration (ADR-026 §\"Schema\",\nADR-027 §\"Binding algorithm\").",
+      "properties": {
+        "cli-aliases": {
+          "description": "`cli:` invocations that produce the token\n(e.g. `[\"gh auth token\"]`).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "env-aliases": {
+          "description": "Env-var names to probe (e.g. `[\"ANTHROPIC_API_KEY\",\"CLAUDE_API_KEY\"]`).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "oauth-provider": {
+          "description": "OAuth provider id this requirement maps to (matches\n`OAuthProvider.id`).",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "type": "object"
@@ -502,6 +624,59 @@
       ],
       "type": "object"
     },
+    "OAuthRequirement": {
+      "description": "OAuth-flow credential requirement (RFC 8628 device flow today).",
+      "properties": {
+        "audience": {
+          "description": "Audience the resulting access-token is intended for.",
+          "type": "string"
+        },
+        "description": {
+          "description": "Human-friendly description.",
+          "type": "string"
+        },
+        "name": {
+          "description": "Stable id (e.g. `github_oauth`).",
+          "type": "string"
+        },
+        "optional": {
+          "default": false,
+          "description": "If true, install proceeds without a bound source.",
+          "type": "boolean"
+        },
+        "provider": {
+          "description": "OAuth provider id (matches `OAuthProvider.id` in DDD-07).",
+          "type": "string"
+        },
+        "redemption": {
+          "$ref": "#/$defs/Redemption",
+          "default": {
+            "env-name": "",
+            "kind": "env-var"
+          },
+          "description": "How the component wants the redeemed token delivered."
+        },
+        "scope": {
+          "$ref": "#/$defs/AuthScope",
+          "default": "both",
+          "description": "When the credential is needed."
+        },
+        "scopes": {
+          "description": "OAuth scopes to request.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "audience",
+        "provider"
+      ],
+      "type": "object"
+    },
     "OptionSpec": {
       "description": "One typed option entry in [`Options`].",
       "oneOf": [
@@ -766,6 +941,78 @@
       ],
       "type": "object"
     },
+    "Redemption": {
+      "description": "How the component wants to *receive* a resolved credential at apply time.\n\nInternally-tagged on `kind` for serde_yaml compatibility (matches the\n[`AuthSource`] convention). Field names are kebab-cased on the wire.",
+      "oneOf": [
+        {
+          "description": "Inject as `<env_name>=<value>` into `Target::exec` env.",
+          "properties": {
+            "env-name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "env-var",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "env-name"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Write to `<path>` (mode 0600 by default; deleted post-apply unless\n`persist: true`).",
+          "properties": {
+            "kind": {
+              "const": "file",
+              "type": "string"
+            },
+            "mode": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "path": {
+              "type": "string"
+            },
+            "persist": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Both: env-var pointing at file (e.g.\n`GOOGLE_APPLICATION_CREDENTIALS`).",
+          "properties": {
+            "env-name": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "env-file",
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "env-name",
+            "path"
+          ],
+          "type": "object"
+        }
+      ]
+    },
     "RemoveConfig": {
       "description": "Removal instructions executed by `sindri remove <component>` (ADR-024).\n\nThe backend's own uninstall runs first; these commands and file deletions\nare extra cleanup (e.g. wiping a config directory).",
       "properties": {
@@ -840,6 +1087,93 @@
       ],
       "type": "object"
     },
+    "SshKeyRequirement": {
+      "description": "SSH-key material requirement (private key + optional passphrase).",
+      "properties": {
+        "audience": {
+          "description": "Audience the key authenticates against\n(e.g. `ssh://git@github.com`).",
+          "type": "string"
+        },
+        "description": {
+          "description": "Human-friendly description.",
+          "type": "string"
+        },
+        "name": {
+          "description": "Stable id (e.g. `git_ssh_key`).",
+          "type": "string"
+        },
+        "optional": {
+          "default": false,
+          "description": "If true, install proceeds without a bound source.",
+          "type": "boolean"
+        },
+        "redemption": {
+          "$ref": "#/$defs/Redemption",
+          "default": {
+            "env-name": "",
+            "kind": "env-var"
+          },
+          "description": "Where the key file should be placed at apply time."
+        },
+        "scope": {
+          "$ref": "#/$defs/AuthScope",
+          "default": "both",
+          "description": "When the key is needed."
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "audience"
+      ],
+      "type": "object"
+    },
+    "TokenRequirement": {
+      "description": "A single static bearer-style token requirement.\n\nSee ADR-026 §\"Schema\" for field semantics.",
+      "properties": {
+        "audience": {
+          "description": "Logical resource the token is intended for. RFC-9068 audience claim\nwhen the token is a JWT; otherwise a free-form URL or vendor URN\n(e.g. `https://api.github.com`, `urn:anthropic:api`).",
+          "type": "string"
+        },
+        "description": {
+          "description": "One-line human description shown by `sindri doctor` and\n`sindri auth show`.",
+          "type": "string"
+        },
+        "discovery": {
+          "$ref": "#/$defs/DiscoveryHints",
+          "default": {},
+          "description": "Hints the resolver uses to find a source automatically (ADR-027)."
+        },
+        "name": {
+          "description": "Stable id, unique within the component (e.g. `github_token`).",
+          "type": "string"
+        },
+        "optional": {
+          "default": false,
+          "description": "If true, install proceeds when no source binds (degraded mode).",
+          "type": "boolean"
+        },
+        "redemption": {
+          "$ref": "#/$defs/Redemption",
+          "default": {
+            "env-name": "",
+            "kind": "env-var"
+          },
+          "description": "How the component wants to *receive* the resolved value at apply time."
+        },
+        "scope": {
+          "$ref": "#/$defs/AuthScope",
+          "default": "both",
+          "description": "When the credential is needed."
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "audience"
+      ],
+      "type": "object"
+    },
     "ValidateCommand": {
       "description": "One health-check command in [`ValidateConfig`].",
       "properties": {
@@ -897,6 +1231,10 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "description": "The v4 component manifest shape (component.yaml).\n\nFully aligned with DDD-01: in addition to install metadata, a manifest may\ndeclare typed user-facing [`Options`], post-install [`ValidateConfig`],\npost-validate [`ConfigureConfig`] (env + template files), and removal\ninstructions ([`RemoveConfig`]). Per-platform overrides are supported via\nthe [`overrides`](Self::overrides) map.\n\nAll new fields are additive and `#[serde(default)]`-protected: existing\ncomponent.yaml files in `registry-core/components/` deserialize unchanged.",
   "properties": {
+    "auth": {
+      "$ref": "#/$defs/AuthRequirements",
+      "description": "Credentials this component declares it needs to install and/or run\n(ADR-026). Phase 0 ships the schema only; the resolver, lockfile, and\napply paths do not read this field yet (Phases 1+ will)."
+    },
     "capabilities": {
       "$ref": "#/$defs/ComponentCapabilities",
       "default": {

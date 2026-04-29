@@ -11,6 +11,27 @@
       ],
       "type": "object"
     },
+    "AuthPolicy": {
+      "description": "Auth-aware admission policy (ADR-027 §5).\n\nAll three knobs default to the **deny** stance. Operators must opt in\nexplicitly to relax any of them, and each opt-in is documented with a\nsecurity caveat in `v4/docs/policy.md`.",
+      "properties": {
+        "allow_prompt_in_ci": {
+          "default": false,
+          "description": "If `false` (default), bindings whose `AuthSource` is `Prompt` are\ndenied at Gate 5 in non-interactive runs (no TTY OR `CI=1` /\n`SINDRI_CI=1` set).",
+          "type": "boolean"
+        },
+        "allow_upstream_credentials": {
+          "default": false,
+          "description": "If `false` (default), bindings whose `AuthSource` is\n`FromUpstreamCredentials` are denied at Gate 5. Forces operators\nto mint dedicated child-workload credentials rather than reusing\nthe target's session token.",
+          "type": "boolean"
+        },
+        "on_unresolved_required": {
+          "$ref": "#/$defs/PolicyAction",
+          "default": "deny",
+          "description": "What to do when a non-`optional` requirement has no bound source\nin the lockfile. Default: `deny` (Gate 5 fails-fast at admission).\nSetting `warn` makes the gate purely advisory; `prompt` is reserved\nfor Phase 5 interactive resolution."
+        }
+      },
+      "type": "object"
+    },
     "PolicyAction": {
       "enum": [
         "allow",
@@ -49,6 +70,15 @@
           "type": "null"
         }
       ]
+    },
+    "auth": {
+      "$ref": "#/$defs/AuthPolicy",
+      "default": {
+        "allow_prompt_in_ci": false,
+        "allow_upstream_credentials": false,
+        "on_unresolved_required": "deny"
+      },
+      "description": "Auth-aware admission knobs (Gate 5; ADR-027 §5).\n\nAdditive; existing policy files without an `auth:` block deserialize\nas [`AuthPolicy::default()`] which is the **strict default-deny**\nposture user-approved for Phase 2B:\n- `on_unresolved_required: deny`\n- `allow_upstream_credentials: false`\n- `allow_prompt_in_ci: false`"
     },
     "denied_licenses": {
       "default": [],
