@@ -228,13 +228,23 @@ impl Source for OciSource {
         Ok(index)
     }
 
+    /// Fetch a single component blob by id.
+    ///
+    /// **Phase 2 stub — currently returns `NotImplemented`.**
+    ///
+    /// Per-component OCI layer streaming requires resolving the component's
+    /// `oci_ref` digest to actual layer bytes, which is gated on
+    /// `sindri registry prefetch` (Phase 3, plan §3.3). Until that lands,
+    /// callers must use `fetch_index()` and `lockfile_descriptor()` for
+    /// index-level metadata.
     fn fetch_component_blob(
         &self,
         id: &ComponentId,
         _version: &Version,
         _ctx: &SourceContext,
     ) -> Result<ComponentBlob, SourceError> {
-        // Honor the scope filter at the blob level too.
+        // Honor the scope filter at the blob level too — this is a real
+        // semantic guard, not a placeholder, so it fires before the stub.
         if !self
             .config
             .scope
@@ -245,46 +255,10 @@ impl Source for OciSource {
             return Err(SourceError::NotFound(id.name.as_str().to_string()));
         }
 
-        // Phase 2 fetches the registry's index.yaml through the OCI
-        // pipeline; per-component blob bytes are addressed by the entry's
-        // `oci_ref` field which already contains a digest. Since the
-        // resolver currently hands components to backends rather than
-        // streaming raw `component.yaml` bytes through this trait method,
-        // we treat the blob fetch as best-effort: we fetch the index, find
-        // the entry, and surface its descriptor digest. Full per-component
-        // blob streaming is a Phase-2-or-later concern (apply-time refetch
-        // already goes through `RegistryClient::fetch_component_layer_digest`).
-        let me = self.clone();
-        let index = block_on_async(async move { me.fetch_index_async().await })
-            .map_err(map_registry_error)?;
-
-        let entry = index
-            .components
-            .iter()
-            .find(|c| c.name == id.name.as_str() && c.backend == id.backend)
-            .ok_or_else(|| SourceError::NotFound(id.name.as_str().to_string()))?
-            .clone();
-
-        let client = Arc::clone(&self.client);
-        let oci_ref_owned = entry.oci_ref.clone();
-        let digest =
-            block_on_async(
-                async move { client.fetch_component_layer_digest(&oci_ref_owned).await },
-            )
-            .map_err(map_registry_error)?;
-
-        // We don't return the layer bytes themselves — the v4 trait
-        // contract is satisfied by the digest-bearing descriptor and a
-        // canonical `component.yaml` projection of the entry. A future
-        // Phase-2 follow-up may extend this to stream the layer bytes
-        // directly when SBOM (Wave 5) needs them.
-        let serialized = serde_yaml::to_string(&entry)
-            .map(|s| s.into_bytes())
-            .map_err(|e| SourceError::InvalidData(format!("entry serialize: {}", e)))?;
-        Ok(ComponentBlob {
-            bytes: serialized,
-            digest: Some(digest),
-        })
+        // Per-component layer streaming is a Phase 3 prerequisite for
+        // `sindri registry prefetch`. Phase 2 only exposes index-level
+        // metadata via fetch_index() and lockfile_descriptor().
+        Err(SourceError::NotImplemented("oci:fetch_component_blob — per-component layer streaming lands in Phase 3 alongside `sindri registry prefetch`"))
     }
 
     fn lockfile_descriptor(&self) -> SourceDescriptor {

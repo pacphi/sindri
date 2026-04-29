@@ -260,12 +260,23 @@ impl Source for LocalOciSource {
         Ok(index)
     }
 
+    /// Fetch a single component blob by id.
+    ///
+    /// **Phase 2 stub — currently returns `NotImplemented`.**
+    ///
+    /// Reading layer blobs from an on-disk OCI image layout by digest
+    /// requires the per-component layer path convention established by
+    /// `sindri registry prefetch` (Phase 3, plan §3.3). Until that lands,
+    /// callers must use `fetch_index()` and `lockfile_descriptor()` for
+    /// index-level metadata.
     fn fetch_component_blob(
         &self,
         id: &ComponentId,
         _version: &Version,
         _ctx: &SourceContext,
     ) -> Result<ComponentBlob, SourceError> {
+        // Honor the scope filter at the blob level too — this is a real
+        // semantic guard, not a placeholder, so it fires before the stub.
         if !self
             .config
             .scope
@@ -276,42 +287,10 @@ impl Source for LocalOciSource {
             return Err(SourceError::NotFound(id.name.as_str().to_string()));
         }
 
-        // Walk the index and find the entry; we then return the entry
-        // serialized as YAML alongside the blob's content digest. For
-        // layouts that ship per-component layers (the typical
-        // `sindri registry prefetch` shape — implemented in Phase 3) the
-        // layer digest can be looked up directly under
-        // `<layout>/blobs/sha256/<digest>`. Phase-2 test fixtures use
-        // single-layer registry-core artifacts so we synthesise the
-        // blob from the entry data and compute a stable digest over it.
-        let index = self.read_index_from_layout()?;
-        let entry = index
-            .components
-            .iter()
-            .find(|c| c.name == id.name.as_str() && c.backend == id.backend)
-            .ok_or_else(|| SourceError::NotFound(id.name.as_str().to_string()))?;
-
-        // If the layout carries a per-component blob keyed by the entry's
-        // `oci_ref` digest, prefer that.
-        if let Some(digest) = digest_from_oci_ref(&entry.oci_ref) {
-            let path = blob_path(&self.config.layout_path, &digest);
-            if path.exists() {
-                let bytes = fs::read(&path).map_err(|e| SourceError::Io(e.to_string()))?;
-                return Ok(ComponentBlob {
-                    bytes,
-                    digest: Some(digest),
-                });
-            }
-        }
-
-        let bytes = serde_yaml::to_string(entry)
-            .map(|s| s.into_bytes())
-            .map_err(|e| SourceError::InvalidData(format!("entry serialize: {}", e)))?;
-        let digest = format!("sha256:{}", hex::encode(Sha256::digest(&bytes)));
-        Ok(ComponentBlob {
-            bytes,
-            digest: Some(digest),
-        })
+        // Per-component layer streaming from the on-disk layout is a Phase 3
+        // prerequisite for the `prefetch` round-trip. Phase 2 only exposes
+        // index-level metadata via fetch_index() and lockfile_descriptor().
+        Err(SourceError::NotImplemented("local-oci:fetch_component_blob — reading layer blobs from the on-disk OCI image layout lands in Phase 3 alongside `sindri registry prefetch`"))
     }
 
     fn lockfile_descriptor(&self) -> SourceDescriptor {
