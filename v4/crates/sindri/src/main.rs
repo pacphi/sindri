@@ -200,6 +200,14 @@ enum Commands {
         json: bool,
         #[arg(long)]
         components: bool,
+        /// Phase 5 (ADR-027 §Phase 5): focused doctor view that runs
+        /// Gate 5 against the current manifest+target set with no apply
+        /// side effects.
+        #[arg(long)]
+        auth: bool,
+        /// Manifest path (default: `sindri.yaml`).
+        #[arg(long, default_value = "sindri.yaml")]
+        manifest: String,
     },
     /// Validate / inspect / store secret references (Sprint 12)
     Secrets {
@@ -235,6 +243,11 @@ enum Commands {
     Target {
         #[command(subcommand)]
         cmd: TargetSubcmds,
+    },
+    /// Inspect and manage auth bindings (Phase 5, ADR-027)
+    Auth {
+        #[command(subcommand)]
+        cmd: AuthSubcmds,
     },
     /// Apply sindri.lock to the target
     Apply {
@@ -390,12 +403,37 @@ enum TargetSubcmds {
     Start { name: String },
     /// Stop a target resource without destroying it
     Stop { name: String },
-    /// Configure auth credentials for a target (ADR-020)
+    /// Inspect or manage per-target auth (ADR-020 wizard, ADR-027 §Phase 5
+    /// inspect/bind). Three modes:
+    ///   - bare:  `target auth <name>`             — print `provides:` list
+    ///   - bind:  `target auth <name> --bind ID`   — write `provides:` entry from a rejected candidate
+    ///   - wizard: `target auth <name> --value V`  — interactive credential setup (V = `oauth` for device flow)
     Auth {
         name: String,
-        /// Optional pre-supplied prefixed-value (env:VAR | file:PATH | cli:CMD | plain:VALUE)
+        /// Wizard mode (Wave 6B): pre-supplied prefixed value
+        /// (`env:VAR` | `file:PATH` | `cli:CMD` | `plain:VALUE` | `oauth`).
         #[arg(long)]
         value: Option<String>,
+        /// Bind a previously-considered-but-rejected candidate by binding-id
+        /// (or requirement-name) to this target's `provides:` list.
+        #[arg(long)]
+        bind: Option<String>,
+        /// When the binding has multiple considered candidates, choose this
+        /// one by `capability_id`.
+        #[arg(long = "capability-id")]
+        capability_id: Option<String>,
+        /// Override the audience field of the new provides entry.
+        #[arg(long)]
+        audience: Option<String>,
+        /// Override the priority of the new provides entry (default: 50).
+        #[arg(long)]
+        priority: Option<i32>,
+        /// Manifest path (default: `sindri.yaml`).
+        #[arg(long, default_value = "sindri.yaml")]
+        manifest: String,
+        /// JSON output (inspect/bind mode only).
+        #[arg(long)]
+        json: bool,
     },
     /// Reconcile `targets.<name>.infra` in sindri.yaml with the on-disk infra
     /// lock — Terraform-plan-style classifier with destructive-prompt gating
@@ -413,6 +451,41 @@ enum TargetSubcmds {
     Plugin {
         #[command(subcommand)]
         cmd: TargetPluginSubcmds,
+    },
+}
+
+#[derive(Subcommand)]
+enum AuthSubcmds {
+    /// Print a table of every requirement, its binding, and the
+    /// considered candidates. Reads `sindri.lock` (ADR-027 §Phase 5).
+    Show {
+        /// Optional component address; if omitted, all components are shown.
+        component: Option<String>,
+        /// Target lockfile to read (default: `local`).
+        #[arg(long, default_value = "local")]
+        target: String,
+        /// JSON output.
+        #[arg(long)]
+        json: bool,
+        /// Manifest path (default: `sindri.yaml`).
+        #[arg(long, default_value = "sindri.yaml")]
+        manifest: String,
+    },
+    /// Re-run the resolver's binding pass and rewrite the lockfile's
+    /// `auth_bindings` field. For OAuth bindings, the cached token is
+    /// invalidated so the next apply re-acquires it (ADR-027 §Phase 5).
+    Refresh {
+        /// Optional component address; if omitted, all components are refreshed.
+        component: Option<String>,
+        /// Target lockfile to refresh (default: `local`).
+        #[arg(long, default_value = "local")]
+        target: String,
+        /// JSON output.
+        #[arg(long)]
+        json: bool,
+        /// Manifest path (default: `sindri.yaml`).
+        #[arg(long, default_value = "sindri.yaml")]
+        manifest: String,
     },
 }
 
@@ -534,9 +607,52 @@ enum PolicySubcmds {
     },
 }
 
+/// Generate shell completions for the requested shell, writing to stdout.
+/// Phase 5 (ADR-027 §Phase 5): doesn't break existing completions because
+/// it's an opt-in subcommand — users redirect output into their shell's
+/// completion directory.
+fn generate_completions(shell: &str) -> i32 {
+    use clap::CommandFactory;
+    use clap_complete::{generate, shells};
+    let mut cmd = Cli::command();
+    let bin_name = "sindri".to_string();
+    let mut out = std::io::stdout();
+    match shell.to_lowercase().as_str() {
+        "bash" => generate(shells::Bash, &mut cmd, bin_name, &mut out),
+        "zsh" => generate(shells::Zsh, &mut cmd, bin_name, &mut out),
+        "fish" => generate(shells::Fish, &mut cmd, bin_name, &mut out),
+        "powershell" | "pwsh" => generate(shells::PowerShell, &mut cmd, bin_name, &mut out),
+        "elvish" => generate(shells::Elvish, &mut cmd, bin_name, &mut out),
+        other => {
+            eprintln!(
+                "Unsupported shell '{}'. Supported: bash, zsh, fish, powershell, elvish.",
+                other
+            );
+            return sindri_core::exit_codes::EXIT_ERROR;
+        }
+    }
+    sindri_core::exit_codes::EXIT_SUCCESS
+}
+
 fn main() {
+    // Windows MSVC defaults the main thread to a 1 MiB stack, which is too
+    // small for clap's derive-generated parser given the size of `Cli` and
+    // its nested subcommand enums in debug builds (STATUS_STACK_OVERFLOW =
+    // 0xC00000FD). Run the real entry point on a worker thread with an
+    // 8 MiB stack to match the Linux/macOS default.
+    let code = std::thread::Builder::new()
+        .name("sindri-main".into())
+        .stack_size(8 * 1024 * 1024)
+        .spawn(run)
+        .expect("spawn sindri main thread")
+        .join()
+        .expect("sindri main thread panicked");
+    std::process::exit(code);
+}
+
+fn run() -> i32 {
     let cli = Cli::parse();
-    let code = match cli.command {
+    match cli.command {
         Some(Commands::Validate { path, json, .. }) => validate::run(&path, json),
         Some(Commands::Ls {
             registry,
@@ -607,12 +723,16 @@ fn main() {
             dry_run,
             json,
             components,
+            auth,
+            manifest,
         }) => commands::doctor::run(commands::doctor::DoctorArgs {
             target,
             fix,
             dry_run,
             json,
             components,
+            auth,
+            manifest,
         }),
         Some(Commands::Secrets { cmd }) => {
             use commands::secrets::SecretsCmd;
@@ -684,7 +804,26 @@ fn main() {
                 TargetSubcmds::Use { name } => TargetCmd::Use { name },
                 TargetSubcmds::Start { name } => TargetCmd::Start { name },
                 TargetSubcmds::Stop { name } => TargetCmd::Stop { name },
-                TargetSubcmds::Auth { name, value } => TargetCmd::Auth { name, value },
+                TargetSubcmds::Auth {
+                    name,
+                    value,
+                    bind,
+                    capability_id,
+                    audience,
+                    priority,
+                    manifest,
+                    json,
+                } => TargetCmd::Auth(commands::target::AuthSubArgs {
+                    name: name.clone(),
+                    value,
+                    bind,
+                    manifest,
+                    target: name,
+                    capability_id,
+                    audience,
+                    priority,
+                    json,
+                }),
                 TargetSubcmds::Update {
                     name,
                     auto_approve,
@@ -712,6 +851,31 @@ fn main() {
             };
             commands::target::run(tc)
         }
+        Some(Commands::Auth { cmd }) => match cmd {
+            AuthSubcmds::Show {
+                component,
+                target,
+                json,
+                manifest,
+            } => commands::auth::run_show(commands::auth::ShowArgs {
+                component,
+                target,
+                json,
+                manifest,
+            }),
+            AuthSubcmds::Refresh {
+                component,
+                target,
+                json,
+                manifest,
+            } => commands::auth::run_refresh(commands::auth::RefreshArgs {
+                component,
+                target,
+                json,
+                manifest,
+            }),
+        },
+        Some(Commands::Completions { shell }) => generate_completions(&shell),
         Some(Commands::Policy { cmd }) => {
             let policy_cmd = match cmd {
                 PolicySubcmds::Use { preset } => PolicyCmd::Use { preset },
@@ -858,13 +1022,6 @@ fn main() {
                 binary_path_override: None,
             })
         }
-        Some(Commands::Completions { shell }) => {
-            use clap::CommandFactory;
-            commands::completions::run(
-                commands::completions::CompletionsArgs { shell },
-                Cli::command,
-            )
-        }
         Some(Commands::Prefer {
             os,
             order,
@@ -903,6 +1060,5 @@ fn main() {
             Cli::command().print_help().ok();
             0
         }
-    };
-    std::process::exit(code);
+    }
 }
