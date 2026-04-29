@@ -635,8 +635,24 @@ fn generate_completions(shell: &str) -> i32 {
 }
 
 fn main() {
+    // Windows MSVC defaults the main thread to a 1 MiB stack, which is too
+    // small for clap's derive-generated parser given the size of `Cli` and
+    // its nested subcommand enums in debug builds (STATUS_STACK_OVERFLOW =
+    // 0xC00000FD). Run the real entry point on a worker thread with an
+    // 8 MiB stack to match the Linux/macOS default.
+    let code = std::thread::Builder::new()
+        .name("sindri-main".into())
+        .stack_size(8 * 1024 * 1024)
+        .spawn(run)
+        .expect("spawn sindri main thread")
+        .join()
+        .expect("sindri main thread panicked");
+    std::process::exit(code);
+}
+
+fn run() -> i32 {
     let cli = Cli::parse();
-    let code = match cli.command {
+    match cli.command {
         Some(Commands::Validate { path, json, .. }) => validate::run(&path, json),
         Some(Commands::Ls {
             registry,
@@ -1044,6 +1060,5 @@ fn main() {
             Cli::command().print_help().ok();
             0
         }
-    };
-    std::process::exit(code);
+    }
 }
