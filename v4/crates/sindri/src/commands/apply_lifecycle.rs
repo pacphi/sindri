@@ -315,6 +315,7 @@ mod tests {
             configure: None,
             remove: None,
             overrides: Default::default(),
+            auth: Default::default(),
         }
     }
 
