@@ -12,6 +12,7 @@
 //! the upstream-CLI hint path for k8s.
 use crate::error::TargetError;
 use crate::traits::{PrereqCheck, Target};
+use sindri_core::auth::{AuthCapability, AuthSource};
 use sindri_core::platform::{Arch, Capabilities, Os, Platform, TargetProfile};
 use std::path::Path;
 
@@ -213,6 +214,32 @@ impl Target for KubernetesTarget {
             )
         }]
     }
+
+    /// Kubernetes targets advertise the cluster's projected-secret
+    /// mechanism (`valueFrom: { secretKeyRef }`) as a generic
+    /// [`AuthSource::FromSecretsStore`] with backend `k8s` (ADR-027 §1,
+    /// Phase 4).
+    ///
+    /// The `path` is the namespace — per-secret resolution happens at
+    /// apply time (Phase 2) when a concrete `secretKeyRef.name` and
+    /// `secretKeyRef.key` are projected into the workload pod. Audience
+    /// is `urn:k8s:secrets` so component manifests can opt-in.
+    ///
+    /// Conditional on `kubectl` being on `PATH`.
+    fn auth_capabilities(&self) -> Vec<AuthCapability> {
+        if crate::traits::which("kubectl").is_none() {
+            return Vec::new();
+        }
+        vec![AuthCapability {
+            id: "k8s_secret_keyref".to_string(),
+            audience: "urn:k8s:secrets".to_string(),
+            source: AuthSource::FromSecretsStore {
+                backend: "k8s".to_string(),
+                path: self.namespace.clone(),
+            },
+            priority: 18,
+        }]
+    }
 }
 
 #[cfg(test)]
@@ -237,5 +264,54 @@ mod tests {
         let m = t.render_manifest(Some(&desired));
         assert!(m.contains("ubuntu:24.04"));
         assert!(m.contains("tail -f /dev/null"));
+    }
+
+    // ─── auth_capabilities() — ADR-027 §Phase 4 ────────────────────────────
+    //
+    // Tests that mutate `PATH` use `well_known::ENV_LOCK` to serialise.
+    mod auth_cap_tests {
+        use super::super::*;
+        use crate::well_known::ENV_LOCK;
+        use std::fs;
+
+        // Production `traits::which()` only checks `is_file()`, so the fake
+        // does not need to be executable — this keeps the helper portable.
+        fn fake_bin_dir(name: &str) -> tempfile::TempDir {
+            let dir = tempfile::tempdir().expect("tempdir");
+            let bin = dir.path().join(name);
+            fs::write(&bin, b"").unwrap();
+            dir
+        }
+
+        #[test]
+        fn k8s_without_kubectl_empty() {
+            let _g = ENV_LOCK.lock().unwrap();
+            // SAFETY: caller holds ENV_LOCK.
+            unsafe { std::env::set_var("PATH", "/nonexistent-sindri-path-xyz") };
+            let target = KubernetesTarget::new("prod", "default");
+            assert!(target.auth_capabilities().is_empty());
+        }
+
+        #[test]
+        fn k8s_with_kubectl_advertises_secrets_store() {
+            let _g = ENV_LOCK.lock().unwrap();
+            let dir = fake_bin_dir("kubectl");
+            // SAFETY: caller holds ENV_LOCK.
+            unsafe { std::env::set_var("PATH", dir.path()) };
+
+            let target = KubernetesTarget::new("prod", "my-namespace");
+            let caps = target.auth_capabilities();
+            assert_eq!(caps.len(), 1);
+            let c = &caps[0];
+            assert_eq!(c.id, "k8s_secret_keyref");
+            assert_eq!(c.audience, "urn:k8s:secrets");
+            match &c.source {
+                AuthSource::FromSecretsStore { backend, path } => {
+                    assert_eq!(backend, "k8s");
+                    assert_eq!(path, "my-namespace");
+                }
+                other => panic!("expected FromSecretsStore, got {:?}", other),
+            }
+        }
     }
 }

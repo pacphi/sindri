@@ -12,6 +12,7 @@
 use crate::auth::AuthValue;
 use crate::error::TargetError;
 use crate::traits::{PrereqCheck, Target};
+use sindri_core::auth::AuthCapability;
 use sindri_core::platform::{Arch, Capabilities, Os, Platform, TargetProfile};
 use std::path::Path;
 
@@ -229,6 +230,15 @@ impl Target for E2bTarget {
         });
         out
     }
+
+    /// E2B sandboxes don't have a native secret-store API the resolver
+    /// can target — secrets land in the sandbox via the `e2b` CLI's
+    /// `--env` flag at create time. We surface no capabilities by
+    /// default; operators wire forwarded vars via `provides:` in the
+    /// target manifest (ADR-027 §1, Phase 4).
+    fn auth_capabilities(&self) -> Vec<AuthCapability> {
+        Vec::new()
+    }
 }
 
 #[cfg(test)]
@@ -304,5 +314,13 @@ mod tests {
         let t = make_target(&server.uri());
         let err = t.dispatch_create_async(None).await.unwrap_err();
         assert!(matches!(err, TargetError::AuthFailed { .. }));
+    }
+
+    // ─── auth_capabilities() — ADR-027 §Phase 4 ────────────────────────────
+
+    #[test]
+    fn e2b_empty() {
+        let target = E2bTarget::new("sandbox", "default");
+        assert!(target.auth_capabilities().is_empty());
     }
 }

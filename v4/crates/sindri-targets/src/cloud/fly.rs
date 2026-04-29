@@ -14,6 +14,7 @@
 use crate::auth::AuthValue;
 use crate::error::TargetError;
 use crate::traits::{PrereqCheck, Target};
+use sindri_core::auth::{AuthCapability, AuthSource};
 use sindri_core::platform::{Arch, Capabilities, Os, Platform, TargetProfile};
 use std::path::Path;
 
@@ -313,6 +314,44 @@ impl Target for FlyTarget {
         });
         out
     }
+
+    /// Fly.io advertises:
+    /// 1. **`flyctl auth token`** — the OAuth-result token from the
+    ///    operator's logged-in `flyctl` session (audience
+    ///    `https://api.fly.io`). Priority `15`.
+    /// 2. **`flyctl secrets`** — per-app secrets group accessible via
+    ///    `flyctl secrets list/get`. Modelled as a `FromCli` source with
+    ///    a `{key}` template the resolver expands when binding (Phase 4
+    ///    advertises a generic `flyctl secrets` capability id; per-secret
+    ///    refinement happens in Phase 2 when redemption is wired). The
+    ///    audience is `urn:fly:secrets` so component manifests can
+    ///    declare a generic Fly-secrets requirement.
+    ///
+    /// Both are conditional on `flyctl` being on `PATH` — without the
+    /// CLI neither path is reachable.
+    fn auth_capabilities(&self) -> Vec<AuthCapability> {
+        if crate::traits::which("flyctl").is_none() {
+            return Vec::new();
+        }
+        vec![
+            AuthCapability {
+                id: "fly_auth_token".to_string(),
+                audience: "https://api.fly.io".to_string(),
+                source: AuthSource::FromCli {
+                    command: "flyctl auth token".to_string(),
+                },
+                priority: 15,
+            },
+            AuthCapability {
+                id: "fly_secrets".to_string(),
+                audience: "urn:fly:secrets".to_string(),
+                source: AuthSource::FromCli {
+                    command: format!("flyctl secrets list --app {} --json", self.app_name),
+                },
+                priority: 12,
+            },
+        ]
+    }
 }
 
 #[cfg(test)]
@@ -420,5 +459,62 @@ mod tests {
         let t = make_target(&server.uri());
         let err = t.dispatch_create_async(None).await.unwrap_err();
         assert!(matches!(err, TargetError::AuthFailed { .. }));
+    }
+
+    // ─── auth_capabilities() — ADR-027 §Phase 4 ────────────────────────────
+    //
+    // Tests that mutate `PATH` use `well_known::ENV_LOCK` to serialise.
+    mod auth_cap_tests {
+        use super::super::*;
+        use crate::well_known::ENV_LOCK;
+        use std::fs;
+
+        // Production `traits::which()` only checks `is_file()`, so the fake
+        // does not need to be executable — this keeps the helper portable.
+        fn fake_bin_dir(name: &str) -> tempfile::TempDir {
+            let dir = tempfile::tempdir().expect("tempdir");
+            let bin = dir.path().join(name);
+            fs::write(&bin, b"").unwrap();
+            dir
+        }
+
+        #[test]
+        fn fly_without_flyctl_empty() {
+            let _g = ENV_LOCK.lock().unwrap();
+            // SAFETY: caller holds ENV_LOCK.
+            unsafe { std::env::set_var("PATH", "/nonexistent-sindri-path-xyz") };
+            let target = FlyTarget::new("prod", "my-app");
+            assert!(target.auth_capabilities().is_empty());
+        }
+
+        #[test]
+        fn fly_with_flyctl_advertises_oauth_and_secrets() {
+            let _g = ENV_LOCK.lock().unwrap();
+            let dir = fake_bin_dir("flyctl");
+            // SAFETY: caller holds ENV_LOCK.
+            unsafe { std::env::set_var("PATH", dir.path()) };
+
+            let target = FlyTarget::new("prod", "my-app");
+            let caps = target.auth_capabilities();
+
+            let token = caps
+                .iter()
+                .find(|c| c.id == "fly_auth_token")
+                .expect("fly_auth_token missing");
+            assert_eq!(token.audience, "https://api.fly.io");
+            match &token.source {
+                AuthSource::FromCli { command } => assert_eq!(command, "flyctl auth token"),
+                other => panic!("expected FromCli, got {:?}", other),
+            }
+
+            let secrets = caps
+                .iter()
+                .find(|c| c.id == "fly_secrets")
+                .expect("fly_secrets missing");
+            match &secrets.source {
+                AuthSource::FromCli { command } => assert!(command.contains("my-app")),
+                other => panic!("expected FromCli, got {:?}", other),
+            }
+        }
     }
 }

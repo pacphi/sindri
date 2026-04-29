@@ -19,6 +19,7 @@ pub mod oauth;
 pub mod plugin;
 pub mod ssh;
 pub mod traits;
+pub mod well_known;
 
 pub use auth::AuthValue;
 pub use cloud::{
