@@ -149,23 +149,28 @@ exist.
 
 #### 3.2 `sindri registry serve`
 
-- [x] New CLI verb in `sindri/src/commands/registry/serve.rs`.
+- [x] New CLI verb in `sindri/src/commands/registry/serve.rs`. **Complete.**
 - [x] Spins up an embedded OCI registry over a components directory using
   axum (read-only subset of OCI Distribution Spec v1.1; pure Rust, no `zot`
   fallback was required).
-- [x] Honors `--addr`, `--root`, `--sign-with` (the latter is accepted for
-  forward compatibility — Phase 3.2 emits pre-signed bytes verbatim).
-- [x] Logs every request to stdout; exits cleanly on SIGINT (axum
+- [x] Honors `--addr` and `--root`; exits cleanly on SIGINT (axum
   `with_graceful_shutdown` + `tokio::signal::ctrl_c`).
+- [x] Logs every request to stdout.
+- *`--sign-with` flag deferred to Phase 5; serve is read-only and does not
+  re-sign manifests. See Phase 5 §"registry serve signing".*
 
 #### 3.3 `sindri registry prefetch`
 
-- [x] New CLI verb in `sindri/src/commands/registry/prefetch.rs`.
+- [x] New CLI verb in `sindri/src/commands/registry/prefetch.rs`. **Complete.**
 - [x] Resolves the closure of one OCI ref into either a tarball (`--target air-gap.tar`)
   or an OCI image layout (`--layout ./vendor/registry-core`).
 - [x] Reuses `OciSource` for fetch; writes the layout directly with the same
   blob-path convention `LocalOciSource` reads (`oci-spec` types not strictly
   required for the current shape).
+- [x] Manifest is streamed verbatim from the upstream `OciSource` using
+  `RegistryClient::fetch_registry_manifest_bytes`; scope filtering is
+  intentionally consumption-side via `LocalOciSource::scope`, not a prefetch
+  concern.
 - [x] Q1 from ADR-028 (`--with-binaries`) is **deferred to Phase 5**; no flag
   stub was added.
 
@@ -240,6 +245,31 @@ exist.
 - A user pasting the strict-oci CI snippet into a fresh repo gets a passing run that
   fails the moment a `LocalPath` source is introduced.
 
+#### 4.5 GitSource cache eviction
+
+**Goal:** Bound `~/.sindri/cache/git/` so v4.0 RC doesn't ship with an unbounded
+on-disk cache.
+
+- [ ] Add `cache.git.max_size` (default `"10GB"`) and `cache.git.max_age`
+      (default `"90d"`) to `~/.sindri/config.yaml`. Eviction fires when
+      *either* threshold is exceeded.
+- [ ] LRU by directory mtime: on each `GitSource::fetch_index`, walk the
+      cache root, compute totals, evict oldest entries until under both
+      thresholds.
+- [ ] Info-level log per eviction (`tracing::info!`) so operators see what
+      was reclaimed.
+- [ ] Tests: cache populated past `max_size` triggers eviction; cache
+      entry older than `max_age` evicted; concurrent eviction is safe
+      (file-locking or temp-rename pattern, your call); descriptor-driven
+      cache path derivation still hits after eviction with a re-clone.
+
+##### Acceptance criteria
+
+- A 12 GB cache shrinks to under 10 GB on the next `sindri lock` against
+  any git source.
+- Cache entries older than 90 days are evicted regardless of size.
+- `cargo test --workspace` covers both eviction triggers.
+
 ---
 
 ## Phase 5 — Optional polish (concurrent with later sprints)
@@ -253,8 +283,11 @@ These are improvements that should not block the v4.0 RC but should be tracked.
   trait; useful for legacy distribution channels. Defer until a real user asks.
 - [ ] **`s3://` source** — for organizations that already have S3-backed mirrors but
   not OCI. Same trait, new variant.
-- [ ] **Source-level cache eviction policy** in `~/.sindri/cache/git/`. Currently
-  unbounded; needs an LRU policy in line with the OCI cache TTL.
+- [ ] **`registry serve --sign-with <key>`** — re-sign manifests served by
+  `sindri registry serve` so end-to-end strict-OCI verification can be
+  tested against a local dev registry. The flag was stripped in Phase 3
+  follow-up because shipping a no-op flag was misleading; track here for
+  v4.x post-RC.
 
 ---
 

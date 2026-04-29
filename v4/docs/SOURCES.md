@@ -228,11 +228,11 @@ Resolution rules:
 | ------------- | ---------------------------------------------- | ----- |
 | `local-path`  | **Implemented** — `LocalPathSource`            | 1     |
 | `oci`         | **Implemented** — `OciSource` wraps the existing `RegistryClient` (oci-client + cosign + cache) | 2 |
-| `local-oci`   | **Implemented** — `LocalOciSource` reads OCI image-layout v1.1 directories | 2 |
+| `local-oci`   | **Implemented** — `LocalOciSource` reads OCI image-layout v1.1 directories; blob streaming real | 2/3 |
 | `git`         | **Implemented** — `GitSourceRuntime` via `git2` (vendored libgit2), sparse checkout, commit-pinned | 3 |
 | `--strict-oci` admission gate | **Implemented** — CLI flag + `registry.policy.strict_oci` config | 2 |
-| `sindri registry serve` | **Implemented** — embedded read-only OCI Distribution Spec server (axum) | 3 |
-| `sindri registry prefetch` | **Implemented** — air-gap helper: writes an OCI image layout or tarball | 3 |
+| `sindri registry serve` | **Implemented** — embedded read-only OCI Distribution Spec server (axum); serves pre-signed bytes verbatim; `--sign-with` deferred to Phase 5 | 3 |
+| `sindri registry prefetch` | **Implemented** — air-gap helper: writes verbatim upstream manifest bytes into OCI image layout or tarball; scope filtering is consumption-side | 3 |
 
 See [`plan/source-modes-implementation.md`](plan/source-modes-implementation.md)
 for the full sprint breakdown.
