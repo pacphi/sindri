@@ -1,5 +1,6 @@
 // ADR-001: User-authored sindri.yaml BOM as single source of truth
 // ADR-027: Target → Component Auth Injection — `provides: Vec<AuthCapability>` on TargetConfig.
+// ADR-028: Component source modes — `registry.sources: [...]` shape (Phase 4.1).
 use crate::auth::AuthCapability;
 use crate::component::BomEntry;
 use schemars::JsonSchema;
@@ -13,8 +14,26 @@ pub struct BomManifest {
     pub schema: Option<String>,
     pub name: Option<String>,
     pub components: Vec<BomEntry>,
-    #[serde(default)]
-    pub registries: Vec<RegistryConfig>,
+    /// Registry source configuration (ADR-028 §"Configuration shape", DDD-08).
+    ///
+    /// Declares the ordered list of registry sources consulted during
+    /// resolution, shared trust policy, and global-source merge behaviour.
+    /// When absent (or `sources` is empty) the resolver falls back to the
+    /// OCI registry index cached at `~/.sindri/cache/registries/`
+    /// (legacy pre-ADR-028 behaviour preserved for backwards compatibility).
+    ///
+    /// ```yaml
+    /// registry:
+    ///   sources:
+    ///     - type: oci
+    ///       url: oci://ghcr.io/sindri-dev/registry-core
+    ///       tag: "2026.04"
+    ///   policy:
+    ///     strict_oci: true
+    ///   replace_global: false
+    /// ```
+    #[serde(default, skip_serializing_if = "RegistrySection::is_empty")]
+    pub registry: RegistrySection,
     #[serde(default)]
     pub targets: HashMap<String, TargetConfig>,
     pub preferences: Option<Preferences>,
@@ -26,70 +45,189 @@ pub struct BomManifest {
     /// `sindri secrets validate`; values are never persisted.
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub secrets: HashMap<String, String>,
-    /// Optional registry-level policy block (DDD-08, ADR-028 — Phase 2).
-    ///
-    /// Currently carries only `strict_oci`, the config-file twin of the
-    /// `--strict-oci` CLI flag. Per ADR-028 Q3 the flag overrides the
-    /// config when both are set.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub registry: Option<RegistrySection>,
 }
 
-/// Top-level `registry:` block on `sindri.yaml`. Carries policy-level
-/// switches that apply to every registry source declared in `registries:`.
+/// Top-level `registry:` section in `sindri.yaml` (ADR-028, DDD-08).
+///
+/// Holds the ordered list of [`RegistrySource`](sindri_registry::source::RegistrySource)
+/// entries, shared trust/verification policy, and global-source merge
+/// semantics. The list is consulted in declared order; the first source whose
+/// scope matches a component wins (DDD-03 §"Resolution Algorithm").
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
 pub struct RegistrySection {
-    /// Registry-wide policy knobs.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub policy: Option<RegistryPolicy>,
+    /// Ordered list of registry sources.  The resolver uses first-match-wins
+    /// per component name (DDD-08 §"Source scope").
+    ///
+    /// When absent or empty, the resolver falls back to the legacy OCI index
+    /// cached at `~/.sindri/cache/registries/`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub sources: Vec<RegistrySourceConfig>,
+
+    /// Shared trust and verification policy applied across all sources.
+    #[serde(default, skip_serializing_if = "RegistryPolicy::is_default")]
+    pub policy: RegistryPolicy,
+
+    /// When `true`, the project-level `sources` list entirely replaces the
+    /// global sources (if any) rather than prepending to them (ADR-028 §4.1).
+    ///
+    /// Default: `false` (project sources prepend to global sources).
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub replace_global: bool,
 }
 
-/// Registry-wide policy block (ADR-028 §"Trust scopes").
+impl RegistrySection {
+    /// `true` when the section carries no meaningful configuration and may be
+    /// omitted from serialization.
+    pub fn is_empty(&self) -> bool {
+        self.sources.is_empty() && self.policy.is_default() && !self.replace_global
+    }
+}
+
+/// Registry-wide trust and verification policy (ADR-028 §"Trust scopes").
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
 pub struct RegistryPolicy {
-    /// When `true`, every component recorded in the lockfile MUST be
-    /// served by a source that returns `true` from
-    /// `Source::supports_strict_oci()`. The CLI `--strict-oci` flag sets
-    /// this same gate; when both are present, the flag wins.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub strict_oci: Option<bool>,
+    /// When `true`, every component recorded in the lockfile MUST be served
+    /// by a source that returns `true` from `Source::supports_strict_oci()`.
+    ///
+    /// Equivalent to passing `--strict-oci` on every `sindri lock` /
+    /// `sindri resolve` invocation (ADR-028 Q3). The CLI flag overrides this
+    /// config knob when both are set.
+    ///
+    /// Default: `false`.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub strict_oci: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct RegistryConfig {
-    pub name: String,
+impl RegistryPolicy {
+    /// `true` when the policy is at its default values.
+    pub fn is_default(&self) -> bool {
+        !self.strict_oci
+    }
+}
+
+fn is_false(b: &bool) -> bool {
+    !b
+}
+
+/// Typed config entry for a single source in `registry.sources:` (ADR-028
+/// §"Configuration shape"). Uses `#[serde(tag = "type")]` so the YAML
+/// discriminator matches the ADR-028 / DDD-08 vocabulary (`oci`,
+/// `local-path`, `git`, `local-oci`).
+///
+/// These config DTOs live in `sindri-core` so the BOM manifest can carry
+/// them without creating a circular dependency (sindri-registry already
+/// depends on sindri-core). The resolver converts them to `RegistrySource`
+/// trait-enum instances via `sindri_registry::source::sources_from_config`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "type", rename_all = "kebab-case")]
+pub enum RegistrySourceConfig {
+    /// Production OCI registry — the signed distribution path.
+    ///
+    /// ```yaml
+    /// - type: oci
+    ///   url: oci://ghcr.io/sindri-dev/registry-core
+    ///   tag: "2026.04"
+    ///   scope: [nodejs, rust]           # optional
+    /// ```
+    Oci(OciSourceConfig),
+
+    /// Local filesystem path — the inner-loop authoring source.
+    ///
+    /// ```yaml
+    /// - type: local-path
+    ///   path: ./components
+    ///   scope: [my-component]           # optional
+    /// ```
+    LocalPath(LocalPathSourceConfig),
+
+    /// Git repository source (Phase 3).
+    ///
+    /// ```yaml
+    /// - type: git
+    ///   url: https://github.com/acme/components.git
+    ///   ref: main
+    ///   subdir: components              # optional
+    ///   require-signed: false           # optional
+    /// ```
+    Git(GitSourceConfig),
+
+    /// On-disk OCI image layout — the air-gap / offline bundle path.
+    ///
+    /// ```yaml
+    /// - type: local-oci
+    ///   layout: ./vendor/registry-core
+    ///   scope: [nodejs]                 # optional
+    /// ```
+    LocalOci(LocalOciSourceConfig),
+}
+
+/// Config DTO for the `oci` source variant (ADR-028).
+///
+/// Carries only the fields needed to express the source in `sindri.yaml`;
+/// the runtime `OciSource` in `sindri-registry` adds the network client and
+/// cosign verifier. The field names here match the YAML shape exactly.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct OciSourceConfig {
+    /// Canonical `oci://host/path` URL (e.g. `oci://ghcr.io/sindri-dev/registry-core`).
     pub url: String,
-    pub trust: Option<TrustConfig>,
-    /// Wave 6A — ADR-014 D1: cosign verification mode for this registry.
-    ///
-    /// - `key-based` (default, omit-able): existing flow, loads
-    ///   `~/.sindri/trust/<name>/cosign-*.pub`.
-    /// - `keyless`: short-lived Fulcio cert + Rekor inclusion proof.
-    ///   When set, the registry SHOULD also populate `identity` so the
-    ///   verifier can SAN-match.
-    ///
-    /// Field is `Option<String>` rather than the typed
-    /// `sindri_registry::VerificationMode` to keep the core crate free
-    /// of a registry-crate dep (avoids a cycle); the registry crate
-    /// parses + validates the string at load time.
+    /// Registry tag (e.g. `2026.04`).
+    pub tag: String,
+    /// Optional component-name allow-list. When set, only the named
+    /// components are satisfied from this source; others fall through.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub verification_mode: Option<String>,
-    /// The expected SAN URI + OIDC issuer for keyless mode. Required when
-    /// `verification_mode == "keyless"`; ignored otherwise.
+    pub scope: Option<Vec<String>>,
+    /// Logical registry name used by the cosign trust loader. Defaults to
+    /// `"sindri/core"`; third-party publishers override this.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub identity: Option<RegistryIdentity>,
-    /// Wave 6A.1 — per-component trust scoping (ADR-014, follow-up to PR #228 + #237).
-    ///
-    /// Each entry narrows the trust set for components whose canonical
-    /// address matches `component_glob`. Most-specific glob wins
-    /// (longest-pattern tie-break); when no entry matches, the verifier
-    /// falls back to the registry-level `trust` / `identity` fields.
-    ///
-    /// Fail-closed semantics: under
-    /// `policy.require_signed_registries=true` a component that matches
-    /// neither an override **nor** registry-level trust is rejected.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub trust_overrides: Vec<TrustOverride>,
+    pub registry_name: Option<String>,
+}
+
+/// Config DTO for the `local-path` source variant (ADR-028).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct LocalPathSourceConfig {
+    /// Filesystem path to the local component directory.
+    pub path: PathBuf,
+    /// Optional component-name allow-list.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<Vec<String>>,
+}
+
+/// Config DTO for the `git` source variant (ADR-028).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct GitSourceConfig {
+    /// Repository URL (https or ssh).
+    pub url: String,
+    /// Branch, tag, or commit SHA. The resolver pins this to a commit sha
+    /// in the lockfile at resolution time (Phase 3).
+    #[serde(rename = "ref")]
+    pub git_ref: String,
+    /// Optional sub-directory inside the repository where `index.yaml` lives.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subdir: Option<PathBuf>,
+    /// When `true`, unsigned or unverifiable commits are rejected (Phase 3).
+    #[serde(default, rename = "require-signed", skip_serializing_if = "is_false")]
+    pub require_signed: bool,
+    /// Optional component-name allow-list.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<Vec<String>>,
+}
+
+/// Config DTO for the `local-oci` source variant (ADR-028).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct LocalOciSourceConfig {
+    /// Path to an OCI image layout directory (v1.1 spec).
+    pub layout: PathBuf,
+    /// Optional component-name allow-list.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<Vec<String>>,
+    /// Logical registry name used by the cosign trust loader. Defaults to
+    /// `"sindri/core"`; third-party publishers override this.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub registry_name: Option<String>,
+    /// Optional manifest digest to pin a specific artifact when the layout
+    /// contains more than one registry artifact.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artifact_ref: Option<String>,
 }
 
 /// Per-component trust scope (Wave 6A.1).
