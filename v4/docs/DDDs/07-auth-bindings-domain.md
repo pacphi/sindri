@@ -1,6 +1,6 @@
 # DDD-07: Auth-Bindings Domain
 
-**Status:** Proposed (paired with [ADR-026](../ADRs/026-auth-aware-components.md) and [ADR-027](../ADRs/027-target-auth-injection.md))
+**Status:** Accepted (Implemented) (paired with [ADR-026](../ADRs/026-auth-aware-components.md) and [ADR-027](../ADRs/027-target-auth-injection.md))
 **Date:** 2026-04-28
 
 ## Bounded Context

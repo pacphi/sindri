@@ -60,8 +60,9 @@ Each ADR states what was decided, why, and what is explicitly rejected.
 | [018](018-per-target-lockfiles.md)           | Per-target lockfiles                        | Accepted |
 | [019](019-subprocess-json-target-plugins.md) | Subprocess-JSON target plugin protocol      | Accepted |
 | [020](020-unified-auth-prefixed-values.md)   | Unified auth prefixed-value model           | Accepted |
-| [026](026-auth-aware-components.md)          | Auth-aware components                       | Proposed |
-| [027](027-target-auth-injection.md)          | Target → component auth injection           | Proposed |
+| [025](025-secrets-store.md)                  | Secrets store (`sindri-secrets`)            | Accepted |
+| [026](026-auth-aware-components.md)          | Auth-aware components                       | Accepted |
+| [027](027-target-auth-injection.md)          | Target → component auth injection           | Accepted |
 
 ### Product Scope
 
@@ -70,3 +71,10 @@ Each ADR states what was decided, why, and what is explicitly rejected.
 | [021](021-drop-k8s-vm-image-commands.md)    | Drop `k8s`/`vm`/`image` from core CLI surface | Accepted |
 | [022](022-drop-hybrid-install-method.md)    | Drop `InstallMethod::Hybrid`                  | Accepted |
 | [023](023-implicit-local-default-target.md) | Implicit `local` as default target            | Accepted |
+
+### Source Modes
+
+| #                                          | Title                                                | Status   |
+| ------------------------------------------ | ---------------------------------------------------- | -------- |
+| [024](024-script-component-lifecycle-contract.md) | Script component lifecycle contract            | Accepted |
+| [028](028-component-source-modes.md)              | Component source modes for development and air-gap | Proposed |

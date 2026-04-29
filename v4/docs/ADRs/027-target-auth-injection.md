@@ -1,6 +1,6 @@
 # ADR-027: Target → Component Auth Injection
 
-**Status:** Proposed
+**Status:** Accepted (Implemented)
 **Date:** 2026-04-28
 **Deciders:** sindri-dev team
 

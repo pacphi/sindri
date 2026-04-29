@@ -13,7 +13,8 @@ v4 extensions-layer refactor. Each document describes one bounded context.
 | [04](04-target-domain.md)    | Target    | `Target`        | `TargetProfile`, `InfraLock`, `AuthValue`               |
 | [05](05-policy-domain.md)    | Policy    | `InstallPolicy` | `AdmissionGate`, `BackendPreference`, `PolicyPreset`    |
 | [06](06-discovery-domain.md) | Discovery | `RegistryCache` | `SearchResult`, `ComponentDetail`, `DependencyGraph`    |
-| [07](07-auth-bindings-domain.md) | Auth-Bindings | `AuthBinding`  | `AuthRequirement`, `AuthCapability`, `AuthSource`, `Audience` |
+| [07](07-auth-bindings-domain.md)   | Auth-Bindings   | `AuthBinding`    | `AuthRequirement`, `AuthCapability`, `AuthSource`, `Audience`             |
+| [08](08-registry-source-domain.md) | Registry Source | `RegistrySource` | `SourceDescriptor`, `Source` trait, `LocalPath`, `Git`, `Oci`, `LocalOci` |
 
 ## Ubiquitous Language
 
