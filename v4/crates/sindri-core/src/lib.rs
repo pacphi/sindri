@@ -2,6 +2,7 @@
 
 pub mod apply_state;
 pub mod auth;
+pub mod cache_config;
 pub mod component;
 pub mod exit_codes;
 pub mod lockfile;

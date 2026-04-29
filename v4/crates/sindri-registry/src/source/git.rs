@@ -10,7 +10,13 @@
 //!
 //! On disk under `~/.sindri/cache/git/<sha256(url)>/<commit-sha>/`. Two
 //! resolutions of the same `(url, commit_sha)` reuse the same checkout.
-//! Cache eviction is intentionally out of scope for Phase 3 (Phase 5 task).
+//!
+//! Cache eviction is best-effort and runs at the start of every
+//! [`Source::fetch_index`] call — see [`super::git_cache`]. Two
+//! thresholds (read from `~/.sindri/config.yaml#/cache/git`) drive the
+//! policy: `max_size` (default `10GB`) and `max_age` (default `90d`).
+//! Either firing triggers eviction; oldest-mtime-first within the
+//! whole cache root.
 //!
 //! ## Sparse checkout
 //!
@@ -352,6 +358,20 @@ impl GitSourceRuntime {
 
 impl Source for GitSourceRuntime {
     fn fetch_index(&self, _ctx: &SourceContext) -> Result<RegistryIndex, SourceError> {
+        // Phase 4.5: best-effort cache eviction. Runs on every call but
+        // costs only one stat per cached commit — bounded by the number
+        // of cached commits which is small in practice. Failure is
+        // logged and ignored; eviction must never block resolution.
+        let cache_root = self.cache_root();
+        let cache_cfg = sindri_core::cache_config::load_user_cache_config().git;
+        if let Err(e) = super::git_cache::run_eviction(&cache_root, &cache_cfg) {
+            tracing::debug!(
+                "git-cache eviction failed at {}: {}",
+                cache_root.display(),
+                e
+            );
+        }
+
         let (_sha, dest) = self.ensure_checkout()?;
         let mut index = self.build_index(&dest)?;
         if let Some(scope) = &self.config.scope {

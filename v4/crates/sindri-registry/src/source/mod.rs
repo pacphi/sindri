@@ -15,6 +15,7 @@
 //! | `Git`        | Implemented ([`git::GitSourceRuntime`])           | 3     |
 
 pub mod git;
+pub mod git_cache;
 pub mod local_oci;
 pub mod local_path;
 pub mod oci;

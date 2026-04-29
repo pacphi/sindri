@@ -10,6 +10,7 @@ path = "src/lib.rs"
 [dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
+serde_yaml = { workspace = true }
 schemars = { workspace = true }
 thiserror = { workspace = true }
 dirs-next = { workspace = true }
@@ -20,5 +21,4 @@ tracing = { workspace = true }
 fs4 = "0.12"
 
 [dev-dependencies]
-serde_yaml = { workspace = true }
 tempfile = { workspace = true }
