@@ -1,13 +1,980 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$defs": {
+    "Arch": {
+      "enum": [
+        "x86_64",
+        "aarch64"
+      ],
+      "type": "string"
+    },
+    "BinaryInstallConfig": {
+      "properties": {
+        "checksums": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "install_path": {
+          "type": "string"
+        },
+        "url_template": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "url_template",
+        "checksums",
+        "install_path"
+      ],
+      "type": "object"
+    },
+    "BrewInstallConfig": {
+      "properties": {
+        "package": {
+          "type": "string"
+        },
+        "tap": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "package"
+      ],
+      "type": "object"
+    },
+    "CargoInstallConfig": {
+      "description": "Install a crate via `cargo install`.\n\nMaps to: `cargo install <crate> [--version <v>] [--features ...] [--locked] [--git <url>]`.",
+      "properties": {
+        "crate": {
+          "description": "The crate name (serialized as `crate` since `crate` is a Rust keyword).",
+          "type": "string"
+        },
+        "features": {
+          "default": [],
+          "description": "Optional Cargo feature flags (`--features ...`).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "git": {
+          "description": "Optional git URL to install from (`--git <url>`).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "locked": {
+          "default": true,
+          "description": "Whether to pass `--locked` (defaults to true for reproducibility).",
+          "type": "boolean"
+        },
+        "version": {
+          "description": "Optional pinned version (`--version`).",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "crate"
+      ],
+      "type": "object"
+    },
+    "CollisionHandlingConfig": {
+      "properties": {
+        "path_prefix": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path_prefix"
+      ],
+      "type": "object"
+    },
+    "ComponentCapabilities": {
+      "properties": {
+        "collision_handling": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CollisionHandlingConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "project_init": {
+          "items": {
+            "$ref": "#/$defs/ProjectInitStep"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "ComponentMetadata": {
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "homepage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "license": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "tags": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "description",
+        "license"
+      ],
+      "type": "object"
+    },
+    "ConfigureConfig": {
+      "description": "Post-install configuration: environment variables + rendered template\nfiles (DDD-01 §Configure, ADR-024).",
+      "properties": {
+        "environment": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/EnvSetting"
+          },
+          "type": "array"
+        },
+        "files": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/FileTemplate"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "EnvScope": {
+      "description": "Where an [`EnvSetting`] is applied (per implementation-plan §5.5).",
+      "oneOf": [
+        {
+          "const": "shell-rc",
+          "description": "Append to user's interactive shell rc file (e.g. `~/.bashrc`).",
+          "type": "string"
+        },
+        {
+          "const": "login",
+          "description": "Append to login profile (e.g. `~/.profile`, `~/.zprofile`).",
+          "type": "string"
+        },
+        {
+          "const": "session",
+          "description": "Set only for the current sindri session/process.",
+          "type": "string"
+        },
+        {
+          "const": "user-env-var",
+          "description": "Persist as a user-level env var (Windows: registry; Unix: shell-rc fallback).",
+          "type": "string"
+        }
+      ]
+    },
+    "EnvSetting": {
+      "description": "A single environment variable to apply at the configured [`EnvScope`].",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/EnvScope",
+          "default": "shell-rc",
+          "description": "Where to apply: see [`EnvScope`]. Defaults to [`EnvScope::ShellRc`]."
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "type": "object"
+    },
+    "FileTemplate": {
+      "description": "A rendered template file to write during configure.",
+      "properties": {
+        "overwrite": {
+          "default": false,
+          "description": "Whether to overwrite an existing file at `path`.",
+          "type": "boolean"
+        },
+        "path": {
+          "description": "Destination path (executor expands a leading `~`).",
+          "type": "string"
+        },
+        "template": {
+          "description": "Inline template body (Mustache-style `{{var}}` substitution).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "template"
+      ],
+      "type": "object"
+    },
+    "GoInstallConfig": {
+      "description": "Install a Go module via `go install`.\n\nMaps to: `go install <module>@<version>`. `go install` requires an explicit version\n(`@latest` or `@vX.Y.Z`), so `version` is non-optional here.",
+      "properties": {
+        "module": {
+          "description": "Fully-qualified module path (e.g. `github.com/foo/bar/cmd/baz`).",
+          "type": "string"
+        },
+        "version": {
+          "description": "Required version (`latest` or a semver tag like `v1.2.3`).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "module",
+        "version"
+      ],
+      "type": "object"
+    },
+    "HooksConfig": {
+      "description": "Lifecycle hook commands declared by a component.\n\nEach field is an optional shell command string executed via the active\n[`sindri_targets::Target`] at the corresponding lifecycle stage.\n\nPer ADR-024 (script-component lifecycle contract), hooks are declarative:\nthey run on the same target as the install, observe the same environment,\nand a non-zero exit code aborts the lifecycle phase.",
+      "properties": {
+        "post-install": {
+          "description": "Runs immediately after a successful install.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "post-project-init": {
+          "description": "Runs after the final [`ProjectInitStep`] for this component succeeds.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pre-install": {
+          "description": "Runs immediately before the install backend executes.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pre-project-init": {
+          "description": "Runs before any [`ProjectInitStep`] executes for this component.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "InstallConfig": {
+      "properties": {
+        "apk": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PackageInstallConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "apt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PackageInstallConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "binary": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BinaryInstallConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "brew": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BrewInstallConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cargo": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CargoInstallConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dnf": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PackageInstallConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "go-install": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GoInstallConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mise": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MiseInstallConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "npm": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NpmInstallConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pacman": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PackageInstallConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pipx": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PipxInstallConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scoop": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScoopInstallConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "script": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScriptInstallConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sdkman": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SdkmanInstallConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "winget": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WingetInstallConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "zypper": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PackageInstallConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "MiseInstallConfig": {
+      "properties": {
+        "tools": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "tools"
+      ],
+      "type": "object"
+    },
+    "NpmInstallConfig": {
+      "properties": {
+        "global": {
+          "type": "boolean"
+        },
+        "package": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "package",
+        "global"
+      ],
+      "type": "object"
+    },
+    "OptionSpec": {
+      "description": "One typed option entry in [`Options`].",
+      "oneOf": [
+        {
+          "description": "Boolean flag.",
+          "properties": {
+            "default": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "description": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "bool",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Free-form string, optionally constrained by an `enum_values` whitelist.",
+          "properties": {
+            "default": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "description": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "enum": {
+              "description": "Optional allowed-values list (rendered as `enum:` in YAML).",
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "string",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Numeric option, optionally bounded.",
+          "properties": {
+            "default": {
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "description": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "max": {
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "min": {
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "number",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Filesystem path (executor expands `~`).",
+          "properties": {
+            "default": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "description": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "path",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Options": {
+      "additionalProperties": {
+        "$ref": "#/$defs/OptionSpec"
+      },
+      "description": "Typed schema of user-configurable options exposed by the component\n(DDD-01 §Options).\n\nEach field name maps to an [`OptionSpec`] that declares the option's type,\ndefault value, and validation hints. Empty by default; deserializes from\neither an absent `options:` key or an empty map.",
+      "type": "object"
+    },
+    "Os": {
+      "enum": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "type": "string"
+    },
+    "PackageInstallConfig": {
+      "properties": {
+        "packages": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "packages"
+      ],
+      "type": "object"
+    },
+    "PipxInstallConfig": {
+      "description": "Install a Python application via `pipx install`.\n\nMaps to: `pipx install <package>[==<version>] [--python <python>]`.",
+      "properties": {
+        "package": {
+          "description": "The pipx package name (PyPI distribution name).",
+          "type": "string"
+        },
+        "python": {
+          "description": "Optional Python interpreter to use (`--python <python>`).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "version": {
+          "description": "Optional pinned version (rendered as `package==version`).",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "package"
+      ],
+      "type": "object"
+    },
+    "Platform": {
+      "properties": {
+        "arch": {
+          "$ref": "#/$defs/Arch"
+        },
+        "os": {
+          "$ref": "#/$defs/Os"
+        }
+      },
+      "required": [
+        "os",
+        "arch"
+      ],
+      "type": "object"
+    },
+    "PlatformOverride": {
+      "description": "Per-platform override of any subset of install/configure/validate/remove\n(DDD-01 §Per-platform overrides). Each field is optional; when present,\nit fully replaces the top-level value for the matching platform.",
+      "properties": {
+        "configure": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ConfigureConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "install": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InstallConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "remove": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RemoveConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "validate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ValidateConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "ProjectInitStep": {
+      "properties": {
+        "command": {
+          "type": "string"
+        },
+        "priority": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "command",
+        "priority"
+      ],
+      "type": "object"
+    },
+    "RemoveConfig": {
+      "description": "Removal instructions executed by `sindri remove <component>` (ADR-024).\n\nThe backend's own uninstall runs first; these commands and file deletions\nare extra cleanup (e.g. wiping a config directory).",
+      "properties": {
+        "commands": {
+          "default": [],
+          "description": "Extra shell commands to run during remove.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "files": {
+          "default": [],
+          "description": "Files or directories to delete (executor expands a leading `~`).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "ScoopInstallConfig": {
+      "properties": {
+        "bucket": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "package": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "package"
+      ],
+      "type": "object"
+    },
+    "ScriptInstallConfig": {
+      "properties": {
+        "ps1": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sh": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "SdkmanInstallConfig": {
+      "description": "Install a candidate via SDKMAN: `sdk install <candidate> <version>`",
+      "properties": {
+        "candidate": {
+          "description": "SDKMAN candidate name (e.g. \"java\", \"kotlin\", \"gradle\")",
+          "type": "string"
+        },
+        "version": {
+          "description": "Specific version identifier (e.g. \"21.0.5-tem\", \"2.1.0\", \"8.11\")",
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidate",
+        "version"
+      ],
+      "type": "object"
+    },
+    "ValidateCommand": {
+      "description": "One health-check command in [`ValidateConfig`].",
+      "properties": {
+        "command": {
+          "description": "Shell command line to execute.",
+          "type": "string"
+        },
+        "expected-output": {
+          "description": "Optional regex/literal expected as a substring of stdout.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "version-match": {
+          "description": "Optional version assertion (e.g. `\">=22.0.0\"`) parsed against stdout.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "command"
+      ],
+      "type": "object"
+    },
+    "ValidateConfig": {
+      "description": "Post-install health-check commands (ADR-024).\n\nEach [`ValidateCommand`] is run by the active target; all must exit 0 (and\nmatch optional `expected_output`/`version_match` assertions) for the\ncomponent to be considered installed successfully.",
+      "properties": {
+        "commands": {
+          "default": [],
+          "description": "Validation commands run after install. All must succeed.",
+          "items": {
+            "$ref": "#/$defs/ValidateCommand"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "WingetInstallConfig": {
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    }
+  },
   "$id": "https://schemas.sindri.dev/v4/component.json",
-  "title": "ComponentManifest",
-  "description": "Sindri v4 component manifest (component.yaml) — placeholder",
-  "type": "object",
-  "required": ["metadata", "platforms", "install"],
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "The v4 component manifest shape (component.yaml).\n\nFully aligned with DDD-01: in addition to install metadata, a manifest may\ndeclare typed user-facing [`Options`], post-install [`ValidateConfig`],\npost-validate [`ConfigureConfig`] (env + template files), and removal\ninstructions ([`RemoveConfig`]). Per-platform overrides are supported via\nthe [`overrides`](Self::overrides) map.\n\nAll new fields are additive and `#[serde(default)]`-protected: existing\ncomponent.yaml files in `registry-core/components/` deserialize unchanged.",
   "properties": {
-    "metadata": { "type": "object" },
-    "platforms": { "type": "array" },
-    "install": { "type": "object" }
-  }
+    "capabilities": {
+      "$ref": "#/$defs/ComponentCapabilities",
+      "default": {
+        "collision_handling": null,
+        "hooks": null,
+        "project_init": null
+      }
+    },
+    "configure": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ConfigureConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Post-install configuration: environment vars + rendered template files\n(DDD-01 §Configure)."
+    },
+    "depends_on": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "install": {
+      "$ref": "#/$defs/InstallConfig"
+    },
+    "metadata": {
+      "$ref": "#/$defs/ComponentMetadata"
+    },
+    "options": {
+      "$ref": "#/$defs/Options",
+      "default": {},
+      "description": "Typed user-facing options schema (DDD-01 §Options). Empty by default."
+    },
+    "overrides": {
+      "additionalProperties": {
+        "$ref": "#/$defs/PlatformOverride"
+      },
+      "description": "Per-platform overrides for any of: install, configure, validate, remove.\nKeyed by `{os}-{arch}` string (e.g. `\"linux-x86_64\"`, `\"macos-aarch64\"`).\nSee [`platform_key`].",
+      "type": "object"
+    },
+    "platforms": {
+      "items": {
+        "$ref": "#/$defs/Platform"
+      },
+      "type": "array"
+    },
+    "remove": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RemoveConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Removal instructions executed by `sindri remove` (ADR-024)."
+    },
+    "validate": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ValidateConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Post-install health checks (ADR-024)."
+    }
+  },
+  "required": [
+    "metadata",
+    "platforms",
+    "install"
+  ],
+  "title": "ComponentManifest",
+  "type": "object"
 }

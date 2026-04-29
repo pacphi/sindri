@@ -14,4 +14,8 @@ pub enum TargetError {
     Prerequisites { target: String, detail: String },
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
+    #[error("HTTP error for target '{target}': {detail}")]
+    Http { target: String, detail: String },
+    #[error("Rate-limited by target '{target}': back off and retry (HTTP 429)")]
+    RateLimited { target: String },
 }

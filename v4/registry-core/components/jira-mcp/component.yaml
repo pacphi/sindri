@@ -25,3 +25,26 @@ install:
 
 depends_on:
   - "npm:claude-code"
+
+# ADR-026: auth-aware components (Phase 3 P1).
+# Jira MCP needs an Atlassian API token plus the tenant base URL. Audience is
+# the canonical Atlassian API host; per-tenant URLs (e.g.
+# `https://<tenant>.atlassian.net`) are bound through the JIRA_BASE_URL token.
+auth:
+  tokens:
+    - name: jira-api-token
+      description: "Atlassian API token for the Jira MCP server."
+      audience: "https://api.atlassian.com"
+      scope: runtime
+      optional: false
+      redemption:
+        kind: env-var
+        env-name: JIRA_API_TOKEN
+    - name: jira-base-url
+      description: "Per-tenant Jira base URL, e.g. https://<tenant>.atlassian.net."
+      audience: "https://api.atlassian.com"
+      scope: runtime
+      optional: false
+      redemption:
+        kind: env-var
+        env-name: JIRA_BASE_URL

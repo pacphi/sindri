@@ -1,6 +1,20 @@
-use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
-use sindri_targets::{DockerTarget, LocalTarget, Target};
+//! `sindri target` subcommand surface (ADR-017).
+//!
+//! Wave 3C adds `use`, `start`, `stop`, `auth`, `update`, and the
+//! `plugin {ls, install, trust, uninstall}` family on top of the
+//! Sprint 9/10 `add`, `ls`, `status`, `create`, `destroy`, `doctor`,
+//! `shell` verbs.
+//!
+//! Phase 5 (ADR-027) extends `target auth <name>` with a `--bind` mode
+//! that shows declared and bound auth capabilities for the target.
 
+use sindri_core::auth::{AuthBindingStatus, AuthCapability, AuthSource};
+use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
+use sindri_secrets::{FileBackend, SecretStore, SecretValue};
+use sindri_targets::{AuthValue, DockerTarget, LocalTarget, Target};
+use std::path::{Path, PathBuf};
+
+/// Command surface for the `sindri target …` family.
 pub enum TargetCmd {
     Add {
         name: String,
@@ -23,8 +37,87 @@ pub enum TargetCmd {
     Shell {
         name: String,
     },
+    /// Set the default target in sindri.yaml (`preferences.default_target`).
+    Use {
+        name: String,
+    },
+    /// Start a previously-created target resource.
+    Start {
+        name: String,
+    },
+    /// Stop a target resource without destroying it.
+    Stop {
+        name: String,
+    },
+    /// Inspect or manage per-target auth. Three modes:
+    ///   - `target auth <name>` — inspection (print `provides:` list).
+    ///   - `target auth <name> --bind <req-id>` — bind a candidate (Phase 5, ADR-027).
+    ///   - `target auth <name> --value <prefixed>` — wizard (Wave 6B, OAuth supported via `--value oauth`).
+    Auth(AuthSubArgs),
+    /// Reconcile `targets.<name>.infra` in sindri.yaml with the on-disk
+    /// lock — Terraform-plan-style classifier with destructive-prompt
+    /// gating (Wave 5E, audit D2).
+    Update {
+        name: String,
+        auto_approve: bool,
+        no_color: bool,
+    },
+    /// Plugin management.
+    Plugin {
+        sub: PluginSub,
+    },
 }
 
+/// Arguments for the `target auth` subverb (unifies the Wave 6B wizard
+/// with the Phase 5 inspect/bind UX).
+pub struct AuthSubArgs {
+    /// Target name (key in `sindri.yaml.targets`).
+    pub name: String,
+    /// Wizard mode (Wave 6B): pre-supplied prefixed auth value, e.g.
+    /// `env:OPENAI_API_KEY`, `file:/path`, `cli:gh auth token`,
+    /// `plain:sk-...`, or the magic `oauth` to trigger the OAuth device
+    /// flow. Mutually exclusive with `--bind`.
+    pub value: Option<String>,
+    /// `--bind <req-id>` (Phase 5): write a `provides:` entry into the
+    /// target manifest based on a previously-considered-but-rejected
+    /// candidate. Mutually exclusive with `--value`.
+    pub bind: Option<String>,
+    /// Manifest path. Defaults to `sindri.yaml`.
+    pub manifest: String,
+    /// Override target lockfile (defaults to derived from `name`).
+    pub target: String,
+    /// Non-interactive: when `--bind` is set, choose this capability_id
+    /// from the considered list automatically rather than prompting.
+    pub capability_id: Option<String>,
+    /// Override audience for the new `provides:` entry (defaults to the
+    /// requirement's audience).
+    pub audience: Option<String>,
+    /// Override priority for the new `provides:` entry (defaults to 50).
+    pub priority: Option<i32>,
+    /// JSON output (inspect/bind mode only).
+    pub json: bool,
+}
+
+/// `sindri target plugin …` subcommands.
+pub enum PluginSub {
+    Ls,
+    Install {
+        oci_ref: String,
+        /// Override the `kind` the plugin will be installed under. Defaults
+        /// to the trailing path component of `oci_ref`.
+        kind: Option<String>,
+    },
+    Trust {
+        kind: String,
+        signer: String,
+    },
+    Uninstall {
+        kind: String,
+        yes: bool,
+    },
+}
+
+/// Run a `target …` command and return the process exit code.
 pub fn run(cmd: TargetCmd) -> i32 {
     match cmd {
         TargetCmd::Add { name, kind, opts } => add_target(&name, &kind, &opts),
@@ -34,12 +127,20 @@ pub fn run(cmd: TargetCmd) -> i32 {
         TargetCmd::Destroy { name } => destroy_target(&name),
         TargetCmd::Doctor { name } => doctor(&name),
         TargetCmd::Shell { name } => shell(&name),
+        TargetCmd::Use { name } => use_target(&name, Path::new("sindri.yaml")),
+        TargetCmd::Start { name } => start_target(&name),
+        TargetCmd::Stop { name } => stop_target(&name),
+        TargetCmd::Auth(args) => run_auth(args),
+        TargetCmd::Update {
+            name,
+            auto_approve,
+            no_color,
+        } => update_target(&name, auto_approve, no_color),
+        TargetCmd::Plugin { sub } => run_plugin(sub),
     }
 }
 
 fn add_target(name: &str, kind: &str, _opts: &[(String, String)]) -> i32 {
-    // Sprint 9: write to sindri.yaml targets: section
-    // Full implementation requires manifest read/write
     println!(
         "Target '{}' (kind: {}) added — update sindri.yaml targets: section manually for now",
         name, kind
@@ -48,7 +149,6 @@ fn add_target(name: &str, kind: &str, _opts: &[(String, String)]) -> i32 {
 }
 
 fn list_targets() -> i32 {
-    // Sprint 9: show local as the always-present default (ADR-023)
     println!("{:<20} {:<10} STATUS", "NAME", "KIND");
     println!("{}", "-".repeat(50));
     println!("{:<20} {:<10} ready", "local", "local");
@@ -80,7 +180,6 @@ fn status_target(name: &str) -> i32 {
 }
 
 fn create_target(name: &str) -> i32 {
-    // Sprint 9: only docker targets are provisionable here
     let image = "ubuntu:24.04";
     let t = DockerTarget::new(name, image);
     match t.create() {
@@ -141,6 +240,311 @@ fn doctor(name: &Option<String>) -> i32 {
     }
 }
 
+// =============================================================================
+// `target auth <name>` — Phase 5 (ADR-027 §Phase 5)
+// =============================================================================
+
+/// Run `sindri target auth <name>` (Phase 5).
+///
+/// Without `--bind`, prints the per-target `provides:` capability list
+/// from the manifest. With `--bind <req-id>`, looks up the binding by
+/// id in the lockfile and writes a `provides:` entry into the manifest
+/// derived from one of its considered-but-rejected candidates.
+pub fn run_auth(args: AuthSubArgs) -> i32 {
+    // Wave 6B wizard: --value (or `--value oauth`) skips the Phase 5
+    // inspect/bind path and writes credentials directly via the secret
+    // backend. Mutually exclusive with --bind.
+    if let Some(v) = &args.value {
+        if args.bind.is_some() {
+            eprintln!("error: --value and --bind are mutually exclusive");
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+        return auth_target(&args.name, Some(v.as_str()));
+    }
+
+    let manifest_path = std::path::PathBuf::from(&args.manifest);
+    let bom_result = crate::commands::manifest::load_manifest(&args.manifest);
+    let mut bom = match bom_result {
+        Ok((m, _)) => m,
+        Err(e) => {
+            eprintln!("Cannot load manifest '{}': {}", args.manifest, e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+
+    if !bom.targets.contains_key(&args.name) && !bom.targets.contains_key(&args.target) {
+        if args.json {
+            println!(r#"{{"error":"TARGET_NOT_FOUND","target":"{}"}}"#, args.name);
+        } else {
+            eprintln!("Target '{}' not found in {}", args.name, args.manifest);
+        }
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+    let key = if bom.targets.contains_key(&args.name) {
+        args.name.clone()
+    } else {
+        args.target.clone()
+    };
+
+    if let Some(req_id) = &args.bind {
+        return run_auth_bind(&mut bom, &manifest_path, &key, req_id, &args);
+    }
+
+    // Inspection mode: print the existing provides: list.
+    let target_cfg = bom.targets.get(&key).expect("checked above");
+    let provides = &target_cfg.provides;
+    if args.json {
+        let payload = serde_json::json!({
+            "target": key,
+            "kind": target_cfg.kind,
+            "provides": provides,
+        });
+        match serde_json::to_string_pretty(&payload) {
+            Ok(s) => println!("{}", s),
+            Err(_) => println!("{{}}"),
+        }
+    } else {
+        println!("target '{}' (kind: {})", key, target_cfg.kind);
+        if provides.is_empty() {
+            println!("  no `provides:` entries declared.");
+            println!("  Add one with: sindri target auth {} --bind <req-id>", key);
+        } else {
+            println!(
+                "  {:<20} {:<20} {:<30} PRIORITY",
+                "ID", "AUDIENCE", "SOURCE"
+            );
+            for c in provides {
+                println!(
+                    "  {:<20} {:<20} {:<30} {}",
+                    c.id,
+                    c.audience,
+                    describe_source(&c.source),
+                    c.priority,
+                );
+            }
+        }
+    }
+    EXIT_SUCCESS
+}
+
+fn run_auth_bind(
+    bom: &mut sindri_core::manifest::BomManifest,
+    manifest_path: &std::path::Path,
+    target_name: &str,
+    req_id: &str,
+    args: &AuthSubArgs,
+) -> i32 {
+    // Locate the binding in the per-target lockfile.
+    let lockfile_path = if target_name == "local" {
+        manifest_path
+            .parent()
+            .unwrap_or(std::path::Path::new("."))
+            .join("sindri.lock")
+    } else {
+        manifest_path
+            .parent()
+            .unwrap_or(std::path::Path::new("."))
+            .join(format!("sindri.{}.lock", target_name))
+    };
+    let content = match std::fs::read_to_string(&lockfile_path) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Cannot read lockfile '{}': {}", lockfile_path.display(), e);
+            eprintln!("Hint: run `sindri resolve` first.");
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+    let lockfile: sindri_core::lockfile::Lockfile = match serde_json::from_str(&content) {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("Malformed lockfile: {}", e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+
+    let binding = lockfile
+        .auth_bindings
+        .iter()
+        .find(|b| b.id == req_id || b.requirement == req_id);
+    let binding = match binding {
+        Some(b) => b,
+        None => {
+            eprintln!(
+                "No binding with id or requirement-name '{}' on target '{}'.",
+                req_id, target_name
+            );
+            eprintln!(
+                "Tip: `sindri auth show --target {}` lists all bindings.",
+                target_name
+            );
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+
+    if binding.status == AuthBindingStatus::Bound {
+        eprintln!(
+            "Binding '{}' is already Bound (source: {}). Nothing to do.",
+            binding.id,
+            binding
+                .source
+                .as_ref()
+                .map(describe_source)
+                .unwrap_or_else(|| "—".into())
+        );
+        return EXIT_SUCCESS;
+    }
+
+    if binding.considered.is_empty() {
+        eprintln!(
+            "Binding '{}' has no considered-but-rejected candidates to bind.",
+            binding.id
+        );
+        eprintln!(
+            "Hint: declare a source via `targets.{}.provides:` directly, or set the \
+             component requirement `optional: true`.",
+            target_name
+        );
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+
+    // Choose a candidate: --capability-id wins, else if exactly one
+    // candidate exists pick it, else error.
+    let chosen_idx = if let Some(cid) = &args.capability_id {
+        binding
+            .considered
+            .iter()
+            .position(|r| r.capability_id == *cid)
+    } else if binding.considered.len() == 1 {
+        Some(0)
+    } else {
+        None
+    };
+    let chosen = match chosen_idx {
+        Some(i) => &binding.considered[i],
+        None => {
+            eprintln!(
+                "Binding '{}' has {} considered candidates; pass --capability-id to choose.",
+                binding.id,
+                binding.considered.len()
+            );
+            for r in &binding.considered {
+                eprintln!("  - {} ({}): {}", r.capability_id, r.source_kind, r.reason);
+            }
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+
+    // Synthesise an AuthSource from the rejected candidate's
+    // `source_kind` discriminant. The candidate carries no parameters
+    // (we only persisted the kind), so we pick safe defaults that the
+    // user is expected to edit. The `--bind` flow's value is in writing
+    // a *valid* skeleton; users tweak fields after.
+    let new_source = source_from_kind(&chosen.source_kind, &binding.requirement);
+    let new_audience = args
+        .audience
+        .clone()
+        .unwrap_or_else(|| binding.audience.clone());
+    let new_priority = args.priority.unwrap_or(50);
+    let new_id = chosen.capability_id.clone();
+
+    // Write the provides entry into the target config.
+    let cfg = bom
+        .targets
+        .get_mut(target_name)
+        .expect("checked existence above");
+    // Remove any existing provides with the same id (idempotent).
+    cfg.provides.retain(|c| c.id != new_id);
+    let new_cap = AuthCapability {
+        id: new_id.clone(),
+        audience: new_audience.clone(),
+        source: new_source.clone(),
+        priority: new_priority,
+    };
+    cfg.provides.push(new_cap.clone());
+
+    // Persist.
+    if let Err(e) = crate::commands::manifest::save_manifest(
+        manifest_path.to_str().unwrap_or("sindri.yaml"),
+        bom,
+    ) {
+        eprintln!("Cannot write manifest: {}", e);
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+
+    if args.json {
+        let payload = serde_json::json!({
+            "bound": true,
+            "manifest": manifest_path.display().to_string(),
+            "target": target_name,
+            "binding_id": binding.id,
+            "added_capability": new_cap,
+            "next_steps": ["sindri resolve", "sindri auth show", "sindri apply"],
+        });
+        match serde_json::to_string_pretty(&payload) {
+            Ok(s) => println!("{}", s),
+            Err(_) => println!("{{\"bound\":true}}"),
+        }
+    } else {
+        println!(
+            "Wrote provides entry '{}' (audience='{}', source={}, priority={}) \
+             to targets.{} in {}",
+            new_id,
+            new_audience,
+            describe_source(&new_source),
+            new_priority,
+            target_name,
+            manifest_path.display(),
+        );
+        println!("Next: `sindri resolve` to re-bind, then `sindri auth show` to verify.");
+    }
+    EXIT_SUCCESS
+}
+
+/// Produce a syntactically valid [`AuthSource`] skeleton from a
+/// candidate's `source_kind` discriminant. Users are expected to edit
+/// the placeholder fields; this just gets a parseable manifest written
+/// so subsequent `sindri resolve` runs without manifest-edit churn.
+fn source_from_kind(kind: &str, hint: &str) -> AuthSource {
+    match kind {
+        "from-secrets-store" => AuthSource::FromSecretsStore {
+            backend: "vault".into(),
+            path: format!("secrets/{}", hint),
+        },
+        "from-env" => AuthSource::FromEnv {
+            var: hint.to_uppercase(),
+        },
+        "from-file" => AuthSource::FromFile {
+            path: format!("/etc/sindri/{}.pem", hint),
+            mode: Some(0o600),
+        },
+        "from-cli" => AuthSource::FromCli {
+            command: format!("# replace: command that prints {}", hint),
+        },
+        "from-upstream-credentials" => AuthSource::FromUpstreamCredentials,
+        "from-oauth" => AuthSource::FromOAuth {
+            provider: "github".into(),
+        },
+        "prompt" => AuthSource::Prompt,
+        _ => AuthSource::FromEnv {
+            var: hint.to_uppercase(),
+        },
+    }
+}
+
+fn describe_source(s: &AuthSource) -> String {
+    match s {
+        AuthSource::FromSecretsStore { backend, path } => {
+            format!("secret:{}/{}", backend, path)
+        }
+        AuthSource::FromEnv { var } => format!("env:{}", var),
+        AuthSource::FromFile { path, .. } => format!("file:{}", path),
+        AuthSource::FromCli { command } => format!("cli:{}", command),
+        AuthSource::FromUpstreamCredentials => "upstream".to_string(),
+        AuthSource::FromOAuth { provider } => format!("oauth:{}", provider),
+        AuthSource::Prompt => "prompt".to_string(),
+    }
+}
+
 fn shell(name: &str) -> i32 {
     if name == "local" {
         let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string());
@@ -154,9 +558,1151 @@ fn shell(name: &str) -> i32 {
         }
     } else {
         eprintln!(
-            "Interactive shell for target '{}': sprint 10 (cloud targets)",
+            "Interactive shell for target '{}': use `sindri target shell` once the cloud target plugin lands the PTY proxy",
             name
         );
         EXIT_SCHEMA_OR_RESOLVE_ERROR
+    }
+}
+
+// ─── New Wave 3C subverbs ────────────────────────────────────────────────────
+
+/// Set `preferences.default_target` in sindri.yaml. Public so unit tests in
+/// the `tests` module below can drive it against a tempdir.
+pub fn use_target(name: &str, manifest_path: &Path) -> i32 {
+    let content = match std::fs::read_to_string(manifest_path) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Cannot read {}: {}", manifest_path.display(), e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+    let mut doc: serde_yaml::Value = match serde_yaml::from_str(&content) {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("Cannot parse {}: {}", manifest_path.display(), e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+
+    let mapping = match doc.as_mapping_mut() {
+        Some(m) => m,
+        None => {
+            eprintln!("Manifest is not a YAML mapping");
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+
+    let prefs_key = serde_yaml::Value::String("preferences".into());
+    let prefs = mapping
+        .entry(prefs_key)
+        .or_insert(serde_yaml::Value::Mapping(serde_yaml::Mapping::new()));
+    let prefs_map = match prefs.as_mapping_mut() {
+        Some(m) => m,
+        None => {
+            eprintln!("`preferences` exists but is not a mapping");
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+    prefs_map.insert(
+        serde_yaml::Value::String("default_target".into()),
+        serde_yaml::Value::String(name.to_string()),
+    );
+
+    let serialised = match serde_yaml::to_string(&doc) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("Cannot serialise manifest: {}", e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+    let tmp = manifest_path.with_extension("yaml.tmp");
+    if let Err(e) = std::fs::write(&tmp, &serialised) {
+        eprintln!("Cannot write {}: {}", tmp.display(), e);
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+    if let Err(e) = std::fs::rename(&tmp, manifest_path) {
+        eprintln!("Cannot finalise {}: {}", manifest_path.display(), e);
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+    println!("Default target set to '{}'", name);
+    EXIT_SUCCESS
+}
+
+fn start_target(name: &str) -> i32 {
+    // Wave 3C: only the local + docker builtins are recognised here. Cloud
+    // targets are constructed from sindri.yaml at apply time; the `start`
+    // verb's full wiring against the manifest lands when the target factory
+    // is plumbed through `commands::resolve`. For now we surface a clear
+    // "not yet wired" message rather than guessing at the kind.
+    if name == "local" {
+        println!("Local target is always ready.");
+        return EXIT_SUCCESS;
+    }
+    let t = DockerTarget::new(name, "ubuntu:24.04");
+    match t.start() {
+        Ok(_) => {
+            println!("Started target '{}'", name);
+            EXIT_SUCCESS
+        }
+        Err(e) => {
+            eprintln!("Failed to start target '{}': {}", name, e);
+            EXIT_SCHEMA_OR_RESOLVE_ERROR
+        }
+    }
+}
+
+fn stop_target(name: &str) -> i32 {
+    if name == "local" {
+        eprintln!("Refusing to stop the `local` target.");
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+    let t = DockerTarget::new(name, "ubuntu:24.04");
+    match t.stop() {
+        Ok(_) => {
+            println!("Stopped target '{}'", name);
+            EXIT_SUCCESS
+        }
+        Err(e) => {
+            eprintln!("Failed to stop target '{}': {}", name, e);
+            EXIT_SCHEMA_OR_RESOLVE_ERROR
+        }
+    }
+}
+
+fn auth_target(name: &str, value: Option<&str>) -> i32 {
+    // OAuth Device Authorization Grant short-circuit (Wave 6B / D3).
+    //
+    // If the operator passed the magic value `oauth` we attempt the
+    // device-flow login for the target's kind. On success the access
+    // token is persisted to `targets.<name>.auth.token` as a `plain:`
+    // value; we print a recommendation to move the token to a `file:`
+    // or `env:` reference.
+    if value == Some("oauth") {
+        return auth_target_oauth(name);
+    }
+    let raw = match value {
+        Some(v) => v.to_string(),
+        None => match prompt_for_auth(name) {
+            Some(v) => v,
+            None => return EXIT_SCHEMA_OR_RESOLVE_ERROR,
+        },
+    };
+    let parsed = match AuthValue::parse(&raw) {
+        Some(p) => p,
+        None => {
+            eprintln!(
+                "Could not parse '{}' as an auth value; expected env:VAR | file:PATH | cli:CMD | plain:VALUE",
+                raw
+            );
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+
+    // Determine the manifest value and, for plain: tokens, persist them to
+    // the secret store rather than embedding the token inline (ADR-025).
+    let manifest_value = if parsed.is_plain() {
+        // Store the raw token bytes in the FileBackend.
+        let secret_key = format!("targets.{}.auth.token", name);
+        let token = raw.strip_prefix("plain:").unwrap_or(&raw).to_string();
+        let sv = SecretValue::from_plaintext(&token)
+            .with_description(format!("OAuth token for target {}", name));
+        let store = match FileBackend::default_path() {
+            Some(s) => s,
+            None => {
+                eprintln!("Cannot resolve secrets store path ($HOME unset).");
+                return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+            }
+        };
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("tokio runtime");
+        if let Err(e) = rt.block_on(store.write(&secret_key, sv)) {
+            eprintln!("Cannot write secret to store: {}", e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+        tracing::warn!(
+            key = %secret_key,
+            "plain: auth value migrated to sindri-secrets FileBackend. \
+             Future logins will use `secret:{}` in sindri.yaml.",
+            secret_key,
+        );
+        format!("secret:{}", secret_key)
+    } else {
+        raw.clone()
+    };
+
+    // Persist the manifest value under targets.<name>.auth.token.
+    let manifest_path = std::path::PathBuf::from("sindri.yaml");
+    if let Err(e) = persist_auth(&manifest_path, name, &manifest_value) {
+        eprintln!("Cannot update sindri.yaml: {}", e);
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+    println!("Auth value stored for target '{}' (auth.token).", name);
+    print_oauth_hint(name);
+    EXIT_SUCCESS
+}
+
+fn print_oauth_hint(name: &str) {
+    eprintln!(
+        "If '{}' uses OAuth (e.g. fly, gcloud, az), run the upstream CLI's auth command \
+         (e.g. `flyctl auth login`, `gcloud auth login`, `az login`). Sindri now drives \
+         the GitHub device flow directly via `sindri target auth <name> oauth` — see \
+         `target auth --help`.",
+        name
+    );
+}
+
+/// Drive an OAuth Device Authorization Grant (RFC 8628) login for the
+/// given target. Returns the process exit code.
+///
+/// Only providers in [`sindri_targets::oauth::provider_supports_oauth`]
+/// are wired today; for everything else (fly, northflank, e2b,
+/// kubernetes, …) we keep the upstream-CLI hint path because the
+/// provider does not publish a documented device-flow endpoint.
+fn auth_target_oauth(name: &str) -> i32 {
+    use sindri_targets::oauth;
+
+    // Look at the manifest to figure out what kind this target is.
+    let manifest_path = std::path::PathBuf::from("sindri.yaml");
+    let kind = read_kind_from_manifest(&manifest_path, name).unwrap_or_else(|| "github".into());
+
+    if !oauth::provider_supports_oauth(&kind) {
+        eprintln!(
+            "OAuth device flow is not wired for kind '{}'. Falling back to the upstream-CLI \
+             path — sindri does not drive OAuth for this provider yet.",
+            kind
+        );
+        print_oauth_hint(name);
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+
+    // Today only GitHub is wired. The OAuth client id is sindri's public
+    // device-flow app; operators can override via env.
+    let client_id = std::env::var("SINDRI_GITHUB_CLIENT_ID")
+        .unwrap_or_else(|_| "Iv1.sindri-public-device-flow".to_string());
+    let provider = oauth::OAuthProvider::github(&client_id);
+
+    let rt = match tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+    {
+        Ok(rt) => rt,
+        Err(e) => {
+            eprintln!("Cannot start tokio runtime: {}", e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+    let client = reqwest::Client::new();
+    let device = match rt.block_on(oauth::request_device_code(&client, &provider)) {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("OAuth device-code request failed: {}", e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+    let uri = device
+        .verification_uri_complete
+        .as_deref()
+        .unwrap_or(&device.verification_uri);
+    println!("Visit {} and enter code: {}", uri, device.user_code);
+    println!(
+        "Polling for approval (expires in {}s, interval {}s)…",
+        device.expires_in, device.interval
+    );
+
+    let mut sleeper = oauth::RealSleeper::default();
+    let token = match rt.block_on(oauth::poll_until_done(
+        &client,
+        &provider,
+        &device,
+        &mut sleeper,
+    )) {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("OAuth login failed: {}", e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+
+    // Persist as a `plain:` value so AuthValue::parse roundtrips it.
+    let stored = format!("plain:{}", token.access_token);
+    if let Err(e) = persist_auth(&manifest_path, name, &stored) {
+        eprintln!("Cannot update sindri.yaml: {}", e);
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+    println!(
+        "Auth token stored for target '{}' (auth.token, plain:). \
+         Recommended: move to file: or env: reference for at-rest safety.",
+        name
+    );
+    EXIT_SUCCESS
+}
+
+fn read_kind_from_manifest(manifest_path: &Path, name: &str) -> Option<String> {
+    let content = std::fs::read_to_string(manifest_path).ok()?;
+    let doc: serde_yaml::Value = serde_yaml::from_str(&content).ok()?;
+    doc.get("targets")
+        .and_then(|t| t.get(name))
+        .and_then(|t| t.get("kind"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+}
+
+fn prompt_for_auth(name: &str) -> Option<String> {
+    use std::io::{BufRead, Write};
+    let stdin = std::io::stdin();
+    let stdout = std::io::stdout();
+    let mut out = stdout.lock();
+    let _ = writeln!(
+        out,
+        "Configure auth for target '{}'.\n\
+         Accepted forms: env:VAR | file:PATH | cli:CMD | plain:VALUE",
+        name
+    );
+    let _ = write!(out, "auth.token: ");
+    let _ = out.flush();
+    let mut line = String::new();
+    if stdin.lock().read_line(&mut line).is_err() {
+        return None;
+    }
+    let trimmed = line.trim();
+    if trimmed.is_empty() {
+        eprintln!("No value provided.");
+        return None;
+    }
+    Some(trimmed.to_string())
+}
+
+fn persist_auth(manifest_path: &Path, name: &str, value: &str) -> std::io::Result<()> {
+    let content = std::fs::read_to_string(manifest_path)?;
+    let mut doc: serde_yaml::Value = serde_yaml::from_str(&content)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+    let mapping = doc.as_mapping_mut().ok_or_else(|| {
+        std::io::Error::new(std::io::ErrorKind::InvalidData, "manifest is not a mapping")
+    })?;
+
+    let targets_key = serde_yaml::Value::String("targets".into());
+    let targets = mapping
+        .entry(targets_key)
+        .or_insert(serde_yaml::Value::Mapping(serde_yaml::Mapping::new()));
+    let targets_map = targets.as_mapping_mut().ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "`targets` is not a mapping",
+        )
+    })?;
+    let target_key = serde_yaml::Value::String(name.into());
+    let target = targets_map
+        .entry(target_key)
+        .or_insert(serde_yaml::Value::Mapping(serde_yaml::Mapping::new()));
+    let target_map = target.as_mapping_mut().ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!("targets.{} is not a mapping", name),
+        )
+    })?;
+    let auth_key = serde_yaml::Value::String("auth".into());
+    let auth = target_map
+        .entry(auth_key)
+        .or_insert(serde_yaml::Value::Mapping(serde_yaml::Mapping::new()));
+    let auth_map = auth.as_mapping_mut().ok_or_else(|| {
+        std::io::Error::new(std::io::ErrorKind::InvalidData, "`auth` is not a mapping")
+    })?;
+    auth_map.insert(
+        serde_yaml::Value::String("token".into()),
+        serde_yaml::Value::String(value.into()),
+    );
+
+    let out = serde_yaml::to_string(&doc)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+    let tmp = manifest_path.with_extension("yaml.tmp");
+    std::fs::write(&tmp, &out)?;
+    std::fs::rename(&tmp, manifest_path)?;
+    Ok(())
+}
+
+fn update_target(name: &str, auto_approve: bool, no_color: bool) -> i32 {
+    update_target_at(
+        name,
+        Path::new("sindri.yaml"),
+        &PathBuf::from(format!("sindri.{}.infra.lock", name)),
+        auto_approve,
+        no_color,
+    )
+}
+
+/// Test-friendly variant that takes explicit paths. Drives the
+/// convergence engine end-to-end:
+///
+/// 1. Loads `targets.<name>` from `sindri.yaml`.
+/// 2. Loads (or initialises empty) the lockfile.
+/// 3. Builds a [`Plan`](sindri_targets::convergence::Plan) and renders it.
+/// 4. Prompts (unless `auto_approve`) before applying any destructive
+///    entry, then writes the new lock atomically.
+///
+/// The Applier used here is a no-op [`StubApplier`] — actual provider-API
+/// mutations land per-kind on top of `dispatch_create_async` (see PR #227).
+/// Tests inject a fake Applier through the `convergence` integration tests
+/// in `sindri-targets`.
+pub fn update_target_at(
+    name: &str,
+    manifest_path: &Path,
+    lock_path: &Path,
+    auto_approve: bool,
+    no_color: bool,
+) -> i32 {
+    use sindri_targets::convergence::{
+        apply_plan, build_plan, render_plan, schema_for_kind, write_lock_atomic, AlwaysYesConfirm,
+        InfraDocument, InfraLock, RenderOptions, StdinConfirm,
+    };
+
+    // ── Load manifest ────────────────────────────────────────────────
+    let content = match std::fs::read_to_string(manifest_path) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("Cannot read {}: {}", manifest_path.display(), e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+    let doc: serde_yaml::Value = match serde_yaml::from_str(&content) {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("Cannot parse {}: {}", manifest_path.display(), e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+    let target_node = doc
+        .get("targets")
+        .and_then(|t| t.get(name))
+        .cloned()
+        .unwrap_or(serde_yaml::Value::Null);
+    if target_node.is_null() {
+        eprintln!(
+            "Target '{}' not found in {} (targets.{} is missing).",
+            name,
+            manifest_path.display(),
+            name
+        );
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+    let kind = target_node
+        .get("kind")
+        .and_then(|v| v.as_str())
+        .unwrap_or("local")
+        .to_string();
+    let infra_yaml = target_node.get("infra").cloned();
+    let infra_json: Option<serde_json::Value> = match infra_yaml {
+        Some(v) => match serde_json::to_value(&v) {
+            Ok(j) => Some(j),
+            Err(e) => {
+                eprintln!("Cannot convert targets.{}.infra to JSON: {}", name, e);
+                return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+            }
+        },
+        None => None,
+    };
+
+    let desired = InfraDocument::from_infra_value(&kind, infra_json.as_ref());
+
+    // ── Load (or default) lock ───────────────────────────────────────
+    let recorded_lock = match InfraLock::read(lock_path, name, &kind) {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("Cannot read lock {}: {}", lock_path.display(), e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+    let recorded = InfraDocument {
+        kind: recorded_lock.kind.clone(),
+        resources: recorded_lock.resources.clone(),
+    };
+
+    // ── Build + render plan ──────────────────────────────────────────
+    let schema = schema_for_kind(&kind);
+    let plan = build_plan(name, &kind, &desired, &recorded, schema.as_ref());
+    let rendered = render_plan(&plan, RenderOptions { color: !no_color });
+    print!("{}", rendered);
+
+    // ── Apply ────────────────────────────────────────────────────────
+    let counts = plan.counts();
+    if counts.create + counts.in_place + counts.destroy + counts.recreate == 0 {
+        println!("No changes to apply.");
+        return EXIT_SUCCESS;
+    }
+
+    // Build a per-kind Applier from the manifest's `targets.<name>` block.
+    // For built-in cloud kinds this dispatches to the real provider HTTP
+    // APIs (`runpod`, `northflank`, `fly`, `e2b`, `kubernetes/k8s`); the
+    // `local` kind (and unknown kinds) get the no-op StubApplier.
+    let mut applier = KindApplier::new(name, &kind, &target_node);
+    let result = if auto_approve {
+        let mut confirm = AlwaysYesConfirm;
+        apply_plan(&plan, &recorded_lock, &mut applier, &mut confirm, true)
+    } else {
+        let mut confirm = StdinConfirm::default();
+        apply_plan(&plan, &recorded_lock, &mut applier, &mut confirm, false)
+    };
+
+    let (new_lock, outcome) = match result {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("Apply failed: {}", e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+
+    if outcome.destructive_aborted {
+        println!("Aborted — no changes applied.");
+        return EXIT_SUCCESS;
+    }
+
+    if let Err(e) = write_lock_atomic(lock_path, &new_lock) {
+        eprintln!("Cannot write lock {}: {}", lock_path.display(), e);
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+    println!(
+        "Applied {} change(s). Lock: {}",
+        outcome.applied,
+        lock_path.display()
+    );
+    EXIT_SUCCESS
+}
+
+/// No-op Applier — used by the `local` kind and as a fallback when the
+/// manifest references a built-in kind we have not yet wired to a real
+/// provider API. Stamps `_managed: true` so the lock reflects "we owned
+/// this resource" without making any HTTP calls.
+struct StubApplier;
+
+impl sindri_targets::convergence::Applier for StubApplier {
+    fn create(
+        &mut self,
+        _name: &str,
+        desired: &serde_json::Value,
+    ) -> Result<sindri_targets::convergence::ResourceState, sindri_targets::TargetError> {
+        let mut state = desired.clone();
+        if let Some(map) = state.as_object_mut() {
+            map.insert("_managed".into(), serde_json::Value::Bool(true));
+        }
+        Ok(state)
+    }
+    fn destroy(
+        &mut self,
+        _name: &str,
+        _recorded: &sindri_targets::convergence::ResourceState,
+    ) -> Result<(), sindri_targets::TargetError> {
+        Ok(())
+    }
+    fn update_in_place(
+        &mut self,
+        _name: &str,
+        recorded: &sindri_targets::convergence::ResourceState,
+        desired: &serde_json::Value,
+    ) -> Result<sindri_targets::convergence::ResourceState, sindri_targets::TargetError> {
+        let mut state = desired.clone();
+        if let (Some(new_map), Some(rec_map)) = (state.as_object_mut(), recorded.as_object()) {
+            for k in ["id", "_managed"] {
+                if let Some(v) = rec_map.get(k) {
+                    new_map.insert(k.into(), v.clone());
+                }
+            }
+        }
+        Ok(state)
+    }
+}
+
+/// Per-kind Applier that dispatches to real provider HTTP APIs (Wave 6B).
+///
+/// Wraps a one-shot tokio runtime so the synchronous [`Applier`] trait
+/// can call `async` provider methods. Each call gets a fresh
+/// `current_thread` runtime — the cost is negligible relative to the
+/// HTTP round trip.
+struct KindApplier {
+    target_name: String,
+    kind: String,
+    target_node: serde_yaml::Value,
+}
+
+impl KindApplier {
+    fn new(target_name: &str, kind: &str, target_node: &serde_yaml::Value) -> Self {
+        Self {
+            target_name: target_name.to_string(),
+            kind: kind.to_string(),
+            target_node: target_node.clone(),
+        }
+    }
+
+    /// Resolve `targets.<name>.auth.token` into an `AuthValue`.
+    fn auth(&self) -> Option<sindri_targets::AuthValue> {
+        self.target_node
+            .get("auth")
+            .and_then(|a| a.get("token"))
+            .and_then(|v| v.as_str())
+            .and_then(sindri_targets::AuthValue::parse)
+    }
+
+    fn read_str(&self, path: &[&str], fallback: &str) -> String {
+        let mut cur = &self.target_node;
+        for p in path {
+            match cur.get(p) {
+                Some(v) => cur = v,
+                None => return fallback.to_string(),
+            }
+        }
+        cur.as_str().unwrap_or(fallback).to_string()
+    }
+
+    fn block_on<F: std::future::Future<Output = T>, T>(
+        &self,
+        f: F,
+    ) -> Result<T, sindri_targets::TargetError> {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .map_err(|e| sindri_targets::TargetError::Http {
+                target: self.target_name.clone(),
+                detail: format!("failed to build tokio runtime: {}", e),
+            })
+            .map(|rt| rt.block_on(f))
+    }
+
+    fn record_id(&self, id: String) -> sindri_targets::convergence::ResourceState {
+        serde_json::json!({"id": id, "_managed": true})
+    }
+}
+
+impl sindri_targets::convergence::Applier for KindApplier {
+    fn create(
+        &mut self,
+        _name: &str,
+        desired: &serde_json::Value,
+    ) -> Result<sindri_targets::convergence::ResourceState, sindri_targets::TargetError> {
+        match self.kind.as_str() {
+            "runpod" => {
+                let gpu = desired
+                    .get("gpuTypeId")
+                    .or_else(|| desired.get("gpu_type_id"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("RTX 4090");
+                let mut t = sindri_targets::RunPodTarget::new(&self.target_name, gpu);
+                t.auth = self.auth();
+                let id = self.block_on(t.dispatch_create_async())??;
+                Ok(self.record_id(id))
+            }
+            "northflank" => {
+                let project = self.read_str(&["infra", "project"], "default");
+                let service = self.read_str(&["infra", "service"], &self.target_name);
+                let mut t =
+                    sindri_targets::NorthflankTarget::new(&self.target_name, &project, &service);
+                t.auth = self.auth();
+                let id = self.block_on(t.dispatch_create_async())??;
+                Ok(self.record_id(id))
+            }
+            "fly" => {
+                let app = self.read_str(&["infra", "app"], &self.target_name);
+                let mut t = sindri_targets::FlyTarget::new(&self.target_name, &app);
+                t.auth = self.auth();
+                let id = self.block_on(t.dispatch_create_async(Some(desired)))??;
+                Ok(self.record_id(id))
+            }
+            "e2b" => {
+                let template = self.read_str(&["infra", "template"], "base");
+                let mut t = sindri_targets::E2bTarget::new(&self.target_name, &template);
+                t.auth = self.auth();
+                let id = self.block_on(t.dispatch_create_async(Some(desired)))??;
+                Ok(self.record_id(id))
+            }
+            "kubernetes" | "k8s" => {
+                let ns = self.read_str(&["infra", "namespace"], "default");
+                let t = sindri_targets::KubernetesTarget::new(&self.target_name, &ns);
+                let pod_name = t.dispatch_apply(Some(desired))?;
+                Ok(self.record_id(pod_name))
+            }
+            _ => StubApplier.create(_name, desired),
+        }
+    }
+
+    fn destroy(
+        &mut self,
+        _name: &str,
+        recorded: &sindri_targets::convergence::ResourceState,
+    ) -> Result<(), sindri_targets::TargetError> {
+        let id = recorded
+            .get("id")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string();
+        match self.kind.as_str() {
+            "runpod" => {
+                let mut t = sindri_targets::RunPodTarget::new(&self.target_name, "RTX 4090");
+                t.auth = self.auth();
+                self.block_on(t.dispatch_destroy_async(&id))?
+            }
+            "northflank" => {
+                let project = self.read_str(&["infra", "project"], "default");
+                let service = self.read_str(&["infra", "service"], &self.target_name);
+                let mut t =
+                    sindri_targets::NorthflankTarget::new(&self.target_name, &project, &service);
+                t.auth = self.auth();
+                self.block_on(t.dispatch_destroy_async())?
+            }
+            "fly" => {
+                let app = self.read_str(&["infra", "app"], &self.target_name);
+                let mut t = sindri_targets::FlyTarget::new(&self.target_name, &app);
+                t.auth = self.auth();
+                self.block_on(t.dispatch_destroy_async(&id))?
+            }
+            "e2b" => {
+                let template = self.read_str(&["infra", "template"], "base");
+                let mut t = sindri_targets::E2bTarget::new(&self.target_name, &template);
+                t.auth = self.auth();
+                self.block_on(t.dispatch_destroy_async(&id))?
+            }
+            "kubernetes" | "k8s" => {
+                let ns = self.read_str(&["infra", "namespace"], "default");
+                let t = sindri_targets::KubernetesTarget::new(&self.target_name, &ns);
+                t.dispatch_delete()
+            }
+            _ => StubApplier.destroy(_name, recorded),
+        }
+    }
+
+    fn update_in_place(
+        &mut self,
+        _name: &str,
+        recorded: &sindri_targets::convergence::ResourceState,
+        desired: &serde_json::Value,
+    ) -> Result<sindri_targets::convergence::ResourceState, sindri_targets::TargetError> {
+        let id = recorded
+            .get("id")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string();
+        match self.kind.as_str() {
+            "runpod" => {
+                let mut t = sindri_targets::RunPodTarget::new(&self.target_name, "RTX 4090");
+                t.auth = self.auth();
+                let _ = self.block_on(t.dispatch_update_async(&id, desired))??;
+                Ok(self.record_id(id))
+            }
+            "northflank" => {
+                let project = self.read_str(&["infra", "project"], "default");
+                let service = self.read_str(&["infra", "service"], &self.target_name);
+                let mut t =
+                    sindri_targets::NorthflankTarget::new(&self.target_name, &project, &service);
+                t.auth = self.auth();
+                let _ = self.block_on(t.dispatch_update_async(desired))??;
+                Ok(self.record_id(id))
+            }
+            "fly" => {
+                let app = self.read_str(&["infra", "app"], &self.target_name);
+                let mut t = sindri_targets::FlyTarget::new(&self.target_name, &app);
+                t.auth = self.auth();
+                let _ = self.block_on(t.dispatch_update_async(&id, desired))??;
+                Ok(self.record_id(id))
+            }
+            "e2b" => {
+                // E2B sandboxes are immutable beyond their template; if
+                // the schema routes an update here it's because only
+                // bookkeeping fields changed. Treat as a metadata-only
+                // update by carrying the recorded id forward.
+                Ok(self.record_id(id))
+            }
+            "kubernetes" | "k8s" => {
+                let ns = self.read_str(&["infra", "namespace"], "default");
+                let t = sindri_targets::KubernetesTarget::new(&self.target_name, &ns);
+                let pod_name = t.dispatch_apply(Some(desired))?;
+                Ok(self.record_id(pod_name))
+            }
+            _ => StubApplier.update_in_place(_name, recorded, desired),
+        }
+    }
+}
+
+// ─── Plugin management ──────────────────────────────────────────────────────
+
+fn run_plugin(sub: PluginSub) -> i32 {
+    match sub {
+        PluginSub::Ls => plugin_ls(),
+        PluginSub::Install { oci_ref, kind } => plugin_install(&oci_ref, kind.as_deref()),
+        PluginSub::Trust { kind, signer } => plugin_trust(&kind, &signer),
+        PluginSub::Uninstall { kind, yes } => plugin_uninstall(&kind, yes),
+    }
+}
+
+fn plugins_root() -> Option<PathBuf> {
+    sindri_core::paths::home_dir().map(|h| h.join(".sindri").join("plugins"))
+}
+
+fn plugin_trust_root() -> Option<PathBuf> {
+    sindri_core::paths::home_dir().map(|h| h.join(".sindri").join("trust").join("plugins"))
+}
+
+fn plugin_ls() -> i32 {
+    let root = match plugins_root() {
+        Some(r) => r,
+        None => {
+            eprintln!("Cannot resolve $HOME");
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+    if !root.is_dir() {
+        println!("No plugins installed.");
+        return EXIT_SUCCESS;
+    }
+    println!("{:<20} BINARY", "KIND");
+    println!("{}", "-".repeat(60));
+    let entries = match std::fs::read_dir(&root) {
+        Ok(e) => e,
+        Err(e) => {
+            eprintln!("Cannot read {}: {}", root.display(), e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+        let kind = match path.file_name().and_then(|n| n.to_str()) {
+            Some(s) => s.to_string(),
+            None => continue,
+        };
+        let bin = path.join(format!("sindri-target-{}", kind));
+        if bin.is_file() {
+            println!("{:<20} {}", kind, bin.display());
+        }
+    }
+    EXIT_SUCCESS
+}
+
+fn plugin_install(oci_ref: &str, kind_override: Option<&str>) -> i32 {
+    // Wave 3C: the OCI fetch path lives in sindri-registry (Wave 3A.2).
+    // Until that lands the install verb is intentionally non-functional
+    // and clearly marked experimental, per the implementation plan.
+    let kind = kind_override
+        .map(str::to_string)
+        .unwrap_or_else(|| derive_kind_from_ref(oci_ref));
+    eprintln!(
+        "EXPERIMENTAL: `sindri target plugin install` requires the OCI fetch path \
+         from Wave 3A.2 (sindri-registry) which has not yet landed. \
+         Until then, copy your plugin binary manually to \
+         ~/.sindri/plugins/{0}/sindri-target-{0} and `chmod +x` it.\n\
+         Reference attempted: {1}",
+        kind, oci_ref
+    );
+    EXIT_SCHEMA_OR_RESOLVE_ERROR
+}
+
+fn derive_kind_from_ref(oci_ref: &str) -> String {
+    // ghcr.io/foo/sindri-target-modal:1.2.3 → modal
+    let last = oci_ref
+        .rsplit('/')
+        .next()
+        .unwrap_or(oci_ref)
+        .split(':')
+        .next()
+        .unwrap_or(oci_ref);
+    last.strip_prefix("sindri-target-")
+        .unwrap_or(last)
+        .to_string()
+}
+
+fn plugin_trust(kind: &str, signer: &str) -> i32 {
+    let root = match plugin_trust_root() {
+        Some(r) => r,
+        None => {
+            eprintln!("Cannot resolve $HOME");
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+    let path_str = signer.strip_prefix("cosign:key=").unwrap_or(signer).trim();
+    if path_str.is_empty() {
+        eprintln!("Empty signer; expected `cosign:key=<path>` or a path to a P-256 PEM public key");
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+    let pem = match std::fs::read_to_string(path_str) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("Cannot read signer key '{}': {}", path_str, e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+    let dir = root.join(kind);
+    if let Err(e) = std::fs::create_dir_all(&dir) {
+        eprintln!("Cannot create {}: {}", dir.display(), e);
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+    let target = dir.join("cosign.pub");
+    let tmp = target.with_extension("tmp");
+    if let Err(e) = std::fs::write(&tmp, &pem) {
+        eprintln!("Cannot write {}: {}", target.display(), e);
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+    if let Err(e) = std::fs::rename(&tmp, &target) {
+        eprintln!("Cannot finalise {}: {}", target.display(), e);
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+    println!(
+        "Trusted cosign key for plugin kind '{}' (stored at {})",
+        kind,
+        target.display()
+    );
+    EXIT_SUCCESS
+}
+
+fn plugin_uninstall(kind: &str, yes: bool) -> i32 {
+    let root = match plugins_root() {
+        Some(r) => r,
+        None => {
+            eprintln!("Cannot resolve $HOME");
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+    let dir = root.join(kind);
+    if !dir.is_dir() {
+        eprintln!("No plugin installed for kind '{}'", kind);
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+    if !yes && !confirm_uninstall(kind) {
+        println!("Aborted.");
+        return EXIT_SUCCESS;
+    }
+    if let Err(e) = std::fs::remove_dir_all(&dir) {
+        eprintln!("Cannot remove {}: {}", dir.display(), e);
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+    println!("Uninstalled plugin '{}'", kind);
+    EXIT_SUCCESS
+}
+
+fn confirm_uninstall(kind: &str) -> bool {
+    use std::io::{BufRead, Write};
+    let stdout = std::io::stdout();
+    let mut out = stdout.lock();
+    let _ = write!(out, "Uninstall plugin '{}'? [y/N]: ", kind);
+    let _ = out.flush();
+    let mut line = String::new();
+    if std::io::stdin().lock().read_line(&mut line).is_err() {
+        return false;
+    }
+    matches!(line.trim().to_lowercase().as_str(), "y" | "yes")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::tempdir;
+
+    #[test]
+    fn use_writes_default_target() {
+        let dir = tempdir().unwrap();
+        let manifest = dir.path().join("sindri.yaml");
+        fs::write(
+            &manifest,
+            "components: []\npreferences:\n  default_target: local\n",
+        )
+        .unwrap();
+        assert_eq!(use_target("staging", &manifest), EXIT_SUCCESS);
+        let updated = fs::read_to_string(&manifest).unwrap();
+        let doc: serde_yaml::Value = serde_yaml::from_str(&updated).unwrap();
+        assert_eq!(
+            doc.get("preferences")
+                .and_then(|p| p.get("default_target"))
+                .and_then(|v| v.as_str()),
+            Some("staging")
+        );
+    }
+
+    #[test]
+    fn use_creates_preferences_when_absent() {
+        let dir = tempdir().unwrap();
+        let manifest = dir.path().join("sindri.yaml");
+        fs::write(&manifest, "components: []\n").unwrap();
+        assert_eq!(use_target("ci", &manifest), EXIT_SUCCESS);
+        let updated = fs::read_to_string(&manifest).unwrap();
+        assert!(updated.contains("default_target: ci"));
+    }
+
+    #[test]
+    fn persist_auth_creates_targets_section() {
+        let dir = tempdir().unwrap();
+        let manifest = dir.path().join("sindri.yaml");
+        fs::write(&manifest, "components: []\n").unwrap();
+        persist_auth(&manifest, "fly1", "env:FLY_API_TOKEN").unwrap();
+        let updated = fs::read_to_string(&manifest).unwrap();
+        let doc: serde_yaml::Value = serde_yaml::from_str(&updated).unwrap();
+        let token = doc
+            .get("targets")
+            .and_then(|t| t.get("fly1"))
+            .and_then(|t| t.get("auth"))
+            .and_then(|a| a.get("token"))
+            .and_then(|v| v.as_str());
+        assert_eq!(token, Some("env:FLY_API_TOKEN"));
+    }
+
+    #[test]
+    fn derive_kind_from_oci_ref() {
+        assert_eq!(
+            derive_kind_from_ref("ghcr.io/foo/sindri-target-modal:1.0.0"),
+            "modal"
+        );
+        assert_eq!(
+            derive_kind_from_ref("docker.io/bar/sindri-target-lambda-labs"),
+            "lambda-labs"
+        );
+        assert_eq!(derive_kind_from_ref("modal"), "modal");
+    }
+
+    #[test]
+    fn update_target_creates_lockfile_with_auto_approve() {
+        let dir = tempdir().unwrap();
+        let manifest = dir.path().join("sindri.yaml");
+        let lock = dir.path().join("sindri.web.infra.lock");
+        fs::write(
+            &manifest,
+            r#"
+components: []
+targets:
+  web:
+    kind: docker
+    infra:
+      resources:
+        web:
+          image: ghcr.io/example/web:1
+          env:
+            LOG: info
+"#,
+        )
+        .unwrap();
+
+        let code = update_target_at(
+            "web", &manifest, &lock, /*auto_approve*/ true, /*no_color*/ true,
+        );
+        assert_eq!(code, EXIT_SUCCESS);
+        assert!(lock.exists(), "lockfile should have been written");
+        let written = fs::read_to_string(&lock).unwrap();
+        let parsed: serde_yaml::Value = serde_yaml::from_str(&written).unwrap();
+        assert_eq!(parsed.get("kind").and_then(|v| v.as_str()), Some("docker"));
+        assert!(written.contains("ghcr.io/example/web:1"));
+    }
+
+    #[test]
+    fn update_target_noop_when_lock_matches_manifest() {
+        let dir = tempdir().unwrap();
+        let manifest = dir.path().join("sindri.yaml");
+        let lock = dir.path().join("sindri.web.infra.lock");
+        fs::write(
+            &manifest,
+            r#"
+components: []
+targets:
+  web:
+    kind: docker
+    infra:
+      resources:
+        web:
+          image: ghcr.io/example/web:1
+"#,
+        )
+        .unwrap();
+        // Pre-write a matching lock.
+        fs::write(
+            &lock,
+            "kind: docker\nresources:\n  web:\n    image: ghcr.io/example/web:1\n",
+        )
+        .unwrap();
+
+        let code = update_target_at("web", &manifest, &lock, true, true);
+        assert_eq!(code, EXIT_SUCCESS);
+    }
+
+    #[test]
+    fn update_target_missing_target_returns_error() {
+        let dir = tempdir().unwrap();
+        let manifest = dir.path().join("sindri.yaml");
+        let lock = dir.path().join("sindri.absent.infra.lock");
+        fs::write(&manifest, "components: []\n").unwrap();
+        let code = update_target_at("absent", &manifest, &lock, true, true);
+        assert_eq!(code, EXIT_SCHEMA_OR_RESOLVE_ERROR);
+    }
+
+    #[test]
+    fn plugin_install_rejects_unsigned_when_strict() {
+        // Wave 3C placeholder: until OCI fetch lands in Wave 3A.2 the
+        // command refuses to install anything (which is the strictest
+        // possible policy). Once Wave 3A.2 lands this test will be
+        // replaced with one that validates the cosign-trust check.
+        let code = plugin_install("ghcr.io/example/sindri-target-modal:1.0.0", None);
+        assert_eq!(code, EXIT_SCHEMA_OR_RESOLVE_ERROR);
+    }
+}
+
+#[cfg(test)]
+mod auth_subverb_tests {
+    use super::*;
+
+    #[test]
+    fn source_from_kind_env_uses_uppercased_hint() {
+        match source_from_kind("from-env", "github_token") {
+            AuthSource::FromEnv { var } => assert_eq!(var, "GITHUB_TOKEN"),
+            other => panic!("got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn source_from_kind_secrets_store_default_vault() {
+        match source_from_kind("from-secrets-store", "tok") {
+            AuthSource::FromSecretsStore { backend, path } => {
+                assert_eq!(backend, "vault");
+                assert_eq!(path, "secrets/tok");
+            }
+            other => panic!("got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn source_from_kind_unknown_falls_back_to_env() {
+        match source_from_kind("never-heard-of", "tok") {
+            AuthSource::FromEnv { var } => assert_eq!(var, "TOK"),
+            other => panic!("got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn source_from_kind_file_uses_etc_sindri() {
+        match source_from_kind("from-file", "client_cert") {
+            AuthSource::FromFile { path, mode } => {
+                assert!(path.contains("client_cert"));
+                assert_eq!(mode, Some(0o600));
+            }
+            other => panic!("got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn target_auth_bind_round_trips_through_manifest() {
+        // Smoke: build a TargetConfig, append a provides via the same
+        // path as run_auth_bind, serialise + parse, assert equality.
+        use sindri_core::manifest::TargetConfig;
+        let mut tc = TargetConfig {
+            kind: "fly".into(),
+            infra: None,
+            auth: None,
+            provides: vec![],
+        };
+        tc.provides.push(AuthCapability {
+            id: "github_token".into(),
+            audience: "https://api.github.com".into(),
+            source: AuthSource::FromEnv { var: "GH".into() },
+            priority: 50,
+        });
+        let s = serde_yaml::to_string(&tc).unwrap();
+        let back: TargetConfig = serde_yaml::from_str(&s).unwrap();
+        assert_eq!(back.provides.len(), 1);
+        assert_eq!(back.provides[0].id, "github_token");
     }
 }

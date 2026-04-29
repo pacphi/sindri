@@ -1,8 +1,8 @@
-## DDD-07: Registry Source Domain
+## DDD-08: Registry Source Domain
 
 **Status:** Proposed
 **Date:** 2026-04-28
-**Related ADRs:** ADR-003, ADR-014, ADR-025
+**Related ADRs:** ADR-003, ADR-014, ADR-028
 **Supersedes:** Nothing. Extends DDD-02 §"Cache Model" and DDD-03 §"Resolution Algorithm".
 
 ## Bounded Context
@@ -18,7 +18,7 @@ produce a `RegistryIndex` and the `ComponentManifest` blobs it references."
 
 ## Why this is a separate context
 
-Before ADR-025, the Registry domain conflated *what* a registry is (a named, signed
+Before ADR-028, the Registry domain conflated *what* a registry is (a named, signed
 catalog) with *how* its bytes are fetched (always OCI). That conflation made it
 impossible to model:
 

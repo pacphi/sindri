@@ -1,99 +1,129 @@
 use sindri_core::component::ComponentManifest;
 use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
 use sindri_registry::signing::TrustedKey;
+use sindri_registry::{CosignVerifier, OciRef, RegistryClient};
 
 pub enum RegistryCmd {
-    Refresh { name: String, url: String },
-    Lint { path: String, json: bool },
-    Trust { name: String, signer: String },
-    Verify { name: String },
-    FetchChecksums { path: String },
+    Refresh {
+        name: String,
+        url: String,
+        insecure: bool,
+    },
+    Lint {
+        path: String,
+        json: bool,
+        /// Enable the auth-aware lint rule (ADR-026 Phase 3): warn on
+        /// components in known-credentialed categories that lack an `auth:`
+        /// block. Warning-only — never fails the build.
+        auth: bool,
+    },
+    Trust {
+        name: String,
+        signer: String,
+    },
+    Verify {
+        name: String,
+        url: String,
+    },
+    FetchChecksums {
+        path: String,
+    },
 }
 
 pub fn run(cmd: RegistryCmd) -> i32 {
     match cmd {
-        RegistryCmd::Refresh { name, url } => refresh(&name, &url),
-        RegistryCmd::Lint { path, json } => lint(&path, json),
+        RegistryCmd::Refresh {
+            name,
+            url,
+            insecure,
+        } => refresh(&name, &url, insecure),
+        RegistryCmd::Lint { path, json, auth } => lint(&path, json, auth),
         RegistryCmd::Trust { name, signer } => trust(&name, &signer),
-        RegistryCmd::Verify { name } => verify(&name),
+        RegistryCmd::Verify { name, url } => verify(&name, &url),
         RegistryCmd::FetchChecksums { path } => fetch_checksums(&path),
     }
 }
 
-fn refresh(name: &str, url: &str) -> i32 {
-    // local registry protocol
-    if let Some(path) = url.strip_prefix("registry:local:") {
-        let index_path = std::path::Path::new(path).join("index.yaml");
-        if !index_path.exists() {
-            eprintln!("Local registry index not found: {}", index_path.display());
+/// Refresh a registry index via the live OCI Distribution Spec pipeline
+/// (ADR-003) and verify its cosign signature (ADR-014) before caching.
+///
+/// `--insecure` bypasses cosign verification with a loud warning. It is
+/// rejected when the active install policy sets `require_signed_registries`.
+fn refresh(name: &str, url: &str, insecure: bool) -> i32 {
+    let runtime = match tokio::runtime::Runtime::new() {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("Cannot start async runtime: {}", e);
             return EXIT_SCHEMA_OR_RESOLVE_ERROR;
         }
-        let content = match std::fs::read_to_string(&index_path) {
+    };
+
+    runtime.block_on(async move {
+        let mut client = match RegistryClient::new() {
             Ok(c) => c,
             Err(e) => {
-                eprintln!("Cannot read local registry: {}", e);
+                eprintln!("Cannot construct registry client: {}", e);
                 return EXIT_SCHEMA_OR_RESOLVE_ERROR;
             }
         };
-        return write_to_cache(name, &content);
-    }
 
-    // HTTP fetch via curl (matches Sprint 2 risk mitigation strategy)
-    let index_url = format!("{}/index.yaml", url.trim_end_matches('/'));
-    eprintln!("Fetching registry index from {}...", index_url);
+        // Load policy + trust keys. Policy may not exist yet for a fresh
+        // install; default to permissive in that case so `--insecure`
+        // semantics are usable out of the box.
+        let policy = sindri_policy::loader::load_effective_policy().policy;
+        client = client.with_policy(policy);
 
-    match std::process::Command::new("curl")
-        .args(["-sSfL", &index_url, "--max-time", "30"])
-        .output()
-    {
-        Ok(out) if out.status.success() => {
-            let content = String::from_utf8_lossy(&out.stdout);
-            write_to_cache(name, &content)
+        let trust_dir = sindri_core::paths::home_dir()
+            .unwrap_or_default()
+            .join(".sindri")
+            .join("trust");
+        match CosignVerifier::load_from_trust_dir(&trust_dir) {
+            Ok(v) => client = client.with_verifier(v),
+            Err(e) => {
+                eprintln!("Cannot load trust keys from {}: {}", trust_dir.display(), e);
+                return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+            }
         }
-        Ok(out) => {
-            eprintln!("curl failed: {}", String::from_utf8_lossy(&out.stderr));
-            EXIT_SCHEMA_OR_RESOLVE_ERROR
-        }
-        Err(e) => {
-            eprintln!(
-                "curl not available: {}. Install curl to fetch registries.",
-                e
+
+        if insecure {
+            client = client.with_insecure(true);
+            tracing::warn!(
+                "INSECURE: cosign verification will be skipped for registry '{}'",
+                name
             );
-            EXIT_SCHEMA_OR_RESOLVE_ERROR
         }
-    }
+
+        match client.refresh_index(name, url).await {
+            Ok((index, digest)) => {
+                let bytes_hint = match serde_yaml::to_string(&index) {
+                    Ok(s) => s.len(),
+                    Err(_) => 0,
+                };
+                match digest {
+                    Some(d) => println!(
+                        "Registry '{}' refreshed (digest {}, {} components)",
+                        name,
+                        d,
+                        index.components.len()
+                    ),
+                    None => println!(
+                        "Registry '{}' refreshed from local protocol ({} components, {} bytes)",
+                        name,
+                        index.components.len(),
+                        bytes_hint
+                    ),
+                }
+                EXIT_SUCCESS
+            }
+            Err(e) => {
+                eprintln!("Registry refresh failed: {}", e);
+                EXIT_SCHEMA_OR_RESOLVE_ERROR
+            }
+        }
+    })
 }
 
-fn write_to_cache(name: &str, content: &str) -> i32 {
-    let cache_dir = dirs_next::home_dir()
-        .unwrap_or_default()
-        .join(".sindri")
-        .join("cache")
-        .join("registries")
-        .join(name);
-
-    if let Err(e) = std::fs::create_dir_all(&cache_dir) {
-        eprintln!("Cannot create cache dir: {}", e);
-        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
-    }
-
-    let index_path = cache_dir.join("index.yaml");
-    let tmp_path = cache_dir.join("index.yaml.tmp");
-
-    if let Err(e) = std::fs::write(&tmp_path, content) {
-        eprintln!("Cannot write cache: {}", e);
-        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
-    }
-    if let Err(e) = std::fs::rename(&tmp_path, &index_path) {
-        eprintln!("Cannot finalize cache: {}", e);
-        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
-    }
-
-    println!("Registry '{}' refreshed ({} bytes)", name, content.len());
-    EXIT_SUCCESS
-}
-
-fn lint(path: &str, json: bool) -> i32 {
+fn lint(path: &str, json: bool, auth: bool) -> i32 {
     let p = std::path::Path::new(path);
     if !p.exists() {
         let msg = format!("Path not found: {}", path);
@@ -106,13 +136,81 @@ fn lint(path: &str, json: bool) -> i32 {
     }
 
     if p.is_dir() {
-        return lint_dir(p, json);
+        return lint_dir(p, json, auth);
     }
 
-    lint_file(p, json)
+    lint_file(p, json, auth)
 }
 
-fn lint_file(p: &std::path::Path, json: bool) -> i32 {
+/// Categories that historically require credentials. Components whose `tags`
+/// intersect this set should declare an `auth:` block (ADR-026 Phase 3).
+///
+/// Detection is tag-based — the v4 component schema has no dedicated
+/// `category` field; the survey
+/// (`v4/docs/research/auth-aware-survey-2026-04-28.md`) groups components by
+/// these well-known tags.
+pub(crate) const AUTH_CREDENTIALED_TAGS: &[&str] = &[
+    // Cloud-CLI bucket: aws-cli/azure-cli/gcloud/ibmcloud/aliyun/doctl/flyctl.
+    "cloud",
+    // AI-dev bucket: claude-code/codex/gemini-cli/grok/goose/droid/opencode/
+    // claudish/compahook/ruflo/claude-marketplace.
+    "ai", "ai-dev",
+    // MCP servers: linear-mcp/jira-mcp/pal-mcp-server/notebooklm-mcp-cli.
+    "mcp",
+];
+
+/// Marker comment that opts a component out of the `--auth` lint rule.
+/// Must appear within the first few lines of `component.yaml`.
+pub(crate) const AUTH_LINT_OPTOUT: &str = "# sindri-lint: auth-not-required";
+
+/// Result of the `--auth` lint check on a single component.
+pub(crate) struct AuthLintFinding {
+    /// Tag(s) that triggered the credentialed-category match.
+    pub matched_tags: Vec<String>,
+}
+
+/// Apply the auth-aware lint rule to a parsed manifest + raw YAML body.
+///
+/// Returns:
+/// - `Ok(None)`  — clean (either the component declares `auth:`, opts out via
+///   the marker comment, or doesn't fall into a credentialed category).
+/// - `Ok(Some(finding))` — component falls into a credentialed category but
+///   lacks an `auth:` block. The caller should emit a **warning**, not an
+///   error: this rule never fails a build.
+pub(crate) fn auth_lint_check(
+    manifest: &ComponentManifest,
+    yaml_body: &str,
+) -> Option<AuthLintFinding> {
+    // Opt-out via leading comment annotation.
+    let head: String = yaml_body.lines().take(8).collect::<Vec<_>>().join("\n");
+    if head.contains(AUTH_LINT_OPTOUT) {
+        return None;
+    }
+
+    // Already declares auth — fine.
+    if !manifest.auth.is_empty() {
+        return None;
+    }
+
+    // Otherwise, check tags for credentialed-category membership.
+    let matched: Vec<String> = manifest
+        .metadata
+        .tags
+        .iter()
+        .filter(|t| AUTH_CREDENTIALED_TAGS.contains(&t.as_str()))
+        .cloned()
+        .collect();
+
+    if matched.is_empty() {
+        None
+    } else {
+        Some(AuthLintFinding {
+            matched_tags: matched,
+        })
+    }
+}
+
+fn lint_file(p: &std::path::Path, json: bool, auth: bool) -> i32 {
     let content = match std::fs::read_to_string(p) {
         Ok(c) => c,
         Err(e) => {
@@ -170,11 +268,39 @@ fn lint_file(p: &std::path::Path, json: bool) -> i32 {
         }
     }
 
+    // Auth-aware lint rule (ADR-026 Phase 3). Warning-only — does not affect
+    // exit code. Only runs when the caller passed `--auth`.
+    let auth_warning: Option<String> = if auth {
+        auth_lint_check(&manifest, &content).map(|finding| {
+            format!(
+                "LINT_AUTH_MISSING: component is in a credentialed category (tags: {}) but \
+                 has no `auth:` block. Either declare credentials per ADR-026 or add the \
+                 opt-out comment `{}` at the top of component.yaml.",
+                finding.matched_tags.join(", "),
+                AUTH_LINT_OPTOUT
+            )
+        })
+    } else {
+        None
+    };
+
     if errors.is_empty() {
         if json {
-            println!(r#"{{"valid":true,"path":"{}"}}"#, p.display());
+            // Embed the warning in the JSON object (warnings field) when
+            // present so machine-readable consumers see it too.
+            match &auth_warning {
+                Some(w) => println!(
+                    r#"{{"valid":true,"path":"{}","warnings":[{{"warning":"{}"}}]}}"#,
+                    p.display(),
+                    w.replace('"', "\\\"")
+                ),
+                None => println!(r#"{{"valid":true,"path":"{}"}}"#, p.display()),
+            }
         } else {
             println!("{}: OK", p.display());
+            if let Some(w) = &auth_warning {
+                eprintln!("  ⚠ {}", w);
+            }
         }
         EXIT_SUCCESS
     } else {
@@ -200,7 +326,7 @@ fn lint_file(p: &std::path::Path, json: bool) -> i32 {
     }
 }
 
-fn lint_dir(dir: &std::path::Path, json: bool) -> i32 {
+fn lint_dir(dir: &std::path::Path, json: bool, auth: bool) -> i32 {
     let mut any_failed = false;
     let entries = match std::fs::read_dir(dir) {
         Ok(e) => e,
@@ -213,7 +339,7 @@ fn lint_dir(dir: &std::path::Path, json: bool) -> i32 {
     for entry in entries.flatten() {
         let path = entry.path();
         if path.extension().map(|e| e == "yaml").unwrap_or(false)
-            && lint_file(&path, json) != EXIT_SUCCESS
+            && lint_file(&path, json, auth) != EXIT_SUCCESS
         {
             any_failed = true;
         }
@@ -261,7 +387,7 @@ fn trust(name: &str, signer: &str) -> i32 {
         }
     };
 
-    let trust_dir = dirs_next::home_dir()
+    let trust_dir = sindri_core::paths::home_dir()
         .unwrap_or_default()
         .join(".sindri")
         .join("trust")
@@ -292,21 +418,70 @@ fn trust(name: &str, signer: &str) -> i32 {
     EXIT_SUCCESS
 }
 
-/// Verify the cosign signature on a registry's manifest (ADR-014).
+/// Verify the cosign signature on a registry's artifact (ADR-014).
 ///
-/// **Wave 3A.1 placeholder.** Verification — fetching the cosign signature
-/// manifest, decoding the simple-signing payload, and verifying the
-/// signature bytes against trusted keys — lands in Wave 3A.2. Today this
-/// command exits non-zero with a clear message so callers can wire it into
-/// CI without it silently passing.
-fn verify(name: &str) -> i32 {
-    eprintln!(
-        "registry verify '{}': not yet implemented (deferred to Wave 3A.2). \
-         Trust-key loading is in place; signature verification will be wired \
-         once the live oci-client fetch path lands.",
-        name
-    );
-    EXIT_SCHEMA_OR_RESOLVE_ERROR
+/// Wave 3A.2: runs the full cosign verification flow against the trust
+/// keys in `~/.sindri/trust/<name>/`. The OCI ref must be supplied because
+/// the CLI does not yet maintain a registry-name → URL map.
+fn verify(name: &str, url: &str) -> i32 {
+    let oci_ref = match OciRef::parse(url) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("Invalid OCI reference '{}': {}", url, e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+
+    let runtime = match tokio::runtime::Runtime::new() {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("Cannot start async runtime: {}", e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+
+    runtime.block_on(async move {
+        let mut client = match RegistryClient::new() {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("Cannot construct registry client: {}", e);
+                return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+            }
+        };
+        client = client.with_policy(sindri_policy::loader::load_effective_policy().policy);
+        let trust_dir = sindri_core::paths::home_dir()
+            .unwrap_or_default()
+            .join(".sindri")
+            .join("trust");
+        match CosignVerifier::load_from_trust_dir(&trust_dir) {
+            Ok(v) => client = client.with_verifier(v),
+            Err(e) => {
+                eprintln!("Cannot load trust keys: {}", e);
+                return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+            }
+        }
+
+        match client.verify(name, &oci_ref).await {
+            Ok(key_id) if key_id == "<unsigned>" => {
+                println!(
+                    "Registry '{}': no trust keys configured; verification skipped (permissive policy)",
+                    name
+                );
+                EXIT_SUCCESS
+            }
+            Ok(key_id) => {
+                println!(
+                    "Verified registry '{}': signed by trusted key {}",
+                    name, key_id
+                );
+                EXIT_SUCCESS
+            }
+            Err(e) => {
+                eprintln!("Verification failed for registry '{}': {}", name, e);
+                EXIT_SCHEMA_OR_RESOLVE_ERROR
+            }
+        }
+    })
 }
 
 fn fetch_checksums(path: &str) -> i32 {
@@ -317,4 +492,174 @@ fn fetch_checksums(path: &str) -> i32 {
         path
     );
     EXIT_SUCCESS
+}
+
+#[cfg(test)]
+mod auth_lint_tests {
+    use super::*;
+
+    /// `auth_lint_check` should flag a `cloud`-tagged component that has no
+    /// `auth:` block. The caller treats this as a warning — not an error —
+    /// so `lint_file` returns success and `--auth` never breaks the build.
+    #[test]
+    fn warns_on_cloud_component_without_auth() {
+        let yaml = r#"
+metadata:
+  name: testcloud
+  version: "1.0.0"
+  description: "Test cloud component fixture."
+  license: MIT
+  tags:
+    - cloud
+platforms:
+  - os: linux
+    arch: x86_64
+install:
+  script:
+    install: "install.sh"
+"#;
+        let m: ComponentManifest = serde_yaml::from_str(yaml).unwrap();
+        let f = auth_lint_check(&m, yaml);
+        assert!(
+            f.is_some(),
+            "expected a warning for cloud component without auth"
+        );
+        let f = f.unwrap();
+        assert!(f.matched_tags.iter().any(|t| t == "cloud"));
+    }
+
+    /// `mcp`-tagged components without `auth:` should warn.
+    #[test]
+    fn warns_on_mcp_component_without_auth() {
+        let yaml = r#"
+metadata:
+  name: testmcp
+  version: "1.0.0"
+  description: "Test mcp component fixture."
+  license: MIT
+  tags:
+    - mcp
+    - linear
+platforms:
+  - os: linux
+    arch: x86_64
+install:
+  script:
+    install: "install.sh"
+"#;
+        let m: ComponentManifest = serde_yaml::from_str(yaml).unwrap();
+        assert!(auth_lint_check(&m, yaml).is_some());
+    }
+
+    /// Components with an `auth:` block — even a minimal one — pass clean.
+    #[test]
+    fn clean_when_auth_block_present() {
+        let yaml = r#"
+metadata:
+  name: testcloud
+  version: "1.0.0"
+  description: "Test cloud component fixture."
+  license: MIT
+  tags:
+    - cloud
+platforms:
+  - os: linux
+    arch: x86_64
+install:
+  script:
+    install: "install.sh"
+auth:
+  tokens:
+    - name: provider_token
+      description: "Some provider token."
+      audience: "https://api.example.com"
+      redemption:
+        kind: env-var
+        env-name: PROVIDER_TOKEN
+"#;
+        let m: ComponentManifest = serde_yaml::from_str(yaml).unwrap();
+        assert!(auth_lint_check(&m, yaml).is_none());
+    }
+
+    /// Opt-out comment at the top of the file suppresses the warning.
+    #[test]
+    fn clean_with_optout_comment() {
+        let yaml = r#"# sindri-lint: auth-not-required
+metadata:
+  name: testcloud
+  version: "1.0.0"
+  description: "Test cloud component fixture."
+  license: MIT
+  tags:
+    - cloud
+platforms:
+  - os: linux
+    arch: x86_64
+install:
+  script:
+    install: "install.sh"
+"#;
+        let m: ComponentManifest = serde_yaml::from_str(yaml).unwrap();
+        assert!(
+            auth_lint_check(&m, yaml).is_none(),
+            "opt-out comment must suppress the warning"
+        );
+    }
+
+    /// Components outside the credentialed-tag set never warn.
+    #[test]
+    fn clean_when_not_credentialed_category() {
+        let yaml = r#"
+metadata:
+  name: testlang
+  version: "1.0.0"
+  description: "Test language component fixture."
+  license: MIT
+  tags:
+    - language
+    - rust
+platforms:
+  - os: linux
+    arch: x86_64
+install:
+  mise:
+    tools:
+      rust: "1.83.0"
+"#;
+        let m: ComponentManifest = serde_yaml::from_str(yaml).unwrap();
+        assert!(auth_lint_check(&m, yaml).is_none());
+    }
+
+    /// End-to-end: `lint_file --auth` on a credentialed-tag fixture without
+    /// `auth:` must return SUCCESS (warning-only contract).
+    #[test]
+    fn lint_file_warning_only_does_not_fail_build() {
+        let yaml = r#"
+metadata:
+  name: testcloud
+  version: "1.0.0"
+  description: "Test cloud component fixture."
+  license: MIT
+  tags:
+    - cloud
+platforms:
+  - os: linux
+    arch: x86_64
+install:
+  script:
+    install: "install.sh"
+"#;
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("component.yaml");
+        std::fs::write(&path, yaml).unwrap();
+
+        // With --auth: we still expect EXIT_SUCCESS because the rule is
+        // warning-only.
+        let rc = lint_file(&path, true, /* auth = */ true);
+        assert_eq!(rc, EXIT_SUCCESS);
+
+        // Without --auth: also success (rule is gated on the flag).
+        let rc = lint_file(&path, false, /* auth = */ false);
+        assert_eq!(rc, EXIT_SUCCESS);
+    }
 }

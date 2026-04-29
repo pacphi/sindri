@@ -1,13 +1,86 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$defs": {
+    "ComponentEntry": {
+      "properties": {
+        "backend": {
+          "type": "string"
+        },
+        "depends_on": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "description": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ComponentKind"
+        },
+        "latest": {
+          "type": "string"
+        },
+        "license": {
+          "default": "",
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "oci_ref": {
+          "type": "string"
+        },
+        "versions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "backend",
+        "latest",
+        "description",
+        "kind",
+        "oci_ref"
+      ],
+      "type": "object"
+    },
+    "ComponentKind": {
+      "enum": [
+        "component",
+        "collection"
+      ],
+      "type": "string"
+    }
+  },
   "$id": "https://schemas.sindri.dev/v4/registry-index.json",
-  "title": "RegistryIndex",
-  "description": "Sindri v4 registry index — placeholder",
-  "type": "object",
-  "required": ["version", "registry", "components"],
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "sindri v4 registry-index schema",
   "properties": {
-    "version": { "type": "integer" },
-    "registry": { "type": "string" },
-    "components": { "type": "array" }
-  }
+    "components": {
+      "items": {
+        "$ref": "#/$defs/ComponentEntry"
+      },
+      "type": "array"
+    },
+    "registry": {
+      "type": "string"
+    },
+    "version": {
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "version",
+    "registry",
+    "components"
+  ],
+  "title": "RegistryIndex",
+  "type": "object"
 }

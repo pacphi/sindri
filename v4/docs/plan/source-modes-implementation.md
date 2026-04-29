@@ -2,11 +2,11 @@
 
 **Status:** Draft
 **Date:** 2026-04-28
-**Implements:** ADR-025, DDD-07
+**Implements:** ADR-028, DDD-08
 **Amends:** `implementation-plan.md` Sprint 2 (registry) and Sprint 7 (CLI verbs)
 
 This is a focused addendum to the v4 implementation plan covering the work to ship
-ADR-025 (component source modes) and DDD-07 (registry source domain). It assumes the
+ADR-028 (component source modes) and DDD-08 (registry source domain). It assumes the
 existing Sprint 2 deliverables (OCI client, cache, lint, signing) are in place; the
 existing `LocalRegistry` becomes the seed of the `LocalPath` source.
 
@@ -39,7 +39,7 @@ for existing users.
 #### 1.1 Define the `Source` trait and `RegistrySource` enum
 
 - [ ] Create `sindri-registry/src/source/mod.rs` with the `Source` trait, `RegistrySource`
-  enum, `SourceContext`, `SourceError`, and `SourceDescriptor` types from DDD-07.
+  enum, `SourceContext`, `SourceError`, and `SourceDescriptor` types from DDD-08.
 - [ ] Add `scope: Option<Vec<ComponentName>>` to every variant; centralize the scope-check
   helper.
 - [ ] Implement `RegistrySource::dispatch_*` (one per trait method) so the resolver can
@@ -61,7 +61,7 @@ for existing users.
 - [ ] `sindri-resolver/src/lib.rs` accepts `&[RegistrySource]` instead of a single
   registry handle. Use the existing first-match-wins helper from DDD-03 with the
   scope filter from §1.1.
-- [ ] Lockfile gains `source: SourceDescriptor` per resolved component (DDD-07
+- [ ] Lockfile gains `source: SourceDescriptor` per resolved component (DDD-08
   §"Lockfile descriptor"). Backfill via `From<old-shape>` for one release: read an
   absent `source:` as `SourceDescriptor::Oci { ... }` reconstructed from the
   pre-existing `registry:` field.
@@ -111,7 +111,7 @@ image layouts on disk.
 - [ ] After resolution, walk `Lockfile.components`; if any `source.supports_strict_oci()`
   is `false`, return `AdmissionCode::SourceNotProductionGrade`.
 - [ ] Surface `--strict-oci` as a flag on `sindri lock` and `sindri resolve`; surface
-  `registry.policy.strict_oci: true` in `sindri.yaml` (Q3 from ADR-025 — both).
+  `registry.policy.strict_oci: true` in `sindri.yaml` (Q3 from ADR-028 — both).
 - [ ] Loud warning at the top of every non-strict resolve report listing which sources
   produced which components.
 
@@ -162,7 +162,7 @@ exist.
 - [ ] Resolves the closure of one OCI ref into either a tarball (`--target air-gap.tar`)
   or an OCI image layout (`--layout ./vendor/registry-core`).
 - [ ] Reuses `OciSource` for fetch; uses `oci-spec` to write the layout.
-- [ ] Q1 from ADR-025 (`--with-binaries`) is **deferred**; this phase does registry
+- [ ] Q1 from ADR-028 (`--with-binaries`) is **deferred**; this phase does registry
   artifact only.
 
 ### Acceptance criteria
@@ -222,7 +222,7 @@ exist.
 
 These are improvements that should not block the v4.0 RC but should be tracked.
 
-- [ ] **`--with-binaries`** for `sindri registry prefetch` (ADR-025 Q1).
+- [ ] **`--with-binaries`** for `sindri registry prefetch` (ADR-028 Q1).
   Requires the prefetch step to know target platforms; coordinate with Sprint 9
   (Target subsystem).
 - [ ] **HTTPS tarball source** (`type: http-tarball`) — natural extension of the
@@ -242,7 +242,7 @@ These are improvements that should not block the v4.0 RC but should be tracked.
 | `oci-distribution-spec` server library is immature | If `axum` + `oci-distribution` is too thin, fall back to shelling out to `zot` for `registry serve`; the verb is a developer convenience, not a production path. |
 | Lockfile schema churn alarms users | Backfill is implemented in Phase 1.3; add a one-line warning on first read of a legacy lockfile. |
 | `--strict-oci` not noticed in CI templates | Loud warning in non-strict mode listing source mix; ship the CI template; mention in release notes. |
-| Source-trait surface grows uncontrolled as more variants land | Conformance test crate that every new source must pass; review at ADR level for any new variant beyond the four in ADR-025. |
+| Source-trait surface grows uncontrolled as more variants land | Conformance test crate that every new source must pass; review at ADR level for any new variant beyond the four in ADR-028. |
 
 ---
 
@@ -260,8 +260,8 @@ These are improvements that should not block the v4.0 RC but should be tracked.
 
 ## References
 
-- ADR-025 — Component source modes for development and air-gap
+- ADR-028 — Component source modes for development and air-gap
 - ADR-003, ADR-014, ADR-016 — context this plan respects
-- DDD-02, DDD-03, DDD-07 — domain model
+- DDD-02, DDD-03, DDD-08 — domain model
 - `implementation-plan.md` Sprint 2 (registry) — extended by Phase 1–2 here
 - `implementation-plan.md` Sprint 7 (CLI verbs) — extended by Phase 3 here

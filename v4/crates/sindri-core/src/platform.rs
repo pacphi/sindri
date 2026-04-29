@@ -25,6 +25,18 @@ pub struct Platform {
 
 impl Platform {
     pub fn current() -> Self {
+        // Test hook (Wave 4A): when `SINDRI_TEST_PLATFORM_OVERRIDE` is set
+        // (e.g. `linux-x86_64`, `macos-aarch64`), parse it and short-circuit
+        // platform detection. This is consumed by the integration-test
+        // harness in `v4/tests/integration` to drive admission gates without
+        // having to cross-compile or virtualise. The variable is only ever
+        // read by `Platform::current` and is intentionally undocumented in
+        // user-facing CLI help.
+        if let Ok(raw) = std::env::var("SINDRI_TEST_PLATFORM_OVERRIDE") {
+            if let Some(p) = Self::parse_override(&raw) {
+                return p;
+            }
+        }
         Platform {
             os: if cfg!(target_os = "macos") {
                 Os::Macos
@@ -39,6 +51,27 @@ impl Platform {
                 Arch::X86_64
             },
         }
+    }
+
+    /// Parse a `<os>-<arch>` token (e.g. `linux-x86_64`, `macos-aarch64`).
+    ///
+    /// Returns `None` if either component is unrecognised. Used by
+    /// [`Platform::current`] when the `SINDRI_TEST_PLATFORM_OVERRIDE`
+    /// environment variable is set.
+    fn parse_override(raw: &str) -> Option<Self> {
+        let (os_s, arch_s) = raw.trim().split_once('-')?;
+        let os = match os_s {
+            "linux" => Os::Linux,
+            "macos" => Os::Macos,
+            "windows" => Os::Windows,
+            _ => return None,
+        };
+        let arch = match arch_s {
+            "x86_64" => Arch::X86_64,
+            "aarch64" => Arch::Aarch64,
+            _ => return None,
+        };
+        Some(Platform { os, arch })
     }
 
     pub fn triple(&self) -> &'static str {

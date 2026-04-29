@@ -25,3 +25,16 @@ install:
 
 depends_on:
   - "script:docker"
+
+auth:
+  tokens:
+    - name: supabase_access_token
+      description: "Supabase personal access token for the Management API (`supabase login --token`)."
+      scope: runtime
+      optional: true
+      audience: "https://api.supabase.com"
+      redemption:
+        kind: env-var
+        env-name: SUPABASE_ACCESS_TOKEN
+      discovery:
+        env-aliases: [SUPABASE_ACCESS_TOKEN]

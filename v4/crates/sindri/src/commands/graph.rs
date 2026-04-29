@@ -57,7 +57,7 @@ pub fn run_explain(args: ExplainArgs) -> i32 {
 }
 
 fn load_registry() -> HashMap<String, ComponentEntry> {
-    let cache_root = dirs_next::home_dir()
+    let cache_root = sindri_core::paths::home_dir()
         .unwrap_or_default()
         .join(".sindri")
         .join("cache")

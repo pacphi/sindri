@@ -1,0 +1,27 @@
+metadata:
+  name: gh
+  version: "2.45.0"
+  description: "GitHub CLI"
+  license: MIT
+  homepage: "https://cli.github.com"
+  tags:
+    - github
+    - cli
+
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+  - os: macos
+    arch: x86_64
+  - os: macos
+    arch: aarch64
+
+install:
+  binary:
+    url_template: "https://github.com/cli/cli/releases/download/v{version}/gh_{version}_{os}_{arch}.tar.gz"
+    checksums: {}
+    install_path: "~/.local/bin/gh"
+
+depends_on: []

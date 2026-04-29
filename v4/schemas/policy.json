@@ -1,10 +1,95 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$defs": {
+    "AuditConfig": {
+      "properties": {
+        "require_justification": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "require_justification"
+      ],
+      "type": "object"
+    },
+    "PolicyAction": {
+      "enum": [
+        "allow",
+        "warn",
+        "prompt",
+        "deny"
+      ],
+      "type": "string"
+    },
+    "PolicyPreset": {
+      "enum": [
+        "default",
+        "strict",
+        "offline"
+      ],
+      "type": "string"
+    }
+  },
   "$id": "https://schemas.sindri.dev/v4/policy.json",
-  "title": "InstallPolicy",
-  "description": "Sindri v4 install policy — placeholder",
-  "type": "object",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "sindri v4 policy schema",
   "properties": {
-    "preset": { "type": "string", "enum": ["default", "strict", "offline"] }
-  }
+    "allowed_licenses": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "audit": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AuditConfig"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "denied_licenses": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "offline": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "on_unknown_license": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PolicyAction"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "preset": {
+      "$ref": "#/$defs/PolicyPreset",
+      "default": "default"
+    },
+    "require_checksums": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "require_signed_registries": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    }
+  },
+  "title": "InstallPolicy",
+  "type": "object"
 }

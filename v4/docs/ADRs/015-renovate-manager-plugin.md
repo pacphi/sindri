@@ -1,7 +1,8 @@
 # ADR-015: Ship Renovate Manager Plugin at v4.0 Release
 
-**Status:** Accepted
+**Status:** Implemented
 **Date:** 2026-04-24
+**Implemented:** 2026-04-27
 **Deciders:** sindri-dev team
 
 ## Context
@@ -61,6 +62,57 @@ Open question Q8 resolved: ship a manager plugin in the same release.
 - Plugin maintenance is ongoing. Mitigated by keeping the plugin thin: datasource
   mapping is the hard part; Renovate handles the PRs.
 
+## Implementation (Wave 6C — D14)
+
+The plugin ships at `v4/renovate-plugin/` as an npm package
+`@sindri-dev/renovate-config-sindri`. Key files:
+
+| File | Purpose |
+|---|---|
+| `src/index.js` | Extraction helpers + Renovate manager configs |
+| `src/datasources.js` | Datasource mapping table (BACKEND_DATASOURCE + MISE_TOOL_DATASOURCE) |
+| `src/preset.json` | Serialised Renovate preset (JSON) |
+| `src/index.test.js` | Vitest suite (57 tests across 10 groups) |
+| `fixtures/` | Test fixtures: sindri.yaml, mise.toml, sindri.lock |
+
+### Granular mise sub-backend mapping
+
+The scaffold mapped all `mise:` tools to a single `mise` datasource. The implementation
+adds a `MISE_TOOL_DATASOURCE` lookup table with per-tool entries:
+
+| mise tool | Renovate datasource | packageName |
+|---|---|---|
+| nodejs / node | `node` | — |
+| python / python3 | `python-version` | — |
+| rust | `github-tags` | `rust-lang/rust` |
+| go / golang | `go-version` | — |
+| terraform | `github-releases` | `hashicorp/terraform` |
+| kubectl | `github-releases` | `kubernetes/kubernetes` |
+| helm | `github-releases` | `helm/helm` |
+| java | `java-version` | — |
+| ruby | `ruby-version` | — |
+| others | `mise` (fallback) | — |
+
+### Post-upgrade lockfile regeneration
+
+Configured via Renovate `postUpgradeTasks`:
+
+```json
+{
+  "postUpgradeTasks": {
+    "commands": ["sindri resolve"],
+    "fileFilters": ["sindri.lock"],
+    "executionMode": "update"
+  }
+}
+```
+
+### Publishing
+
+Publication to npm is deferred until the v4.0 CLI GA release. Steps are documented
+in `v4/renovate-plugin/README.md`.
+
 ## References
 
 - Research: `02-prior-art.md` §Renovate, `05-open-questions.md` Q8, `10-registry-lifecycle.md` §7
+- Implementation PR: feat/v4-renovate-plugin (Wave 6C, closes D14)

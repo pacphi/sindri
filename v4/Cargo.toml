@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/sindri",
     "crates/sindri-core",
+    "crates/sindri-secrets",
     "crates/sindri-registry",
     "crates/sindri-resolver",
     "crates/sindri-policy",
@@ -10,6 +11,7 @@ members = [
     "crates/sindri-targets",
     "crates/sindri-discovery",
     "crates/sindri-extensions",
+    "tests/integration",
     "tools/schema-gen",
 ]
 
@@ -19,6 +21,14 @@ serde_json = "1"
 serde_yaml = "0.9"
 schemars = { version = "1.2", features = ["derive"] }
 clap = { version = "4", features = ["derive"] }
+# Shell-completion script generation for `sindri completions <shell>` (ADR-011).
+clap_complete = "4"
+# Gzip archive support for `sindri ledger compact` archive rotation (ADR-007).
+flate2 = "1"
+# ISO-8601 / RFC-3339 date parsing for `--since` filters in `sindri ledger
+# stats` (PR #217); `std` feature added for SBOM creationInfo timestamps
+# in `sindri bom` (PR #219). Union of both PRs' feature sets.
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "std"] }
 thiserror = "2"
 anyhow = "1"
 tokio = { version = "1", features = ["full"] }
@@ -27,7 +37,7 @@ tracing = "0.1"
 sha2 = "0.11"
 hex = "0.4"
 dirs-next = "2"
-reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+reqwest = { version = "0.12", features = ["json", "rustls-tls", "blocking"], default-features = false }
 semver = "1"
 # OCI client (successor to oci-distribution; ADR-003). Wired into sindri-registry
 # scaffold in Wave 3A.1; live OCI fetch lands in Wave 3A.2.
@@ -39,4 +49,20 @@ sigstore = { version = "0.13", default-features = false, features = ["cosign", "
 # ECDSA P-256 verifying key parsing for the `CosignVerifier` trust-key loader.
 p256 = { version = "0.13", default-features = false, features = ["ecdsa", "pem", "pkcs8", "std"] }
 ecdsa = { version = "0.16", default-features = false, features = ["pem", "pkcs8"] }
+# x509 certificate parsing for keyless cosign verification (ADR-014 D1, Wave 6A).
+# Pinned to 0.2 to match the version vendored inside sigstore 0.13.
+x509-cert = { version = "0.2", default-features = false, features = ["std"] }
+# DER + PEM trait imports used by the keyless verifier alongside `x509-cert`.
+# Matches sigstore 0.13's pinned version.
+pkcs8 = { version = "0.10", default-features = false, features = ["std"] }
+# base64 decoding for cosign signature annotation payloads (ADR-014).
+base64 = "0.22"
 tempfile = "3"
+# SBOM emission (ADR-007). The CycloneDX Rust crate (cyclonedx-bom 0.8.1) does
+# not yet support spec 1.6, so both SPDX 2.3 and CycloneDX 1.6 are emitted by
+# hand against `serde_json::Value` schemas — see `sindri::commands::bom`.
+uuid = { version = "1", features = ["v4"] }
+# Tarball backup/restore (`sindri backup` / `sindri restore`).
+tar = "0.4"
+# zstd compression for `sindri backup --compression zstd` (D9).
+zstd = "0.13"

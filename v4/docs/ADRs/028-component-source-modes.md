@@ -1,4 +1,4 @@
-## ADR-025: Component Source Modes for Development and Air-Gap
+## ADR-028: Component Source Modes for Development and Air-Gap
 
 **Status:** Proposed
 **Date:** 2026-04-28

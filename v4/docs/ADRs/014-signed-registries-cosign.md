@@ -1,6 +1,6 @@
 # ADR-014: Signed Registries with cosign from Day One
 
-**Status:** Accepted
+**Status:** Accepted (key-based: PR #220, PR #228; **keyless OIDC: PR for Wave 6A — D1 closed 2026-04-27**)
 **Date:** 2026-04-24
 **Deciders:** sindri-dev team
 
@@ -76,6 +76,126 @@ Binary asset checksums are verified at download time during `sindri apply`.
 - Key rotation requires a documented process. Mitigation: publish key rotation policy
   in `sindri.dev/security`.
 
+## Implementation status (2026-04-27)
+
+Two cosign verification modes are now supported, selected per-registry via the
+additive `verification_mode` field on `RegistryConfig`:
+
+- **`key-based`** (default; backward compatible): trust keys loaded from
+  `~/.sindri/trust/<registry>/cosign-*.pub` (P-256 ECDSA). Implemented by
+  `sindri_registry::CosignVerifier` (PR #220 / PR #228). Registries that
+  predate the `verification_mode` field continue to work unchanged.
+- **`keyless`** (Wave 6A — D1, this PR): short-lived Fulcio-issued
+  certificates plus Rekor inclusion proof. Implemented by
+  `sindri_registry::KeylessVerifier`. Gated behind the `keyless` cargo
+  feature (default-on; can be disabled with `--no-default-features` for
+  air-gapped builds without Rekor reachability). Required policy fields:
+  `verification_mode: keyless` plus `identity: { san_uri, issuer }` for
+  SAN matching.
+
+The keyless verifier implements the three-pronged trust check expected of
+sigstore consumers: (1) Fulcio certificate chain validation against a
+pinned root CA bundle, (2) SAN URI + OIDC issuer match against the
+registry's declared expected identity, (3) Rekor inclusion proof
+verification against a pinned Rekor public key. Bundle-format signatures
+(`cosign sign --bundle`) are fully offline-verifiable; legacy detached
+signatures fail closed pending the Wave-6 follow-up that adds online
+Rekor lookup.
+
+## Per-component trust scope (Wave 6A.1)
+
+A follow-up to PR #228 (per-component cosign hook) and PR #237 (keyless OIDC),
+this section records the move from **per-registry** to **per-component-scoped**
+trust without breaking the existing per-registry contract.
+
+### Problem
+
+The Wave 5A / Wave 6A verifiers used **one** trust set per registry — every
+component published to that registry had to verify against the same set of
+public keys (key-based) or the same SAN identity (keyless). This is too coarse
+for real-world publishing models where a single OCI registry hosts artifacts
+from multiple teams, each with their own signing keys / Fulcio identities.
+
+### Schema additions (additive, backward-compatible)
+
+`RegistryConfig` gains an optional `trust_overrides` list. Each entry narrows
+trust for components whose canonical address (`backend:name[@qualifier]`)
+matches a glob:
+
+```yaml
+registries:
+  - name: corp-shared
+    url: ghcr.io/corp/registry
+    verification_mode: key-based
+    trust:                            # registry-level fallback
+      signer: corp-platform
+    trust_overrides:
+      - component_glob: "team-foo/*"
+        keys:
+          - ./trust/team-foo.pub
+      - component_glob: "team-bar/specific"
+        keys:
+          - ./trust/team-bar-specific.pub
+      - component_glob: "team-baz/**"
+        identity:                     # keyless override
+          san_uri: "https://github.com/team-baz/.github/workflows/publish.yml@refs/heads/main"
+          issuer:  "https://token.actions.githubusercontent.com"
+```
+
+The new `TrustOverride` type lives in `sindri-core::manifest`. Existing
+manifests without `trust_overrides` keep their current per-registry behaviour
+unchanged — the field defaults to an empty `Vec`.
+
+### Glob dialect + precedence rule
+
+`*` matches a single segment (any characters except `/`); `**` matches any run
+including `/`. The verifier picks the **most specific** match by lexicographic
+comparison of `(literal_count, single_star_count)`:
+
+| Pattern               | Literal chars | `*` count | `**` count | Specificity tuple |
+|-----------------------|---------------|-----------|------------|-------------------|
+| `team-foo/specific`   | 17            | 0         | 0          | (17, 0)           |
+| `team-foo/*`          | 9             | 1         | 0          | (9, 1)            |
+| `team-foo/**`         | 9             | 0         | 1          | (9, 0)            |
+| `team/**`             | 5             | 0         | 1          | (5, 0)            |
+
+Highest tuple wins; declaration order is the tie-break. Registry-level trust
+is the fallback when no override matches.
+
+### Conflict policy: override-takes-precedence
+
+When **both** an override and the registry-level trust would technically apply
+to the same component, the override **always** wins. Rationale: the override
+list represents the policy author's deliberate decision to narrow trust for a
+component; silently re-enabling the registry-wide key as a fallback would
+defeat the whole point.
+
+Concretely: if an override has `keys: […]` but no `identity`, the keyless
+verifier treats the registry's identity as **scoped out** for that component
+(see `KeylessVerifier::resolve_identity_for_component`). Strict mode
+(`policy.require_signed_registries=true`) still fails closed if neither the
+override nor a registry-level identity / key matches.
+
+### Implementation summary
+
+- `sindri_core::manifest::TrustOverride` — new struct, additive field.
+- `sindri_registry::trust_scope` — pure glob matcher + most-specific-wins
+  selector, no extra deps.
+- `CosignVerifier::verify_component_signature_scoped` — key-based per-component
+  path. Override keys are loaded from disk on each call; existing
+  `verify_component_signature` (PR #228) is preserved as the fallback path.
+- `CosignVerifier::verify_payload_with_keys` — pure-function variant that
+  takes an explicit key list (used by the scoped path).
+- `KeylessVerifier::resolve_identity_for_component` — picks the override
+  identity or falls back to the registry identity, with override-takes-
+  precedence semantics matching the key-based path.
+- New wiremock integration tests in `tests/per_component_trust_wiremock.rs`
+  cover all four scenarios above (override match, registry fallback, override
+  precedence, most-specific glob wins, less-specific-key rejected).
+
 ## References
 
 - Research: `05-open-questions.md` Q7, `08-install-policy.md` §1 Gate 2, `10-registry-lifecycle.md` §8
+- Implementation: PR #220 (operational cosign), PR #228 (per-component cosign + carry-over),
+  PR #237 (keyless OIDC — closes deferred item D1),
+  PR for Wave 6A.1 (per-component trust scope — this section)

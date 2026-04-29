@@ -15,15 +15,23 @@ pub mod cache;
 pub mod client;
 pub mod error;
 pub mod index;
+pub mod keyless;
 pub mod lint;
 pub mod local;
 pub mod oci_ref;
 pub mod signing;
+pub mod tarball;
+pub mod trust_scope;
 
 pub use cache::{BlobKind, RegistryCache};
 pub use client::RegistryClient;
 pub use error::RegistryError;
 pub use index::RegistryIndex;
+pub use keyless::{
+    EnvelopeKind, KeylessIdentity, KeylessTrustRoot, KeylessVerifier, SignatureEnvelope,
+    VerificationMode,
+};
 pub use local::LocalRegistry;
 pub use oci_ref::{OciRef, OciReference};
 pub use signing::{CosignVerifier, TrustedKey};
+pub use trust_scope::{glob_match, select_override};

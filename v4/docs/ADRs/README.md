@@ -60,6 +60,9 @@ Each ADR states what was decided, why, and what is explicitly rejected.
 | [018](018-per-target-lockfiles.md)           | Per-target lockfiles                        | Accepted |
 | [019](019-subprocess-json-target-plugins.md) | Subprocess-JSON target plugin protocol      | Accepted |
 | [020](020-unified-auth-prefixed-values.md)   | Unified auth prefixed-value model           | Accepted |
+| [025](025-secrets-store.md)                  | Secrets store (`sindri-secrets`)            | Accepted |
+| [026](026-auth-aware-components.md)          | Auth-aware components                       | Accepted |
+| [027](027-target-auth-injection.md)          | Target → component auth injection           | Accepted |
 
 ### Product Scope
 
@@ -74,4 +77,4 @@ Each ADR states what was decided, why, and what is explicitly rejected.
 | #                                          | Title                                                | Status   |
 | ------------------------------------------ | ---------------------------------------------------- | -------- |
 | [024](024-script-component-lifecycle-contract.md) | Script component lifecycle contract            | Accepted |
-| [025](025-component-source-modes.md)       | Component source modes for development and air-gap   | Proposed |
+| [028](028-component-source-modes.md)              | Component source modes for development and air-gap | Proposed |

@@ -1,0 +1,4 @@
+# Missing the required `components` field — triggers SCHEMA_ERROR (exit 4).
+name: invalid-fixture
+preferences:
+  backend_order: {}

@@ -1,4 +1,6 @@
+use crate::auth::AuthBinding;
 use crate::component::{Backend, ComponentId, ComponentManifest};
+use crate::platform::Platform;
 use crate::version::Version;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -10,6 +12,15 @@ pub struct Lockfile {
     pub bom_hash: String,
     pub target: String,
     pub components: Vec<ResolvedComponent>,
+    /// Auth bindings produced by the resolver's binding pass (ADR-027 §3,
+    /// DDD-07 aggregate root).
+    ///
+    /// Phase 1 of the auth-aware implementation plan ships this field as
+    /// **observability-only**: the apply path does not yet read these
+    /// entries (Phase 2 will). Existing lockfiles deserialize unchanged
+    /// because the field is `#[serde(default)]`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub auth_bindings: Vec<AuthBinding>,
 }
 
 impl Lockfile {
@@ -19,6 +30,7 @@ impl Lockfile {
             bom_hash,
             target,
             components: Vec::new(),
+            auth_bindings: Vec::new(),
         }
     }
 
@@ -53,6 +65,35 @@ pub struct ResolvedComponent {
     /// path that populates the digest from the registry response.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub manifest_digest: Option<String>,
+    /// SHA-256 digest of the component's primary OCI layer (Wave 5A -- D5).
+    ///
+    /// Populated when the resolver fetches a signed component artifact from
+    /// an OCI registry; used by `sindri apply` to verify a per-component
+    /// cosign signature before the install backend runs.
+    ///
+    /// `#[serde(default)]` keeps the schema backward-compatible with
+    /// pre-Wave-5A lockfiles, which omit the field entirely. Under
+    /// `policy.require_signed_registries=true`, apply requires this field on
+    /// every newly-resolved entry -- see `crates/sindri/src/commands/apply.rs`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub component_digest: Option<String>,
+    /// Platform constraints recorded from the component manifest at
+    /// resolve-time (Wave 6A / ADR-002 additive extension).
+    ///
+    /// An empty list means the component is universal (no platform
+    /// restriction). A non-empty list is the `platforms:` array from the
+    /// component's `component.yaml`.
+    ///
+    /// Persisting this in the lockfile lets `sindri resolve --offline`
+    /// run Gate 1 (ADR-008) without a network call: the offline path reads
+    /// this field and builds a `CandidateRef::with_manifest` so the
+    /// `AdmissionChecker` receives real platform data instead of skipping
+    /// with `ADM_PLATFORM_SKIPPED`.
+    ///
+    /// `#[serde(default)]` keeps the schema backward-compatible with
+    /// pre-Wave-6A lockfiles that omit the field entirely.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub platforms: Option<Vec<Platform>>,
 }
 
 #[cfg(test)]
@@ -74,6 +115,8 @@ mod tests {
             depends_on: vec![],
             manifest: None,
             manifest_digest,
+            component_digest: None,
+            platforms: None,
         }
     }
 
@@ -104,11 +147,96 @@ depends_on: []
     }
 
     #[test]
+    fn lockfile_without_component_digest_still_deserializes() {
+        // Wave 5A backward-compat: lockfiles produced before D5 omit
+        // `component_digest` entirely. They must still deserialize and
+        // surface `None` for the field.
+        let yaml = r#"
+id:
+  backend: brew
+  name: git
+version: "2.45.0"
+backend: brew
+oci_digest: null
+checksums: {}
+depends_on: []
+manifest_digest: "sha256:abc"
+"#;
+        let parsed: ResolvedComponent = serde_yaml::from_str(yaml).unwrap();
+        assert!(parsed.component_digest.is_none());
+        assert_eq!(parsed.manifest_digest.as_deref(), Some("sha256:abc"));
+    }
+
+    #[test]
+    fn component_digest_round_trips() {
+        let mut comp = sample(Some("sha256:reg".into()));
+        comp.component_digest = Some("sha256:comp".into());
+        let yaml = serde_yaml::to_string(&comp).unwrap();
+        let parsed: ResolvedComponent = serde_yaml::from_str(&yaml).unwrap();
+        assert_eq!(parsed.component_digest.as_deref(), Some("sha256:comp"));
+        assert_eq!(parsed.manifest_digest.as_deref(), Some("sha256:reg"));
+    }
+
+    #[test]
     fn manifest_digest_none_is_omitted_in_serialization() {
         // skip_serializing_if = "Option::is_none" keeps existing lockfiles
         // textually identical when the field isn't populated.
         let comp = sample(None);
         let yaml = serde_yaml::to_string(&comp).unwrap();
         assert!(!yaml.contains("manifest_digest"), "yaml: {}", yaml);
+    }
+
+    #[test]
+    fn platforms_round_trips() {
+        use crate::platform::{Arch, Os};
+        let mut comp = sample(None);
+        comp.platforms = Some(vec![
+            Platform {
+                os: Os::Linux,
+                arch: Arch::X86_64,
+            },
+            Platform {
+                os: Os::Linux,
+                arch: Arch::Aarch64,
+            },
+        ]);
+        let yaml = serde_yaml::to_string(&comp).unwrap();
+        let parsed: ResolvedComponent = serde_yaml::from_str(&yaml).unwrap();
+        let platforms = parsed.platforms.expect("platforms should be present");
+        assert_eq!(platforms.len(), 2);
+        assert_eq!(platforms[0].os, Os::Linux);
+        assert_eq!(platforms[0].arch, Arch::X86_64);
+    }
+
+    #[test]
+    fn lockfile_without_platforms_still_deserializes() {
+        // ADR-002 additive extension: pre-Wave-6A lockfiles omit `platforms`.
+        // They must deserialize correctly with platforms=None.
+        let yaml = r#"
+id:
+  backend: brew
+  name: git
+version: "2.45.0"
+backend: brew
+oci_digest: null
+checksums: {}
+depends_on: []
+"#;
+        let parsed: ResolvedComponent = serde_yaml::from_str(yaml).unwrap();
+        assert!(
+            parsed.platforms.is_none(),
+            "pre-Wave-6A lockfile should have platforms=None"
+        );
+    }
+
+    #[test]
+    fn platforms_none_is_omitted_in_serialization() {
+        let comp = sample(None);
+        let yaml = serde_yaml::to_string(&comp).unwrap();
+        assert!(
+            !yaml.contains("platforms"),
+            "platforms=None should not appear in serialized output: {}",
+            yaml
+        );
     }
 }

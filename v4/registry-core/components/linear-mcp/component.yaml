@@ -25,3 +25,17 @@ install:
 
 depends_on:
   - "npm:claude-code"
+
+# ADR-026: auth-aware components (Phase 3 P1).
+# Linear MCP authenticates against the Linear GraphQL API with a personal API
+# key; required for any tool invocation.
+auth:
+  tokens:
+    - name: linear-api-key
+      description: "Linear personal API key used by the Linear MCP server."
+      audience: "https://api.linear.app"
+      scope: runtime
+      optional: false
+      redemption:
+        kind: env-var
+        env-name: LINEAR_API_KEY

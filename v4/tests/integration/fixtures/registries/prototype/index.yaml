@@ -1,0 +1,25 @@
+version: 1
+registry: sindri/core
+generated_at: "2026-04-27"
+components:
+  - name: nodejs
+    backend: mise
+    latest: "22.0.0"
+    description: "Node.js JavaScript runtime via mise"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/nodejs:22.0.0"
+    license: MIT
+  - name: gh
+    backend: binary
+    latest: "2.45.0"
+    description: "GitHub CLI"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/gh:2.45.0"
+    license: MIT
+  - name: shellcheck
+    backend: binary
+    latest: "0.10.0"
+    description: "Shell script static analyser"
+    kind: component
+    oci_ref: "ghcr.io/sindri-dev/registry-core/shellcheck:0.10.0"
+    license: GPL-3.0

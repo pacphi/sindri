@@ -96,7 +96,7 @@ fn expand_install_path(template: &str, name: &str) -> PathBuf {
 }
 
 fn dirs_next_home() -> String {
-    dirs_next::home_dir()
+    sindri_core::paths::home_dir()
         .map(|h| h.to_string_lossy().to_string())
         .unwrap_or_default()
 }
@@ -141,6 +141,8 @@ mod tests {
             depends_on: vec![],
             manifest: None,
             manifest_digest: None,
+            component_digest: None,
+            platforms: None,
         };
         let ctx = InstallContext::new(&c, None, &mock);
         // Empty-checksum path: backend logs a warn and returns Ok without

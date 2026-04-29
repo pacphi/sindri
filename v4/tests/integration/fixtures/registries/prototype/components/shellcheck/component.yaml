@@ -1,0 +1,25 @@
+metadata:
+  name: shellcheck
+  version: "0.10.0"
+  description: "Shell script static analyser"
+  license: GPL-3.0
+  homepage: "https://www.shellcheck.net"
+  tags:
+    - linter
+    - shell
+
+# Linux-only component, used to drive the admission-gate scenario when
+# `SINDRI_TEST_PLATFORM_OVERRIDE=macos-aarch64` is set.
+platforms:
+  - os: linux
+    arch: x86_64
+  - os: linux
+    arch: aarch64
+
+install:
+  binary:
+    url_template: "https://github.com/koalaman/shellcheck/releases/download/v{version}/shellcheck-v{version}.{os}.{arch}.tar.xz"
+    checksums: {}
+    install_path: "~/.local/bin/shellcheck"
+
+depends_on: []

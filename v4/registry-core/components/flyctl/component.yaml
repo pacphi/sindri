@@ -29,3 +29,17 @@ install:
       macos-aarch64: "sha256:6b5627b6a3aca1215501590fecb00c858a00e682336ff37107ea00f6a41e233f"
 
 depends_on: []
+
+# ADR-026: auth-aware components (Phase 3 P1).
+# `fly auth login` is the canonical interactive path; FLY_API_TOKEN is the
+# optional headless equivalent.
+auth:
+  tokens:
+    - name: fly-api-token
+      description: "Fly.io API token (`flyctl auth token`) for headless use."
+      audience: "https://api.fly.io"
+      scope: runtime
+      optional: true
+      redemption:
+        kind: env-var
+        env-name: FLY_API_TOKEN

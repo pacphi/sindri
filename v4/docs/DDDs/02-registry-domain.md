@@ -19,10 +19,10 @@ Registry
 A `Registry` is configured globally (`~/.sindri/config.yaml`) or per-project
 (`sindri.yaml` `registries:` list). The two lists are merged at runtime.
 
-> **Update (ADR-025, DDD-07).** The `Registry` aggregate is being generalized to compose
+> **Update (ADR-028, DDD-08).** The `Registry` aggregate is being generalized to compose
 > an ordered list of `RegistrySource` instances (local-path, git, oci, local-oci) rather
 > than a single OCI ref. The OCI fields documented here become the contents of an
-> `OciSource` variant. See [DDD-07](07-registry-source-domain.md) for the source-domain
+> `OciSource` variant. See [DDD-08](08-registry-source-domain.md) for the source-domain
 > model and `Source` trait. This DDD continues to own catalog identity, signing policy,
 > cache eviction, and publication semantics.
 

@@ -24,3 +24,18 @@ install:
     timeout: "600"
 
 depends_on: []
+
+# ADR-026: auth-aware components (Phase 3 P1).
+# `gcloud auth login` is the canonical interactive path; service-account JSON
+# via GOOGLE_APPLICATION_CREDENTIALS is therefore optional.
+auth:
+  tokens:
+    - name: google-application-credentials
+      description: "Path to a Google Cloud service-account JSON key file."
+      audience: "https://www.googleapis.com/auth/cloud-platform"
+      scope: runtime
+      optional: true
+      redemption:
+        kind: env-file
+        env-name: GOOGLE_APPLICATION_CREDENTIALS
+        path: "~/.config/sindri/gcp-credentials.json"

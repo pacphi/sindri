@@ -1,0 +1,45 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Renovate preset for Sindri v4 BOM manifests (@sindri-dev/renovate-config-sindri)",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["(^|/)sindri\\.yaml$"],
+      "matchStrings": [
+        "-\\s+address:\\s+[\"'](?<depName>[a-z][a-z0-9-]*:[^@\"'\\s]+)@(?<currentValue>[^\"' \\n]+)[\"']",
+        "-\\s+address:\\s+(?<depName>[a-z][a-z0-9-]*:[^@\"'\\s]+)@(?<currentValue>[^\"'\\s\\n]+)"
+      ],
+      "datasourceTemplate": "custom.sindri",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "(^|/)mise\\.toml$",
+        "(^|/)\\.mise\\.toml$",
+        "(^|/)mise/config\\.toml$"
+      ],
+      "matchStrings": [
+        "[\"']((?<backend>[a-z][a-z0-9-]*):(?<toolName>[^\"']+))[\"']\\s*=\\s*[\"'](?<currentValue>[^\"']+)[\"']",
+        "^(?<toolName>[a-z][a-z0-9_-]*)\\s*=\\s*[\"'](?<currentValue>[0-9][^\"']*)[\"']"
+      ],
+      "depNameTemplate": "{{#if backend}}{{{backend}}}:{{{toolName}}}{{else}}mise:{{{toolName}}}{{/if}}",
+      "datasourceTemplate": "custom.sindri-mise",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["(^|/)sindri\\.lock$"],
+      "matchStrings": [
+        "address\\s*=\\s*[\"'](?<depName>[a-z][a-z0-9-]*:[^@\"'\\s]+)@(?<currentValue>[^\"' \\n]+)[\"']"
+      ],
+      "datasourceTemplate": "custom.sindri",
+      "versioningTemplate": "semver"
+    }
+  ],
+  "postUpgradeTasks": {
+    "commands": ["sindri resolve"],
+    "fileFilters": ["sindri.lock"],
+    "executionMode": "update"
+  }
+}

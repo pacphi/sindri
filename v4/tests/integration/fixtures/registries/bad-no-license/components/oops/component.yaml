@@ -1,0 +1,17 @@
+# Deliberately missing `metadata.license` -- drives the registry-lint scenario.
+metadata:
+  name: oops
+  version: "0.1.0"
+  description: "Component with no license declared"
+
+platforms:
+  - os: linux
+    arch: x86_64
+
+install:
+  binary:
+    url_template: "https://example.invalid/oops-{version}.tar.gz"
+    checksums: {}
+    install_path: "~/.local/bin/oops"
+
+depends_on: []

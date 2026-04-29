@@ -26,3 +26,26 @@ install:
 
 depends_on:
   - "script:sdkman"
+
+auth:
+  tokens:
+    - name: maven_central_username
+      description: "Maven Central / Sonatype OSSRH username for `mvn deploy` to remote repositories."
+      scope: both
+      optional: true
+      audience: "https://repo.maven.apache.org"
+      redemption:
+        kind: env-var
+        env-name: MAVEN_USERNAME
+      discovery:
+        env-aliases: [MAVEN_USERNAME, OSSRH_USERNAME, SONATYPE_USERNAME]
+    - name: maven_central_password
+      description: "Maven Central / Sonatype OSSRH password or token for `mvn deploy`."
+      scope: both
+      optional: true
+      audience: "https://repo.maven.apache.org"
+      redemption:
+        kind: env-var
+        env-name: MAVEN_PASSWORD
+      discovery:
+        env-aliases: [MAVEN_PASSWORD, OSSRH_PASSWORD, SONATYPE_PASSWORD, MAVEN_CENTRAL_TOKEN]

@@ -3,6 +3,8 @@
 // ADR-024: Script-component lifecycle contract (validate/configure/remove)
 // DDD-01: Component domain — full aggregate (id, manifest, options,
 //         install/validate/configure/remove, per-platform overrides, capabilities)
+// ADR-026: Auth-Aware Components — `auth: AuthRequirements` field on ComponentManifest.
+use crate::auth::AuthRequirements;
 use crate::platform::{Arch, Os, Platform};
 use crate::version::VersionSpec;
 use schemars::JsonSchema;
@@ -208,6 +210,13 @@ pub struct ComponentManifest {
     /// See [`platform_key`].
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub overrides: HashMap<String, PlatformOverride>,
+
+    // ----- ADR-026 addition (additive; default-empty) -----
+    /// Credentials this component declares it needs to install and/or run
+    /// (ADR-026). Phase 0 ships the schema only; the resolver, lockfile, and
+    /// apply paths do not read this field yet (Phases 1+ will).
+    #[serde(default, skip_serializing_if = "AuthRequirements::is_empty")]
+    pub auth: AuthRequirements,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -898,11 +907,15 @@ options:
     #[test]
     fn existing_registry_components_still_deserialize() {
         // Hard requirement: the 97 component.yaml files in registry-core/components
-        // must all deserialize unchanged. We sample 5 representative components
-        // covering different install backends.
-        let names = ["nodejs", "gh", "claude-code", "clarity", "guacamole"];
+        // must all deserialize. We sample representative components covering
+        // different install backends. After ADR-026 Phase 3 (P2/P3) some
+        // components carry an `auth:` block; others remain empty.
+        // - empty-auth sample: components untouched by any auth-migration phase.
+        // - non-empty-auth sample: P2 component migrated in this branch.
+        let empty_auth = ["clarity", "guacamole"];
+        let with_auth = ["nodejs"]; // P2 — language registry token (optional).
         let root = registry_root();
-        for name in names {
+        for name in empty_auth {
             let path = root.join(name).join("component.yaml");
             let yaml = std::fs::read_to_string(&path)
                 .unwrap_or_else(|e| panic!("read {}: {}", path.display(), e));
@@ -912,6 +925,167 @@ options:
             // New fields default cleanly:
             assert!(m.options.fields.is_empty());
             assert!(m.overrides.is_empty());
+            // ADR-026 Phase 0: untouched components deserialize with an empty
+            // `auth` block (the field is `#[serde(default)]`).
+            assert!(
+                m.auth.is_empty(),
+                "{name}: expected empty auth requirements, got {:?}",
+                m.auth
+            );
         }
+        for name in with_auth {
+            let path = root.join(name).join("component.yaml");
+            let yaml = std::fs::read_to_string(&path)
+                .unwrap_or_else(|e| panic!("read {}: {}", path.display(), e));
+            let m: ComponentManifest = serde_yaml::from_str(&yaml)
+                .unwrap_or_else(|e| panic!("parse {}: {}", path.display(), e));
+            assert_eq!(m.metadata.name, name, "metadata.name mismatch for {name}");
+            assert!(
+                !m.auth.is_empty(),
+                "{name}: expected non-empty auth requirements after Phase 3 migration"
+            );
+            assert!(
+                !m.auth.tokens.is_empty(),
+                "{name}: expected at least one token requirement"
+            );
+        }
+    }
+
+    // ----- ADR-026: auth block round-trips through ComponentManifest -----
+
+    #[test]
+    fn manifest_with_auth_block_round_trips() {
+        use crate::auth::{AuthScope, Redemption};
+
+        let yaml = r#"
+metadata: { name: claude-code, version: "1.0.0", description: x, license: MIT }
+platforms: [{ os: linux, arch: x86_64 }]
+install:
+  npm:
+    package: "@anthropic-ai/claude-code"
+    global: true
+auth:
+  tokens:
+    - name: anthropic_api_key
+      description: "Anthropic API key used by the Claude Code CLI."
+      scope: runtime
+      optional: false
+      audience: "urn:anthropic:api"
+      redemption:
+        kind: env-var
+        env-name: ANTHROPIC_API_KEY
+      discovery:
+        env-aliases: [ANTHROPIC_API_KEY, CLAUDE_API_KEY]
+"#;
+        let m: ComponentManifest = serde_yaml::from_str(yaml).unwrap();
+        assert!(!m.auth.is_empty());
+        assert_eq!(m.auth.tokens.len(), 1);
+        let t = &m.auth.tokens[0];
+        assert_eq!(t.name, "anthropic_api_key");
+        assert_eq!(t.scope, AuthScope::Runtime);
+        assert_eq!(t.audience, "urn:anthropic:api");
+        match &t.redemption {
+            Redemption::EnvVar { env_name } => assert_eq!(env_name, "ANTHROPIC_API_KEY"),
+            other => panic!("expected EnvVar, got {:?}", other),
+        }
+
+        // Round-trip: serialise then deserialise, the `auth` block must survive.
+        let s = serde_yaml::to_string(&m).unwrap();
+        let m2: ComponentManifest = serde_yaml::from_str(&s).unwrap();
+        assert_eq!(m.auth, m2.auth);
+    }
+
+    #[test]
+    fn p1_components_declare_non_empty_auth() {
+        // ADR-026 Phase 3 P1: cloud CLIs and MCP servers must declare auth
+        // requirements. Each manifest must deserialize cleanly, expose at
+        // least one token requirement, declare every token with `runtime`
+        // scope and a non-empty audience, and use a kebab-cased `kind:`
+        // discriminator on `redemption` (per Phase 0's internally-tagged
+        // schema).
+        use crate::auth::{AuthScope, Redemption};
+
+        let names = [
+            "aws-cli",
+            "azure-cli",
+            "gcloud",
+            "ibmcloud",
+            "aliyun",
+            "doctl",
+            "flyctl",
+            "linear-mcp",
+            "jira-mcp",
+            "pal-mcp-server",
+            "notebooklm-mcp-cli",
+        ];
+        let root = registry_root();
+        for name in names {
+            let path = root.join(name).join("component.yaml");
+            let yaml = std::fs::read_to_string(&path)
+                .unwrap_or_else(|e| panic!("read {}: {}", path.display(), e));
+            let m: ComponentManifest = serde_yaml::from_str(&yaml)
+                .unwrap_or_else(|e| panic!("parse {}: {}", path.display(), e));
+            assert!(
+                !m.auth.is_empty(),
+                "{name}: expected non-empty auth requirements"
+            );
+            assert!(
+                !m.auth.tokens.is_empty(),
+                "{name}: expected at least one token requirement"
+            );
+            for t in &m.auth.tokens {
+                assert!(!t.name.is_empty(), "{name}: token has empty name");
+                assert!(!t.audience.is_empty(), "{name}/{}: empty audience", t.name);
+                assert_eq!(
+                    t.scope,
+                    AuthScope::Runtime,
+                    "{name}/{}: expected runtime scope",
+                    t.name
+                );
+                match &t.redemption {
+                    Redemption::EnvVar { env_name } => {
+                        assert!(!env_name.is_empty(), "{name}/{}: empty env-name", t.name);
+                    }
+                    Redemption::EnvFile { env_name, path } => {
+                        assert!(
+                            !env_name.is_empty() && !path.is_empty(),
+                            "{name}/{}: empty env-file fields",
+                            t.name
+                        );
+                    }
+                    Redemption::File { path, .. } => {
+                        assert!(!path.is_empty(), "{name}/{}: empty file path", t.name);
+                    }
+                }
+            }
+
+            // Round-trip: serialise then deserialise, the `auth` block must survive.
+            let s = serde_yaml::to_string(&m).unwrap();
+            let m2: ComponentManifest = serde_yaml::from_str(&s).unwrap();
+            assert_eq!(
+                m.auth, m2.auth,
+                "{name}: auth block did not round-trip through serde_yaml"
+            );
+        }
+    }
+
+    #[test]
+    fn manifest_without_auth_block_has_empty_default() {
+        let yaml = r#"
+metadata: { name: t, version: "1.0.0", description: x, license: MIT }
+platforms: [{ os: linux, arch: x86_64 }]
+install: {}
+"#;
+        let m: ComponentManifest = serde_yaml::from_str(yaml).unwrap();
+        assert!(m.auth.is_empty());
+
+        // And serialising back must NOT emit an empty `auth:` key
+        // (the field is `skip_serializing_if = "AuthRequirements::is_empty"`).
+        let s = serde_yaml::to_string(&m).unwrap();
+        assert!(
+            !s.contains("auth:"),
+            "expected serialised manifest to omit empty auth block, got:\n{}",
+            s
+        );
     }
 }

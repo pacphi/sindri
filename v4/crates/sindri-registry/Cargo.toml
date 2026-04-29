@@ -26,8 +26,42 @@ oci-client = { workspace = true }
 sigstore = { workspace = true }
 p256 = { workspace = true }
 ecdsa = { workspace = true }
+base64 = { workspace = true }
+# Wave 6A: x509-cert + pkcs8 used only when the `keyless` feature is on.
+# Both are workspace-pinned to match sigstore 0.13's vendored versions, so
+# we don't drag in extra transitive deps for the key-based-only build.
+x509-cert = { workspace = true, optional = true }
+pkcs8 = { workspace = true, optional = true }
+# Wave 5A — D6: tar/gzip OCI layer extraction (path-traversal-safe).
+flate2 = { workspace = true }
+tar = { workspace = true }
+
+[features]
+default = ["keyless"]
+# Enables tests that hit live public OCI registries (e.g. ghcr.io). Skipped by
+# default in CI; run locally with:
+#     cargo test -p sindri-registry --features live-oci-tests -- --ignored
+live-oci-tests = []
+# Wave 6A — ADR-014 D1: keyless OIDC cosign verification (Fulcio + Rekor).
+#
+# On by default; users who want a strictly key-based build (e.g. air-gapped
+# deployments without a Rekor reachable from the build host) can opt out with
+# `--no-default-features`. The key-based verification path is unconditionally
+# available regardless of this flag — so existing flows keep working with the
+# flag off.
+keyless = ["dep:x509-cert", "dep:pkcs8"]
 
 [dev-dependencies]
 tempfile = { workspace = true }
 tokio = { workspace = true }
 rand_core = { version = "0.6", features = ["std"] }
+serde_json = { workspace = true }
+# Wave 5A — D7: in-process HTTP mock server for OCI Distribution Spec tests.
+# These tests do not require network access and run on every `cargo test`
+# invocation, unlike the `live-oci-tests`-gated `tests/oci_integration.rs`.
+wiremock = "0.6"
+# Wave 6A — keyless test fixtures. rcgen is dev-only; production keyless
+# verification never builds certs, only consumes them.
+rcgen = { version = "0.13", default-features = false, features = ["pem", "ring"] }
+# rcgen's CertificateParams uses `time::OffsetDateTime` for not_before / not_after.
+time = { version = "0.3", default-features = false, features = ["std"] }

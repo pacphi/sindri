@@ -1,0 +1,34 @@
+[package]
+name = "sindri-secrets"
+version = "0.1.0"
+edition = "2021"
+description = "Pluggable secret store for sindri — FileBackend (chacha20poly1305), VaultBackend, EnvBackend"
+
+[lib]
+name = "sindri_secrets"
+path = "src/lib.rs"
+
+[dependencies]
+sindri-core = { path = "../sindri-core" }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+dirs-next = { workspace = true }
+async-trait = { workspace = true }
+reqwest = { workspace = true }
+# ChaCha20-Poly1305 AEAD for encrypted-at-rest file backend (ADR-025)
+chacha20poly1305 = "0.10"
+# HKDF + SHA-256 for passphrase-to-key derivation
+hkdf = "0.12"
+sha2_v10 = { package = "sha2", version = "0.10" }
+# Random nonce generation
+rand = "0.8"
+hex = { workspace = true }
+base64 = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+tokio = { workspace = true }

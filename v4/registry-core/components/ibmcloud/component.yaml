@@ -23,3 +23,17 @@ install:
       linux-aarch64: "sha256:14784db2fc0338b2876f454098b92a65606c9204be24fa1d610bcd6046f66c81"
 
 depends_on: []
+
+# ADR-026: auth-aware components (Phase 3 P1).
+# `ibmcloud login` supports SSO + interactive flows, so the API-key path is
+# optional but the canonical headless option.
+auth:
+  tokens:
+    - name: ibmcloud-api-key
+      description: "IBM Cloud IAM API key for headless `ibmcloud login --apikey`."
+      audience: "https://iam.cloud.ibm.com"
+      scope: runtime
+      optional: true
+      redemption:
+        kind: env-var
+        env-name: IBMCLOUD_API_KEY

@@ -12,6 +12,13 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 schemars = { workspace = true }
 thiserror = { workspace = true }
+dirs-next = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+tracing = { workspace = true }
+# Cross-platform advisory file lock for concurrent-apply protection (Wave 5H, D19).
+fs4 = "0.12"
 
 [dev-dependencies]
 serde_yaml = { workspace = true }
+tempfile = { workspace = true }

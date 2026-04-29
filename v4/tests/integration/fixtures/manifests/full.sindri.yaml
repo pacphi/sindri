@@ -1,0 +1,6 @@
+name: full-fixture
+components:
+  - address: "mise:nodejs"
+  - address: "binary:gh"
+preferences:
+  backend_order: {}
