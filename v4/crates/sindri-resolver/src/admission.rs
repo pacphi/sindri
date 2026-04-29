@@ -342,6 +342,7 @@ mod tests {
             require_checksums: None,
             offline: None,
             audit: None,
+            auth: sindri_core::policy::AuthPolicy::default(),
         }
     }
 
@@ -355,6 +356,7 @@ mod tests {
             require_checksums: Some(true),
             offline: None,
             audit: None,
+            auth: sindri_core::policy::AuthPolicy::default(),
         }
     }
 

@@ -3829,6 +3829,7 @@ dependencies = [
  "serde_yaml",
  "sindri-core",
  "thiserror 2.0.18",
+ "tracing",
 ]
 
 [[package]]
