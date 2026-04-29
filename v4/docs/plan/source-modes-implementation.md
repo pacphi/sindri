@@ -210,32 +210,34 @@ exist.
   `BomManifest.registry: RegistrySection { sources, policy, replace_global }`. Schema
   regenerated. See PR `refactor(v4): migrate registry config to registry.sources: shape`.)
 - [x] Update the `init` template to write the new shape (single `oci` source). (Done.)
-- [ ] Document merge semantics: project sources prepend to global sources by default;
-  `registry.replace_global: true` overrides. (Pending — `replace_global` field is wired
-  and serializes correctly; runtime multi-file merge logic is a separate Phase 4 task.)
+- [x] Document merge semantics: project sources prepend to global sources by default;
+  `registry.replace_global: true` overrides. (SOURCES.md §"Project + global merge
+  semantics" — three worked examples covering prepend, `replace_global: true`, and
+  policy-block override.)
 
 #### 4.2 `--explain` for sources
 
-- [ ] Extend `sindri lock --explain <component>` to show every source that was
+- [x] Extend `sindri resolve --explain <component>` to show every source that was
   consulted, whether it matched, why it was skipped (out of scope, not found),
-  and what descriptor was recorded.
-- [ ] Match output style to existing `BackendChooser --explain` output.
+  and what descriptor was recorded. (Verb is `resolve`, not `lock`, per Phase 2's
+  rename. Implemented in `sindri_resolver::source_explain`.)
+- [x] Match output style to existing `BackendChooser --explain` output.
 
 #### 4.3 CI template
 
-- [ ] Add `v4/docs/ci/strict-oci.yml` — a GitHub Actions snippet enabling
-  `--strict-oci` on every `sindri lock` invocation in CI.
-- [ ] Reference it from the v4 user-facing docs alongside the existing CI guidance.
+- [x] Add `v4/docs/ci/strict-oci.yml` — a GitHub Actions snippet enabling
+  `--strict-oci` on every `sindri resolve` invocation in CI.
+- [x] Reference it from the v4 user-facing docs alongside the existing CI guidance.
 
 #### 4.4 Migration note
 
-- [ ] Append a section to `v4/docs/MIGRATION_FROM_V3.md` (or seed the file) explaining
+- [x] Append a section to `v4/docs/MIGRATION_FROM_V3.md` (or seed the file) explaining
   how v3's "resolve from GitHub" maps to a v4 `git` source, and how v3's bundled
   registry pattern maps to `local-oci`. Cross-link to
   [`v4/docs/SOURCES.md`](../SOURCES.md) (the maintainer guide, authored in
   Phase 1) rather than duplicating its decision matrix.
-- [ ] Cross-link from ADR-003 §"Air-gapped / offline" once the migration doc lands.
-- [ ] Update SOURCES.md "Phase status" table as Phases 2/3 land so its source-by-source
+- [x] Cross-link from ADR-003 §"Air-gapped / offline" once the migration doc lands.
+- [x] Update SOURCES.md "Phase status" table as Phases 2/3 land so its source-by-source
   status stays accurate.
 
 ### Acceptance criteria
@@ -250,25 +252,39 @@ exist.
 **Goal:** Bound `~/.sindri/cache/git/` so v4.0 RC doesn't ship with an unbounded
 on-disk cache.
 
-- [ ] Add `cache.git.max_size` (default `"10GB"`) and `cache.git.max_age`
+- [x] Add `cache.git.max_size` (default `"10GB"`) and `cache.git.max_age`
       (default `"90d"`) to `~/.sindri/config.yaml`. Eviction fires when
-      *either* threshold is exceeded.
-- [ ] LRU by directory mtime: on each `GitSource::fetch_index`, walk the
+      *either* threshold is exceeded. (Implemented in
+      `sindri_core::cache_config`.)
+- [x] LRU by directory mtime: on each `GitSource::fetch_index`, walk the
       cache root, compute totals, evict oldest entries until under both
-      thresholds.
-- [ ] Info-level log per eviction (`tracing::info!`) so operators see what
-      was reclaimed.
-- [ ] Tests: cache populated past `max_size` triggers eviction; cache
+      thresholds. (Implemented in
+      `sindri_registry::source::git_cache::run_eviction`.)
+- [x] Info-level log per eviction (`tracing::info!`) so operators see what
+      was reclaimed. (Carries `url_hash`, `commit_sha`, `reclaimed_bytes`,
+      `age_days`, `reason`.)
+- [x] Tests: cache populated past `max_size` triggers eviction; cache
       entry older than `max_age` evicted; concurrent eviction is safe
-      (file-locking or temp-rename pattern, your call); descriptor-driven
-      cache path derivation still hits after eviction with a re-clone.
+      via single-process advisory lock at `<cache_root>/.eviction.lock`;
+      descriptor-driven cache path derivation still hits after eviction
+      with a re-clone (the `_bare` mirror is preserved). 9 unit tests
+      under `sindri_registry::source::git_cache::tests` plus 9 in
+      `sindri_core::cache_config::tests`.
 
 ##### Acceptance criteria
 
-- A 12 GB cache shrinks to under 10 GB on the next `sindri lock` against
+- A 12 GB cache shrinks to under 10 GB on the next `sindri resolve` against
   any git source.
 - Cache entries older than 90 days are evicted regardless of size.
 - `cargo test --workspace` covers both eviction triggers.
+
+### Phase 4 closeout
+
+All five sub-phases (4.1 schema-shape docs, 4.2 `--explain` for sources,
+4.3 CI snippet, 4.4 migration note, 4.5 cache eviction) shipped on
+2026-04-28 as `feat/v4-source-modes-phase4`. The v4 source-modes work
+called out in ADR-028 and DDD-08 is complete; remaining items in
+Phase 5 are post-RC polish.
 
 ---
 
