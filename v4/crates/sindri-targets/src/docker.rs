@@ -1,5 +1,7 @@
 use crate::error::TargetError;
 use crate::traits::{PrereqCheck, Target};
+use crate::well_known;
+use sindri_core::auth::AuthCapability;
 use sindri_core::platform::{Arch, Capabilities, Os, Platform, TargetProfile};
 use std::path::Path;
 
@@ -155,6 +157,23 @@ impl Target for DockerTarget {
             )
         }]
     }
+
+    /// Advertise ambient credentials suitable for forwarding into the
+    /// container (ADR-027 §1, Phase 4).
+    ///
+    /// Docker doesn't ship its own credential CLI for component auth, so
+    /// only env-passthrough capabilities are surfaced. The operator still
+    /// needs to opt those vars into the container via the runtime config
+    /// (e.g. `docker run -e ANTHROPIC_API_KEY ...`); the binding is what
+    /// tells the resolver that the value will be available *if* forwarded.
+    ///
+    /// Priority is `5` — lower than `local` so that a user running
+    /// `sindri apply` against `local` and `docker` simultaneously prefers
+    /// the host-side env-var binding (which doesn't require explicit
+    /// forwarding).
+    fn auth_capabilities(&self) -> Vec<AuthCapability> {
+        well_known::ambient_env_capabilities(5)
+    }
 }
 
 fn detect_container_pm(target: &DockerTarget) -> Option<String> {
@@ -168,4 +187,40 @@ fn detect_container_pm(target: &DockerTarget) -> Option<String> {
         }
     }
     None
+}
+
+#[cfg(test)]
+mod auth_cap_tests {
+    use super::*;
+    use crate::well_known::ENV_LOCK;
+
+    #[test]
+    fn docker_advertises_ambient_env_only() {
+        let _g = ENV_LOCK.lock().unwrap();
+        // Clean the table.
+        for v in &[
+            "ANTHROPIC_API_KEY",
+            "OPENAI_API_KEY",
+            "GEMINI_API_KEY",
+            "GITHUB_TOKEN",
+        ] {
+            // SAFETY: caller holds ENV_LOCK.
+            unsafe { std::env::remove_var(v) };
+        }
+        // SAFETY: caller holds ENV_LOCK.
+        unsafe { std::env::set_var("OPENAI_API_KEY", "sk-x") };
+
+        let target = DockerTarget::new("dev", "ubuntu:22.04");
+        let caps = target.auth_capabilities();
+        // SAFETY: caller holds ENV_LOCK.
+        unsafe { std::env::remove_var("OPENAI_API_KEY") };
+
+        assert_eq!(caps.len(), 1);
+        assert_eq!(caps[0].id, "openai_api_key");
+        assert_eq!(caps[0].priority, 5);
+        assert!(matches!(
+            caps[0].source,
+            sindri_core::auth::AuthSource::FromEnv { .. }
+        ));
+    }
 }

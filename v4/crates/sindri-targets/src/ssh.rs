@@ -1,6 +1,7 @@
 use crate::auth::AuthValue;
 use crate::error::TargetError;
 use crate::traits::{PrereqCheck, Target};
+use sindri_core::auth::AuthCapability;
 use sindri_core::platform::{Arch, Capabilities, Os, Platform, TargetProfile};
 use std::path::Path;
 
@@ -166,10 +167,41 @@ impl Target for SshTarget {
             },
         ]
     }
+
+    /// SSH is intentionally **conservative** about advertising auth
+    /// capabilities (ADR-027 §1, Phase 4 of the auth-aware plan).
+    ///
+    /// The host-side ssh-agent / `~/.ssh/id_*` material is used by *this
+    /// target* to authenticate the connection, not by the components running
+    /// on the remote machine. Forwarding host env-vars into a remote shell
+    /// would silently ship secrets across a trust boundary, so we
+    /// deliberately do **not** surface `well_known` env vars here.
+    ///
+    /// Operators who want to make a remote-side credential available
+    /// declare it explicitly via `targets.<n>.provides:` in the BOM
+    /// manifest (ADR-027 §"Per-target overrides"). That keeps the trust
+    /// decision in the operator's hands.
+    fn auth_capabilities(&self) -> Vec<AuthCapability> {
+        Vec::new()
+    }
 }
 
 fn dirs_next_home() -> String {
     dirs_next::home_dir()
         .map(|h| h.to_string_lossy().to_string())
         .unwrap_or_default()
+}
+
+#[cfg(test)]
+mod auth_cap_tests {
+    use super::*;
+
+    #[test]
+    fn ssh_advertises_no_capabilities_by_default() {
+        // SSH targets are conservative: host-side ssh material authenticates
+        // the connection, not the components. Operators must opt in via
+        // `targets.<n>.provides:` in the BOM manifest.
+        let target = SshTarget::new("box", "example.com");
+        assert!(target.auth_capabilities().is_empty());
+    }
 }
