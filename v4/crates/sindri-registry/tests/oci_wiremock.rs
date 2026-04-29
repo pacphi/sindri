@@ -21,7 +21,11 @@
 use oci_client::client::{ClientConfig, ClientProtocol};
 use oci_client::Client as OciClient;
 use sha2::{Digest, Sha256};
+use sindri_registry::source::{
+    OciSource, OciSourceConfig, Source, SourceContext, SourceDescriptor,
+};
 use sindri_registry::{RegistryCache, RegistryClient};
+use std::sync::Arc;
 use std::time::Duration;
 use tempfile::TempDir;
 use wiremock::matchers::{header, method, path, path_regex};
@@ -438,5 +442,130 @@ async fn manifest_500_maps_to_oci_fetch_error() {
             || msg.to_ascii_lowercase().contains("oci fetch"),
         "expected a 5xx-style error, got: {}",
         msg
+    );
+}
+
+// ----------------------------------------------------------------------
+// Phase 2 — DDD-08 / ADR-028 trait surface tests
+//
+// These mirror two of the direct-client tests above, but drive the work
+// through the [`Source`] trait against an [`OciSource`] backed by the same
+// wiremock mock registry. The direct-client coverage is preserved
+// (`fetch_index_succeeds_with_valid_layer` / `manifest_404_…` stay) so the
+// underlying client is still tested without going through the trait.
+// ----------------------------------------------------------------------
+
+#[tokio::test]
+async fn oci_source_trait_fetch_index_succeeds() {
+    let server = MockServer::start().await;
+    let layer = b"version: 1\nregistry: oci-source-trait\ncomponents: []\n";
+    let manifest = make_index_manifest(layer);
+    let layer_digest = format!("sha256:{}", sha256_hex(layer));
+
+    Mock::given(method("GET"))
+        .and(path(format!("/v2/{}/manifests/{}", REPO, TAG)))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .insert_header("Content-Type", "application/vnd.oci.image.manifest.v1+json")
+                .set_body_string(manifest.clone()),
+        )
+        .mount(&server)
+        .await;
+
+    Mock::given(method("GET"))
+        .and(path(format!("/v2/{}/blobs/{}", REPO, layer_digest)))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(layer.to_vec()))
+        .mount(&server)
+        .await;
+
+    let endpoint = server.uri().trim_start_matches("http://").to_string();
+    let url = format!("{}/{}", endpoint, REPO);
+
+    let tmp = TempDir::new().unwrap();
+    let cache = RegistryCache::with_path(tmp.path().to_path_buf()).unwrap();
+    let client = RegistryClient::with_cache(cache)
+        .with_ttl(Duration::from_secs(3600))
+        .with_oci_client(http_oci_client());
+    let source = OciSource::with_client(
+        OciSourceConfig {
+            url,
+            tag: TAG.into(),
+            scope: None,
+            registry_name: "oci-source-trait".into(),
+        },
+        Arc::new(client),
+    );
+
+    // Drive through the trait (NOT the client) — this is the migration
+    // that the Phase-2 plan calls for.
+    let index = Source::fetch_index(&source, &SourceContext::default())
+        .expect("trait-driven fetch_index should succeed");
+    assert_eq!(index.components.len(), 0);
+
+    // Lockfile descriptor records the manifest digest captured during
+    // the fetch, so the lockfile is byte-stable.
+    match source.lockfile_descriptor() {
+        SourceDescriptor::Oci {
+            url: _,
+            tag,
+            manifest_digest,
+        } => {
+            assert_eq!(tag, TAG);
+            assert!(manifest_digest.is_some(), "expected manifest digest");
+            assert!(manifest_digest
+                .as_ref()
+                .map(|d| d.starts_with("sha256:"))
+                .unwrap_or(false));
+        }
+        other => panic!("expected Oci descriptor, got {:?}", other),
+    }
+
+    // A successful fetch flips the verified bit, so a `sindri/core` /
+    // explicitly-trusted source can claim strict-OCI eligibility.
+    assert!(
+        source.is_verified(),
+        "successful fetch should mark the source verified"
+    );
+}
+
+#[tokio::test]
+async fn oci_source_trait_404_propagates_as_source_error() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path_regex(r"^/v2/.*/manifests/.*$"))
+        .respond_with(ResponseTemplate::new(404))
+        .mount(&server)
+        .await;
+
+    let endpoint = server.uri().trim_start_matches("http://").to_string();
+    let url = format!("{}/{}", endpoint, REPO);
+
+    let tmp = TempDir::new().unwrap();
+    let cache = RegistryCache::with_path(tmp.path().to_path_buf()).unwrap();
+    let client = RegistryClient::with_cache(cache)
+        .with_ttl(Duration::from_secs(3600))
+        .with_oci_client(http_oci_client());
+    let source = OciSource::with_client(
+        OciSourceConfig {
+            url,
+            tag: TAG.into(),
+            scope: None,
+            registry_name: "oci-source-trait-404".into(),
+        },
+        Arc::new(client),
+    );
+
+    let err = Source::fetch_index(&source, &SourceContext::default())
+        .expect_err("404 must surface through the trait");
+    let msg = format!("{}", err).to_ascii_lowercase();
+    assert!(
+        msg.contains("404") || msg.contains("not found") || msg.contains("oci fetch"),
+        "expected propagated fetch error, got: {}",
+        err
+    );
+    // Failed fetch must NOT flip the verified bit.
+    assert!(
+        !source.is_verified(),
+        "failed fetch must not mark the source verified"
     );
 }

@@ -35,7 +35,7 @@ pub use oci_ref::{OciRef, OciReference};
 pub use signing::{CosignVerifier, TrustedKey};
 pub use source::{
     ComponentBlob, ComponentId as SourceComponentId, ComponentName, GitSource, LocalOciSource,
-    LocalPathSource, OciSource, RegistrySource, Source, SourceContext, SourceDescriptor,
-    SourceError,
+    LocalOciSourceConfig, LocalPathSource, OciSource, OciSourceConfig, RegistrySource, Source,
+    SourceContext, SourceDescriptor, SourceError,
 };
 pub use trust_scope::{glob_match, select_override};
