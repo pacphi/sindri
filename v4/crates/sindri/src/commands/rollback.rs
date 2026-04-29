@@ -254,6 +254,7 @@ mod tests {
             bom_hash: "abc123".into(),
             target: "local".into(),
             components: vec![rc("git", "2.45.0")],
+            auth_bindings: Vec::new(),
         };
         let lock_path = tmp.path().join("sindri.lock");
         write_lock(&lock_path, &lock);
@@ -278,6 +279,7 @@ mod tests {
             bom_hash: "deadbeef".into(),
             target: "local".into(),
             components: vec![rc("git", "2.45.0")],
+            auth_bindings: Vec::new(),
         };
         let lock_path = tmp.path().join("sindri.lock");
         write_lock(&lock_path, &lock);

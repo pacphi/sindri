@@ -1,3 +1,4 @@
+use crate::auth::AuthBinding;
 use crate::component::{Backend, ComponentId, ComponentManifest};
 use crate::platform::Platform;
 use crate::version::Version;
@@ -11,6 +12,15 @@ pub struct Lockfile {
     pub bom_hash: String,
     pub target: String,
     pub components: Vec<ResolvedComponent>,
+    /// Auth bindings produced by the resolver's binding pass (ADR-027 §3,
+    /// DDD-07 aggregate root).
+    ///
+    /// Phase 1 of the auth-aware implementation plan ships this field as
+    /// **observability-only**: the apply path does not yet read these
+    /// entries (Phase 2 will). Existing lockfiles deserialize unchanged
+    /// because the field is `#[serde(default)]`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub auth_bindings: Vec<AuthBinding>,
 }
 
 impl Lockfile {
@@ -20,6 +30,7 @@ impl Lockfile {
             bom_hash,
             target,
             components: Vec::new(),
+            auth_bindings: Vec::new(),
         }
     }
 

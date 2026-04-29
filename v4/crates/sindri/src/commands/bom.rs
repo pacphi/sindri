@@ -606,6 +606,7 @@ mod tests {
             bom_hash: "deadbeef".into(),
             target: "local".into(),
             components,
+            auth_bindings: Vec::new(),
         }
     }
 
