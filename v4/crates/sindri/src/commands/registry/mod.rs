@@ -3,6 +3,8 @@ use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
 use sindri_registry::signing::TrustedKey;
 use sindri_registry::{CosignVerifier, OciRef, RegistryClient};
 
+pub mod serve;
+
 pub enum RegistryCmd {
     Refresh {
         name: String,
@@ -28,6 +30,13 @@ pub enum RegistryCmd {
     FetchChecksums {
         path: String,
     },
+    /// Embedded OCI registry over a components directory (Phase 3.2,
+    /// ADR-028).
+    Serve {
+        addr: String,
+        root: String,
+        sign_with: Option<String>,
+    },
 }
 
 pub fn run(cmd: RegistryCmd) -> i32 {
@@ -41,6 +50,11 @@ pub fn run(cmd: RegistryCmd) -> i32 {
         RegistryCmd::Trust { name, signer } => trust(&name, &signer),
         RegistryCmd::Verify { name, url } => verify(&name, &url),
         RegistryCmd::FetchChecksums { path } => fetch_checksums(&path),
+        RegistryCmd::Serve {
+            addr,
+            root,
+            sign_with,
+        } => serve::run(&addr, &root, sign_with),
     }
 }
 

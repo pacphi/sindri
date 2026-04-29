@@ -392,6 +392,24 @@ enum RegistrySubcmds {
     },
     /// Download assets and write sha256 checksums
     FetchChecksums { path: String },
+    /// Run an embedded OCI registry over a components directory (Phase 3.2,
+    /// ADR-028). Developer convenience for testing — single-process,
+    /// read-only, no garbage collection. Press Ctrl-C to stop.
+    Serve {
+        /// Directory containing an OCI image layout (or a directory of
+        /// them, one per repository).
+        #[arg(long)]
+        root: String,
+        /// `host:port` to listen on. Default `127.0.0.1:5000`.
+        #[arg(long, default_value = "127.0.0.1:5000")]
+        addr: String,
+        /// Optional cosign key file to declare in the served manifest's
+        /// trust set. Phase 3.2 honors the flag for forward compatibility
+        /// but does not actively re-sign — the served bytes are emitted
+        /// verbatim from the underlying layout.
+        #[arg(long = "sign-with")]
+        sign_with: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -699,6 +717,15 @@ fn run() -> i32 {
                 RegistrySubcmds::Trust { name, signer } => RegistryCmd::Trust { name, signer },
                 RegistrySubcmds::Verify { name, url } => RegistryCmd::Verify { name, url },
                 RegistrySubcmds::FetchChecksums { path } => RegistryCmd::FetchChecksums { path },
+                RegistrySubcmds::Serve {
+                    root,
+                    addr,
+                    sign_with,
+                } => RegistryCmd::Serve {
+                    addr,
+                    root,
+                    sign_with,
+                },
             };
             commands::registry::run(registry_cmd)
         }
