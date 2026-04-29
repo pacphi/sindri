@@ -25,3 +25,27 @@ install:
 
 depends_on:
   - "mise:python"
+
+# ADR-026: auth-aware components (Phase 3 P1).
+# NotebookLM bridges accept either a Google API key or a service-account
+# JSON. Both are optional because some users authenticate through the local
+# `gcloud` ADC chain.
+auth:
+  tokens:
+    - name: google-api-key
+      description: "Google API key for the NotebookLM MCP bridge."
+      audience: "https://generativelanguage.googleapis.com"
+      scope: runtime
+      optional: true
+      redemption:
+        kind: env-var
+        env-name: GOOGLE_API_KEY
+    - name: google-application-credentials
+      description: "Service-account JSON for NotebookLM (alternate to GOOGLE_API_KEY)."
+      audience: "https://www.googleapis.com/auth/cloud-platform"
+      scope: runtime
+      optional: true
+      redemption:
+        kind: env-file
+        env-name: GOOGLE_APPLICATION_CREDENTIALS
+        path: "~/.config/sindri/notebooklm-credentials.json"
