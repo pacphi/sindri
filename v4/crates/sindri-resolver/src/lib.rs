@@ -17,6 +17,8 @@ use sindri_core::manifest::BomManifest;
 use sindri_core::platform::{Capabilities, Platform, TargetProfile};
 use sindri_core::policy::InstallPolicy;
 use sindri_core::registry::ComponentEntry;
+use sindri_core::source_descriptor::SourceDescriptor;
+use sindri_registry::source::{ComponentName, RegistrySource};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -97,17 +99,58 @@ fn load_component_manifest_from_cache(
     serde_yaml::from_str(&content).ok()
 }
 
-/// Main resolution pipeline: manifest -> registry -> closure -> gates -> backend -> lockfile
+/// Main resolution pipeline: manifest -> registry -> closure -> gates -> backend -> lockfile.
+///
+/// Backwards-compatible entry point retained for existing call sites that
+/// have not yet adopted the source-modes API (DDD-08, ADR-028 — Phase 1).
+/// Forwards to [`resolve_with_sources`] with an empty source slice; the
+/// lockfile writer then synthesises an `Oci { ... }` `SourceDescriptor` from
+/// the legacy `entry.oci_ref` field for each component.
 pub fn resolve(
     opts: &ResolveOptions,
     registry: &HashMap<String, ComponentEntry>,
     policy: &InstallPolicy,
     platform: &Platform,
 ) -> Result<Lockfile, ResolverError> {
+    resolve_with_sources(opts, registry, &[], policy, platform)
+}
+
+/// Source-aware resolution pipeline (DDD-08, ADR-028 — Phase 1.3).
+///
+/// Identical to [`resolve`] but additionally consults `sources` (in declared
+/// order, first-match-wins) when picking a [`SourceDescriptor`] to record on
+/// each lockfile entry. Sources contribute scope filtering (DDD-08 §"Source
+/// scope") only in Phase 1; full per-source byte fetch lands in Phase 2/3.
+pub fn resolve_with_sources(
+    opts: &ResolveOptions,
+    registry: &HashMap<String, ComponentEntry>,
+    sources: &[RegistrySource],
+    policy: &InstallPolicy,
+    platform: &Platform,
+) -> Result<Lockfile, ResolverError> {
     if opts.offline {
-        return resolve_offline(opts, registry, policy, platform);
+        return resolve_offline(opts, registry, sources, policy, platform);
     }
-    resolve_online(opts, registry, policy, platform)
+    resolve_online(opts, registry, sources, policy, platform)
+}
+
+/// Pick the [`SourceDescriptor`] that the lockfile should record for a
+/// component named `name`. Walks `sources` in declared order, returning the
+/// descriptor of the first source whose `scope` matches (or has no scope).
+/// Falls back to reconstructing an `Oci { ... }` descriptor from the legacy
+/// `entry.oci_ref` field when no source matches — preserving Phase-0
+/// behaviour for callers that pass an empty slice.
+fn pick_source_descriptor(
+    sources: &[RegistrySource],
+    entry: &ComponentEntry,
+) -> Option<SourceDescriptor> {
+    let cname = ComponentName::from(entry.name.as_str());
+    for src in sources {
+        if src.scope_matches(&cname) {
+            return Some(src.dispatch_lockfile_descriptor());
+        }
+    }
+    sindri_registry::source::oci_descriptor_from_legacy_ref(&entry.oci_ref)
 }
 
 /// Online resolution pipeline.
@@ -119,6 +162,7 @@ pub fn resolve(
 fn resolve_online(
     opts: &ResolveOptions,
     registry: &HashMap<String, ComponentEntry>,
+    sources: &[RegistrySource],
     policy: &InstallPolicy,
     platform: &Platform,
 ) -> Result<Lockfile, ResolverError> {
@@ -192,6 +236,7 @@ fn resolve_online(
         let platforms = component_manifests
             .get(&node.entry.name)
             .map(|m| m.platforms.clone());
+        let source = pick_source_descriptor(sources, &node.entry);
         let resolved = lockfile_writer::resolved_from_entry(
             &node.entry,
             chosen,
@@ -199,6 +244,7 @@ fn resolve_online(
             opts.registry_manifest_digest.as_deref(),
             component_digest.as_deref(),
             platforms,
+            source,
         );
         lockfile.components.push(resolved);
     }
@@ -270,6 +316,7 @@ fn resolve_online(
 fn resolve_offline(
     opts: &ResolveOptions,
     registry: &HashMap<String, ComponentEntry>,
+    sources: &[RegistrySource],
     policy: &InstallPolicy,
     platform: &Platform,
 ) -> Result<Lockfile, ResolverError> {
@@ -356,6 +403,7 @@ fn resolve_offline(
         let platforms = locked_platforms.get(&node.entry.name).cloned();
         let address = node.id.to_address();
         let component_digest = opts.component_digests.get(&address).cloned();
+        let source = pick_source_descriptor(sources, &node.entry);
         let resolved = lockfile_writer::resolved_from_entry(
             &node.entry,
             chosen,
@@ -363,6 +411,7 @@ fn resolve_offline(
             opts.registry_manifest_digest.as_deref(),
             component_digest.as_deref(),
             platforms,
+            source,
         );
         lockfile.components.push(resolved);
     }

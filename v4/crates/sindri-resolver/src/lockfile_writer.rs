@@ -3,9 +3,11 @@ use sindri_core::component::{Backend, ComponentId};
 use sindri_core::lockfile::{Lockfile, ResolvedComponent};
 use sindri_core::platform::Platform;
 use sindri_core::registry::ComponentEntry;
+use sindri_core::source_descriptor::SourceDescriptor;
 use sindri_core::version::Version;
 use std::fs;
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 /// Compute bom_hash as sha256 of the sindri.yaml content
 pub fn compute_bom_hash(bom_content: &str) -> String {
@@ -55,13 +57,58 @@ pub fn is_oci_source(oci_ref_str: &str) -> bool {
     sindri_registry::OciRef::parse(trimmed).is_ok()
 }
 
-/// Read and parse an existing lockfile
+/// Read and parse an existing lockfile.
+///
+/// Applies the Phase-1.3 legacy-source backfill (see
+/// [`backfill_legacy_source`]) before returning, so callers always observe a
+/// `source: SourceDescriptor` on every component (when reconstructable)
+/// regardless of when the lockfile was written.
 pub fn read_lockfile(path: &Path) -> Result<Lockfile, ResolverError> {
     if !path.exists() {
         return Err(ResolverError::LockfileStale);
     }
     let content = fs::read_to_string(path)?;
-    serde_json::from_str(&content).map_err(|e| ResolverError::Serialization(e.to_string()))
+    let mut lockfile: Lockfile =
+        serde_json::from_str(&content).map_err(|e| ResolverError::Serialization(e.to_string()))?;
+    backfill_legacy_source(&mut lockfile);
+    Ok(lockfile)
+}
+
+/// One-shot guard for the legacy-lockfile warning emitted by
+/// [`backfill_legacy_source`]. Keeps the warning to a single line per
+/// process, matching the deprecation note in the source-modes plan §1.3.
+static LEGACY_LOCKFILE_WARNING_EMITTED: AtomicBool = AtomicBool::new(false);
+
+/// Backfill missing `source:` descriptors on a [`Lockfile`] read from disk
+/// (Phase 1.3 backwards compatibility — DDD-08, ADR-028).
+///
+/// For each [`ResolvedComponent`] whose `source` is `None`, reconstructs an
+/// `Oci { ... }` descriptor from the entry's `oci_digest` field (the
+/// pre-Phase-1.3 location of the OCI ref). Emits a single deprecation
+/// warning via `tracing::warn!` the first time a legacy lockfile is read in
+/// a process, then mutates the lockfile in place.
+///
+/// Idempotent: no-op when every component already has a `source`.
+pub fn backfill_legacy_source(lockfile: &mut Lockfile) {
+    let mut backfilled = 0usize;
+    for component in &mut lockfile.components {
+        if component.source.is_some() {
+            continue;
+        }
+        if let Some(legacy_ref) = component.oci_digest.as_deref() {
+            if let Some(desc) = sindri_registry::source::oci_descriptor_from_legacy_ref(legacy_ref)
+            {
+                component.source = Some(desc);
+                backfilled += 1;
+            }
+        }
+    }
+    if backfilled > 0 && !LEGACY_LOCKFILE_WARNING_EMITTED.swap(true, Ordering::Relaxed) {
+        tracing::warn!(
+            count = backfilled,
+            "lockfile is missing per-component `source:` descriptors (pre-Phase-1.3 schema); reconstructed Oci{{...}} descriptors from legacy `oci_digest` field — re-run `sindri lock` to upgrade"
+        );
+    }
 }
 
 /// Build ResolvedComponent from a closure node.
@@ -94,6 +141,7 @@ pub fn resolved_from_entry(
     registry_manifest_digest: Option<&str>,
     component_digest: Option<&str>,
     platforms: Option<Vec<Platform>>,
+    source: Option<SourceDescriptor>,
 ) -> ResolvedComponent {
     let id = ComponentId {
         backend: chosen_backend.clone(),
@@ -115,6 +163,11 @@ pub fn resolved_from_entry(
         // Wave 6A: platform constraints from the component manifest, used by
         // the offline Gate 1 path (ADR-008).
         platforms,
+        // Phase 1.3 (DDD-08, ADR-028): source descriptor recorded so
+        // `sindri apply` can refetch identically. Pre-Phase-1.3 lockfiles
+        // omit this; legacy reads reconstruct it via
+        // [`backfill_legacy_source`].
+        source,
     }
 }
 
@@ -163,8 +216,15 @@ mod tests {
         // non-OCI location) MUST leave `component_digest` as None. The
         // contract is documented on `resolved_from_entry`.
         let e = entry("local-tool", "registry:local:/tmp/fixtures/registry");
-        let resolved =
-            resolved_from_entry(&e, Backend::Binary, "binary:local-tool", None, None, None);
+        let resolved = resolved_from_entry(
+            &e,
+            Backend::Binary,
+            "binary:local-tool",
+            None,
+            None,
+            None,
+            None,
+        );
         assert!(resolved.component_digest.is_none());
     }
 
@@ -172,8 +232,15 @@ mod tests {
     fn resolved_component_carries_digest_when_provided() {
         let e = entry("nodejs", "ghcr.io/sindri-dev/registry-core/nodejs:22.0.0");
         let digest = "sha256:deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef";
-        let resolved =
-            resolved_from_entry(&e, Backend::Mise, "mise:nodejs", None, Some(digest), None);
+        let resolved = resolved_from_entry(
+            &e,
+            Backend::Mise,
+            "mise:nodejs",
+            None,
+            Some(digest),
+            None,
+            None,
+        );
         assert_eq!(resolved.component_digest.as_deref(), Some(digest));
     }
 }
