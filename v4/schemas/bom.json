@@ -292,6 +292,36 @@
       ],
       "type": "object"
     },
+    "RegistryPolicy": {
+      "description": "Registry-wide policy block (ADR-028 §\"Trust scopes\").",
+      "properties": {
+        "strict_oci": {
+          "description": "When `true`, every component recorded in the lockfile MUST be\nserved by a source that returns `true` from\n`Source::supports_strict_oci()`. The CLI `--strict-oci` flag sets\nthis same gate; when both are present, the flag wins.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "RegistrySection": {
+      "description": "Top-level `registry:` block on `sindri.yaml`. Carries policy-level\nswitches that apply to every registry source declared in `registries:`.",
+      "properties": {
+        "policy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RegistryPolicy"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Registry-wide policy knobs."
+        }
+      },
+      "type": "object"
+    },
     "TargetConfig": {
       "properties": {
         "auth": {
@@ -447,6 +477,17 @@
         "$ref": "#/$defs/RegistryConfig"
       },
       "type": "array"
+    },
+    "registry": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RegistrySection"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Optional registry-level policy block (DDD-08, ADR-028 — Phase 2).\n\nCurrently carries only `strict_oci`, the config-file twin of the\n`--strict-oci` CLI flag. Per ADR-028 Q3 the flag overrides the\nconfig when both are set."
     },
     "secrets": {
       "additionalProperties": {

@@ -26,6 +26,33 @@ pub struct BomManifest {
     /// `sindri secrets validate`; values are never persisted.
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub secrets: HashMap<String, String>,
+    /// Optional registry-level policy block (DDD-08, ADR-028 — Phase 2).
+    ///
+    /// Currently carries only `strict_oci`, the config-file twin of the
+    /// `--strict-oci` CLI flag. Per ADR-028 Q3 the flag overrides the
+    /// config when both are set.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub registry: Option<RegistrySection>,
+}
+
+/// Top-level `registry:` block on `sindri.yaml`. Carries policy-level
+/// switches that apply to every registry source declared in `registries:`.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
+pub struct RegistrySection {
+    /// Registry-wide policy knobs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub policy: Option<RegistryPolicy>,
+}
+
+/// Registry-wide policy block (ADR-028 §"Trust scopes").
+#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
+pub struct RegistryPolicy {
+    /// When `true`, every component recorded in the lockfile MUST be
+    /// served by a source that returns `true` from
+    /// `Source::supports_strict_oci()`. The CLI `--strict-oci` flag sets
+    /// this same gate; when both are present, the flag wins.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub strict_oci: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

@@ -107,6 +107,7 @@ fn default_mode_writes_sindri_lock_with_platform_default_backends() {
         target_kind: Some("local".into()),
         component_digests: HashMap::new(),
         registry_cache_root: None,
+        strict_oci: false,
     };
 
     let lock = resolve(&opts, &registry(), &permissive_policy(), &macos_platform())
@@ -146,6 +147,7 @@ fn target_mode_writes_sindri_target_lock_with_container_friendly_backends() {
         target_kind: Some("k8s".into()),
         component_digests: HashMap::new(),
         registry_cache_root: None,
+        strict_oci: false,
     };
 
     let lock = resolve(&opts, &registry(), &permissive_policy(), &macos_platform())
@@ -189,6 +191,7 @@ fn default_and_target_lockfiles_coexist() {
             target_kind: Some("local".into()),
             component_digests: HashMap::new(),
             registry_cache_root: None,
+            strict_oci: false,
         },
         &registry(),
         &permissive_policy(),
@@ -208,6 +211,7 @@ fn default_and_target_lockfiles_coexist() {
             target_kind: Some("k8s".into()),
             component_digests: HashMap::new(),
             registry_cache_root: None,
+            strict_oci: false,
         },
         &registry(),
         &permissive_policy(),
@@ -250,6 +254,7 @@ fn component_digests_propagate_into_lockfile() {
         target_kind: Some("local".into()),
         component_digests: digests,
         registry_cache_root: None,
+        strict_oci: false,
     };
 
     let lock = resolve(&opts, &registry(), &permissive_policy(), &macos_platform()).unwrap();

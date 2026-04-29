@@ -58,6 +58,19 @@ pub struct ResolveOptions {
     /// `None` means no component-manifest lookup; platforms will not be
     /// persisted in the lockfile for this resolution run.
     pub registry_cache_root: Option<PathBuf>,
+    /// Strict-OCI admission gate (DDD-08, ADR-028 — Phase 2).
+    ///
+    /// When `true`, every component recorded in the lockfile MUST be
+    /// served by a source whose [`SourceDescriptor`] is `Oci` or
+    /// `LocalOci`; any other descriptor (e.g. `LocalPath`, `Git`) causes
+    /// the resolver to return
+    /// [`ResolverError::SourceNotProductionGrade`].
+    ///
+    /// Per ADR-028 Q3 the CLI flag overrides
+    /// `registry.policy.strict_oci` in `sindri.yaml`; the CLI is
+    /// responsible for applying the precedence before calling the
+    /// resolver.
+    pub strict_oci: bool,
 }
 
 impl Default for ResolveOptions {
@@ -73,6 +86,7 @@ impl Default for ResolveOptions {
             target_kind: None,
             component_digests: HashMap::new(),
             registry_cache_root: None,
+            strict_oci: false,
         }
     }
 }
@@ -275,7 +289,10 @@ fn resolve_online(
         lockfile.auth_bindings = pass.bindings;
     }
 
-    // 6. Write lockfile
+    // 6. Strict-OCI admission gate (DDD-08, ADR-028 — Phase 2).
+    apply_strict_oci_gate(opts, &lockfile)?;
+
+    // 7. Write lockfile
     lockfile_writer::write_lockfile(&opts.lockfile_path, &lockfile)?;
 
     Ok(lockfile)
@@ -416,7 +433,10 @@ fn resolve_offline(
         lockfile.components.push(resolved);
     }
 
-    // 5. Write lockfile (preserving platforms for the next offline resolve).
+    // 5. Strict-OCI admission gate (DDD-08, ADR-028 — Phase 2).
+    apply_strict_oci_gate(opts, &lockfile)?;
+
+    // 6. Write lockfile (preserving platforms for the next offline resolve).
     lockfile_writer::write_lockfile(&opts.lockfile_path, &lockfile)?;
 
     Ok(lockfile)
@@ -483,4 +503,199 @@ fn build_component_auth_inputs(
         }
     }
     out
+}
+
+/// Strict-OCI admission gate (DDD-08, ADR-028 — Phase 2).
+///
+/// Walks the lockfile after resolution and either:
+///
+/// - Returns [`ResolverError::SourceNotProductionGrade`] if `strict_oci`
+///   is set and any component carries a non-production-grade source
+///   descriptor (anything other than `Oci` or `LocalOci`).
+/// - Emits exactly one `tracing::warn!` summarising the source mix when
+///   `strict_oci` is *off* and at least one component used a
+///   non-production-grade source — keeps CI logs noisy enough that a
+///   user can spot drift, but not so noisy that every component
+///   produces its own line.
+fn apply_strict_oci_gate(opts: &ResolveOptions, lockfile: &Lockfile) -> Result<(), ResolverError> {
+    let mut offenders: Vec<(String, String)> = Vec::new();
+    for c in &lockfile.components {
+        let kind = match &c.source {
+            Some(s) => s.kind(),
+            None => "<unknown>",
+        };
+        if !descriptor_is_production_grade(c.source.as_ref()) {
+            offenders.push((c.id.to_address(), kind.to_string()));
+        }
+    }
+
+    if opts.strict_oci {
+        if offenders.is_empty() {
+            tracing::info!(
+                "strict-OCI gate passed for target '{}' ({} components)",
+                opts.target_name,
+                lockfile.components.len()
+            );
+            return Ok(());
+        }
+        return Err(ResolverError::SourceNotProductionGrade { offenders });
+    }
+
+    if !offenders.is_empty() {
+        // Loud-but-once warning. Per the plan: a single tracing::warn!,
+        // not one per component, so CI logs aren't spammed.
+        let summary: Vec<String> = offenders
+            .iter()
+            .map(|(c, k)| format!("{} (source={})", c, k))
+            .collect();
+        tracing::warn!(
+            "non-strict resolve: {} component(s) produced by non-production-grade sources — \
+             enable `--strict-oci` (or `registry.policy.strict_oci: true`) to fail-closed: {}",
+            offenders.len(),
+            summary.join(", ")
+        );
+    }
+
+    Ok(())
+}
+
+/// `true` when this descriptor is one of the strict-OCI-eligible kinds.
+fn descriptor_is_production_grade(source: Option<&SourceDescriptor>) -> bool {
+    match source {
+        Some(SourceDescriptor::Oci { .. }) | Some(SourceDescriptor::LocalOci { .. }) => true,
+        // `LocalPath`, `Git`, and missing descriptors all fail the gate.
+        _ => false,
+    }
+}
+
+#[cfg(test)]
+mod strict_oci_tests {
+    use super::*;
+    use sindri_core::lockfile::{Lockfile, ResolvedComponent};
+
+    fn lockfile_with_descriptors(descriptors: Vec<Option<SourceDescriptor>>) -> Lockfile {
+        use sindri_core::component::Backend;
+        use sindri_core::component::ComponentId as CoreComponentId;
+        let mut lf = Lockfile::new("hash".into(), "local".into());
+        for (i, d) in descriptors.into_iter().enumerate() {
+            let rc = ResolvedComponent {
+                id: CoreComponentId {
+                    backend: Backend::Mise,
+                    name: format!("comp-{}", i),
+                    qualifier: None,
+                },
+                version: sindri_core::version::Version::new("1.0.0"),
+                backend: Backend::Mise,
+                oci_digest: None,
+                checksums: std::collections::HashMap::new(),
+                depends_on: vec![],
+                manifest: None,
+                manifest_digest: None,
+                component_digest: None,
+                platforms: None,
+                source: d,
+            };
+            lf.components.push(rc);
+        }
+        lf
+    }
+
+    fn opts_strict(strict: bool) -> ResolveOptions {
+        ResolveOptions {
+            strict_oci: strict,
+            ..ResolveOptions::default()
+        }
+    }
+
+    #[test]
+    fn strict_off_with_non_production_sources_emits_warn_but_passes() {
+        let lf = lockfile_with_descriptors(vec![
+            Some(SourceDescriptor::LocalPath {
+                path: std::path::PathBuf::from("/x"),
+            }),
+            Some(SourceDescriptor::Oci {
+                url: "oci://x".into(),
+                tag: "1".into(),
+                manifest_digest: None,
+            }),
+        ]);
+        // Should NOT return an error; just warn.
+        apply_strict_oci_gate(&opts_strict(false), &lf).expect("non-strict mode is permissive");
+    }
+
+    #[test]
+    fn strict_on_with_local_path_rejects() {
+        let lf = lockfile_with_descriptors(vec![
+            Some(SourceDescriptor::LocalPath {
+                path: std::path::PathBuf::from("/x"),
+            }),
+            Some(SourceDescriptor::Oci {
+                url: "oci://x".into(),
+                tag: "1".into(),
+                manifest_digest: None,
+            }),
+        ]);
+        let err = apply_strict_oci_gate(&opts_strict(true), &lf)
+            .expect_err("strict mode must reject LocalPath");
+        match err {
+            ResolverError::SourceNotProductionGrade { offenders } => {
+                assert_eq!(offenders.len(), 1);
+                assert_eq!(offenders[0].1, "local-path");
+            }
+            other => panic!("expected SourceNotProductionGrade, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn strict_on_with_only_oci_and_local_oci_passes() {
+        let lf = lockfile_with_descriptors(vec![
+            Some(SourceDescriptor::Oci {
+                url: "oci://x".into(),
+                tag: "1".into(),
+                manifest_digest: Some("sha256:aa".into()),
+            }),
+            Some(SourceDescriptor::LocalOci {
+                layout_path: std::path::PathBuf::from("/layout"),
+                manifest_digest: Some("sha256:bb".into()),
+            }),
+        ]);
+        apply_strict_oci_gate(&opts_strict(true), &lf)
+            .expect("strict mode must accept Oci + LocalOci");
+    }
+
+    #[test]
+    fn strict_on_with_git_descriptor_rejects() {
+        let lf = lockfile_with_descriptors(vec![Some(SourceDescriptor::Git {
+            url: "https://x".into(),
+            commit_sha: "abcd".into(),
+            subdir: None,
+        })]);
+        let err = apply_strict_oci_gate(&opts_strict(true), &lf)
+            .expect_err("strict mode must reject Git");
+        match err {
+            ResolverError::SourceNotProductionGrade { offenders } => {
+                assert_eq!(offenders[0].1, "git");
+            }
+            other => panic!("expected SourceNotProductionGrade, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn strict_on_with_missing_descriptor_rejects() {
+        let lf = lockfile_with_descriptors(vec![None]);
+        let err = apply_strict_oci_gate(&opts_strict(true), &lf)
+            .expect_err("strict mode must reject missing descriptors");
+        assert!(matches!(
+            err,
+            ResolverError::SourceNotProductionGrade { .. }
+        ));
+    }
+
+    #[test]
+    fn exit_code_for_source_not_production_grade_is_admission_2() {
+        let err = ResolverError::SourceNotProductionGrade {
+            offenders: vec![("mise:nodejs".into(), "local-path".into())],
+        };
+        assert_eq!(err.exit_code(), 2);
+    }
 }

@@ -44,11 +44,23 @@
       ],
       "type": "object"
     },
-    "LocalOciSource": {
-      "description": "Phase-2 stub — reads OCI image layouts on disk.",
+    "LocalOciSourceConfig": {
+      "description": "Plain, serializable config for a [`LocalOciSource`].",
       "properties": {
+        "artifact_ref": {
+          "description": "Optional manifest digest pinning the registry artifact when the\nlayout contains more than one. When `None`, the source picks the\nfirst manifest whose layer media type matches the sindri index\nmedia type (or carries the `org.sindri.registry.kind=registry-core`\nannotation).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "layout_path": {
-          "description": "OCI image-layout directory (v1.1).",
+          "description": "Path to the OCI image-layout v1.1 directory.",
+          "type": "string"
+        },
+        "registry_name": {
+          "default": "sindri/core",
+          "description": "Logical registry name used to scope cosign trust keys (mirrors\n[`crate::source::OciSourceConfig::registry_name`]).",
           "type": "string"
         },
         "scope": {
@@ -90,9 +102,14 @@
       ],
       "type": "object"
     },
-    "OciSource": {
-      "description": "Phase-2 stub — the production OCI client wrapper. Carries the descriptor\nshape from DDD-08 so the enum variant is real today, but every trait method\nreturns [`SourceError::NotImplemented`] until Phase 2 wires it to\n[`crate::client::RegistryClient`].",
+    "OciSourceConfig": {
+      "description": "Plain, serializable config half of [`OciSource`]. Carries the descriptor\nshape from DDD-08 so `RegistrySource::Oci` can be expressed in\n`sindri.yaml` without a live client.",
       "properties": {
+        "registry_name": {
+          "default": "sindri/core",
+          "description": "Logical registry name used by the cosign trust loader to find\n`~/.sindri/trust/<registry_name>/cosign-*.pub`. Defaults to\n[`CORE_REGISTRY_NAME`] (`\"sindri/core\"`) — third-party publishers\noverride this.",
+          "type": "string"
+        },
         "scope": {
           "description": "Optional component-name allow-list.",
           "items": {
@@ -121,7 +138,7 @@
   },
   "$id": "https://schemas.sindri.dev/v4/registry-source.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "description": "Aggregate enum that lets the resolver iterate sources without importing\nevery variant. New variants beyond the four canonicalized in ADR-028\nrequire an ADR.",
+  "description": "Aggregate enum that lets the resolver iterate sources without importing\nevery variant. New variants beyond the four canonicalized in ADR-028\nrequire an ADR.\n\nThe serializable variants carry `*Config` payloads (plain data) rather\nthan the live `*Source` runtime objects so the enum can be\n`Serialize/Deserialize/JsonSchema` without dragging in network/cache\nstate. To run a source, materialize it via the variant-specific\nconstructors ([`OciSource::new`] / [`LocalOciSource::new`]) or call\nthe [`RegistrySource::dispatch_*`] helpers which build a one-shot\nruntime instance under the hood.",
   "oneOf": [
     {
       "$ref": "#/$defs/LocalPathSource",
@@ -138,7 +155,7 @@
       "type": "object"
     },
     {
-      "$ref": "#/$defs/OciSource",
+      "$ref": "#/$defs/OciSourceConfig",
       "description": "Production OCI source (Phase 2).",
       "properties": {
         "type": {
@@ -152,7 +169,7 @@
       "type": "object"
     },
     {
-      "$ref": "#/$defs/LocalOciSource",
+      "$ref": "#/$defs/LocalOciSourceConfig",
       "description": "On-disk OCI image layout — the air-gap path (Phase 2).",
       "properties": {
         "type": {

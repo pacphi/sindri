@@ -89,6 +89,7 @@ fn local_path_source_lockfile_records_local_path_descriptor() {
         target_kind: Some("local".into()),
         component_digests: HashMap::new(),
         registry_cache_root: None,
+        strict_oci: false,
     };
 
     let lock = resolve_with_sources(
@@ -135,6 +136,7 @@ fn empty_sources_falls_back_to_oci_descriptor_from_legacy_ref() {
         target_kind: Some("local".into()),
         component_digests: HashMap::new(),
         registry_cache_root: None,
+        strict_oci: false,
     };
 
     let lock = sindri_resolver::resolve(
