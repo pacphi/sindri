@@ -468,15 +468,13 @@ mod tests {
         use super::super::*;
         use crate::well_known::ENV_LOCK;
         use std::fs;
-        use std::os::unix::fs::PermissionsExt;
 
+        // Production `traits::which()` only checks `is_file()`, so the fake
+        // does not need to be executable — this keeps the helper portable.
         fn fake_bin_dir(name: &str) -> tempfile::TempDir {
             let dir = tempfile::tempdir().expect("tempdir");
             let bin = dir.path().join(name);
-            fs::write(&bin, "#!/bin/sh\nexit 0\n").unwrap();
-            let mut perms = fs::metadata(&bin).unwrap().permissions();
-            perms.set_mode(0o755);
-            fs::set_permissions(&bin, perms).unwrap();
+            fs::write(&bin, b"").unwrap();
             dir
         }
 

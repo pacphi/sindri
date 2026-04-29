@@ -140,7 +140,6 @@ mod auth_cap_tests {
     use super::*;
     use crate::well_known::ENV_LOCK;
     use std::fs;
-    use std::os::unix::fs::PermissionsExt;
 
     /// All known well-known env-vars, used to scrub ambient state for tests.
     const KNOWN_VARS: &[&str] = &[
@@ -165,15 +164,15 @@ mod auth_cap_tests {
         }
     }
 
-    /// Create a temp dir containing a fake executable named `name` and return
-    /// the directory path. Caller is responsible for cleanup.
+    /// Create a temp dir containing a file named `name` and return the dir.
+    /// Production `traits::which()` only checks `is_file()`, so the file does
+    /// not need to be executable — this keeps the helper cross-platform without
+    /// platform-specific permissions or extension handling. Caller is
+    /// responsible for cleanup.
     fn fake_bin_dir(name: &str) -> tempfile::TempDir {
         let dir = tempfile::tempdir().expect("tempdir");
         let bin = dir.path().join(name);
-        fs::write(&bin, "#!/bin/sh\necho fake-token\n").unwrap();
-        let mut perms = fs::metadata(&bin).unwrap().permissions();
-        perms.set_mode(0o755);
-        fs::set_permissions(&bin, perms).unwrap();
+        fs::write(&bin, b"").unwrap();
         dir
     }
 
