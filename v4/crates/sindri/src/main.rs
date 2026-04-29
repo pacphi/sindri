@@ -392,6 +392,34 @@ enum RegistrySubcmds {
     },
     /// Download assets and write sha256 checksums
     FetchChecksums { path: String },
+    /// Run an embedded OCI registry over a components directory (Phase 3.2,
+    /// ADR-028). Developer convenience for testing — single-process,
+    /// read-only, no garbage collection. Serves pre-signed bytes verbatim.
+    /// Press Ctrl-C to stop.
+    ///
+    /// Note: `--sign-with` is not available; the server is read-only and
+    /// does not re-sign manifests. Re-signing support is planned for Phase 5.
+    Serve {
+        /// Directory containing an OCI image layout (or a directory of
+        /// them, one per repository).
+        #[arg(long)]
+        root: String,
+        /// `host:port` to listen on. Default `127.0.0.1:5000`.
+        #[arg(long, default_value = "127.0.0.1:5000")]
+        addr: String,
+    },
+    /// Resolve an OCI ref's closure into an OCI image layout or tarball
+    /// for offline / air-gap use (Phase 3.3, ADR-028).
+    Prefetch {
+        /// `oci://host/path:tag` of the upstream registry artifact.
+        oci_ref: String,
+        /// Write the closure as a tarball at this path.
+        #[arg(long, conflicts_with = "layout")]
+        target: Option<String>,
+        /// Write the closure as an OCI image layout directory at this path.
+        #[arg(long, conflicts_with = "target")]
+        layout: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -699,6 +727,16 @@ fn run() -> i32 {
                 RegistrySubcmds::Trust { name, signer } => RegistryCmd::Trust { name, signer },
                 RegistrySubcmds::Verify { name, url } => RegistryCmd::Verify { name, url },
                 RegistrySubcmds::FetchChecksums { path } => RegistryCmd::FetchChecksums { path },
+                RegistrySubcmds::Serve { root, addr } => RegistryCmd::Serve { addr, root },
+                RegistrySubcmds::Prefetch {
+                    oci_ref,
+                    target,
+                    layout,
+                } => RegistryCmd::Prefetch {
+                    oci_ref,
+                    target,
+                    layout,
+                },
             };
             commands::registry::run(registry_cmd)
         }

@@ -37,6 +37,11 @@ base64 = { workspace = true }
 reqwest = { workspace = true }
 zstd = { workspace = true }
 semver = { workspace = true }
+# Phase 3.2 — embedded HTTP server for `sindri registry serve` (ADR-028).
+axum = { workspace = true }
+# `sindri registry prefetch` stages the OCI layout in a tempdir before
+# moving it to the user's --target / --layout output (Phase 3.3, ADR-028).
+tempfile = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }

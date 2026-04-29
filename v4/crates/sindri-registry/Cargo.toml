@@ -37,6 +37,8 @@ pkcs8 = { workspace = true, optional = true }
 # Wave 5A — D6: tar/gzip OCI layer extraction (path-traversal-safe).
 flate2 = { workspace = true }
 tar = { workspace = true }
+# Phase 3.1 — `GitSource` reads commits via libgit2 bindings (vendored).
+git2 = { workspace = true }
 
 [features]
 default = ["keyless"]

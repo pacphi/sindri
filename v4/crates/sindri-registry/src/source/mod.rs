@@ -7,13 +7,14 @@
 //!
 //! ## Phase status
 //!
-//! | Variant      | Status                              | Phase |
-//! | ------------ | ----------------------------------- | ----- |
-//! | `LocalPath`  | Implemented (real filesystem walk)  | 1     |
-//! | `Oci`        | Implemented ([`OciSource`])         | 2     |
-//! | `LocalOci`   | Implemented ([`LocalOciSource`])    | 2     |
-//! | `Git`        | Stub — `SourceError::NotImplemented`| 3     |
+//! | Variant      | Status                                            | Phase |
+//! | ------------ | ------------------------------------------------- | ----- |
+//! | `LocalPath`  | Implemented (real filesystem walk)                | 1     |
+//! | `Oci`        | Implemented (real index + layer streaming)        | 2 / 3 |
+//! | `LocalOci`   | Implemented (real index + layer streaming)        | 2 / 3 |
+//! | `Git`        | Implemented ([`git::GitSourceRuntime`])           | 3     |
 
+pub mod git;
 pub mod local_oci;
 pub mod local_path;
 pub mod oci;
@@ -25,6 +26,7 @@ use sindri_core::version::Version;
 use std::path::PathBuf;
 use thiserror::Error;
 
+pub use git::GitSourceRuntime;
 pub use local_oci::{LocalOciSource, LocalOciSourceConfig};
 pub use local_path::LocalPathSource;
 pub use oci::{OciSource, OciSourceConfig};
@@ -278,7 +280,7 @@ impl RegistrySource {
                 .map_err(|e| SourceError::Io(e.to_string()))?
                 .fetch_index(ctx),
             RegistrySource::LocalOci(cfg) => LocalOciSource::new(cfg.clone()).fetch_index(ctx),
-            RegistrySource::Git(_) => Err(SourceError::NotImplemented("git")),
+            RegistrySource::Git(cfg) => GitSourceRuntime::new(cfg.clone()).fetch_index(ctx),
         }
     }
 
@@ -297,7 +299,9 @@ impl RegistrySource {
             RegistrySource::LocalOci(cfg) => {
                 LocalOciSource::new(cfg.clone()).fetch_component_blob(id, version, ctx)
             }
-            RegistrySource::Git(_) => Err(SourceError::NotImplemented("git")),
+            RegistrySource::Git(cfg) => {
+                GitSourceRuntime::new(cfg.clone()).fetch_component_blob(id, version, ctx)
+            }
         }
     }
 
@@ -321,9 +325,11 @@ impl RegistrySource {
             },
             RegistrySource::Git(s) => SourceDescriptor::Git {
                 url: s.url.clone(),
-                // The unresolved ref is recorded as a placeholder until
-                // Phase 3 resolves it to a sha. Apply-time refetch will
-                // reject this until the lockfile is regenerated.
+                // The static-config dispatch can only echo the user-supplied
+                // ref because it has no live runtime state. Callers that
+                // need the resolved sha must hold a `GitSourceRuntime`
+                // directly and call [`Source::lockfile_descriptor`] on it
+                // (the resolver does this after `fetch_index` succeeds).
                 commit_sha: s.git_ref.clone(),
                 subdir: s.subdir.clone(),
             },

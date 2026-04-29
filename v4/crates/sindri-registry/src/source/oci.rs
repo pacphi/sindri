@@ -228,23 +228,27 @@ impl Source for OciSource {
         Ok(index)
     }
 
-    /// Fetch a single component blob by id.
+    /// Fetch a single component blob by id (Phase 3.0, ADR-028).
     ///
-    /// **Phase 2 stub — currently returns `NotImplemented`.**
+    /// Resolves the component entry from the cached / live index, then
+    /// pulls the per-component OCI layer bytes via
+    /// [`RegistryClient::fetch_component_layer_bytes`]. The layer bytes are
+    /// digest-verified against the manifest's declared digest before
+    /// returning.
     ///
-    /// Per-component OCI layer streaming requires resolving the component's
-    /// `oci_ref` digest to actual layer bytes, which is gated on
-    /// `sindri registry prefetch` (Phase 3, plan §3.3). Until that lands,
-    /// callers must use `fetch_index()` and `lockfile_descriptor()` for
-    /// index-level metadata.
+    /// `version` is currently informational — the index already pins each
+    /// entry's `oci_ref` to a specific artifact, and components without an
+    /// `oci_ref` (legacy or partially-built indexes) are rejected with
+    /// [`SourceError::InvalidData`].
     fn fetch_component_blob(
         &self,
         id: &ComponentId,
         _version: &Version,
-        _ctx: &SourceContext,
+        ctx: &SourceContext,
     ) -> Result<ComponentBlob, SourceError> {
         // Honor the scope filter at the blob level too — this is a real
-        // semantic guard, not a placeholder, so it fires before the stub.
+        // semantic guard so out-of-scope names short-circuit before any
+        // network I/O.
         if !self
             .config
             .scope
@@ -255,10 +259,31 @@ impl Source for OciSource {
             return Err(SourceError::NotFound(id.name.as_str().to_string()));
         }
 
-        // Per-component layer streaming is a Phase 3 prerequisite for
-        // `sindri registry prefetch`. Phase 2 only exposes index-level
-        // metadata via fetch_index() and lockfile_descriptor().
-        Err(SourceError::NotImplemented("oci:fetch_component_blob — per-component layer streaming lands in Phase 3 alongside `sindri registry prefetch`"))
+        // Look up the component entry to find its per-component OCI ref.
+        // We re-use `fetch_index` (which respects cache + cosign) so the
+        // first call hot-loads the index and subsequent calls are local.
+        let index = self.fetch_index(ctx)?;
+        let entry = index
+            .find(&id.backend, id.name.as_str())
+            .ok_or_else(|| SourceError::NotFound(id.name.as_str().to_string()))?;
+
+        if entry.oci_ref.trim().is_empty() {
+            return Err(SourceError::InvalidData(format!(
+                "component {}/{} has no oci_ref in the index",
+                entry.backend, entry.name
+            )));
+        }
+
+        let me = self.clone();
+        let oci_ref = entry.oci_ref.clone();
+        let (digest, bytes) =
+            block_on_async(async move { me.client.fetch_component_layer_bytes(&oci_ref).await })
+                .map_err(map_registry_error)?;
+
+        Ok(ComponentBlob {
+            bytes,
+            digest: Some(digest),
+        })
     }
 
     fn lockfile_descriptor(&self) -> SourceDescriptor {

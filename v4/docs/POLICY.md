@@ -2,7 +2,7 @@
 
 This document describes the install policy system: admission gates, license deduplication, capability execution controls, and the denylist/allowlist semantics. It is aimed at security engineers, platform teams, and developers who need to enforce compliance constraints on Sindri-managed environments.
 
-The design is documented in [ADR-008](architecture/adr/008-install-policy-subsystem.md). For a quick start, see [CLI.md — Policy Management](CLI.md#policy-management). The policy schema is at [`v4/schemas/policy.json`](../schemas/policy.json).
+The design is documented in [ADR-008](architecture/adr/008-install-policy-subsystem.md). Gate 5 (auth-resolvable) is added in [ADR-027 §5](architecture/adr/027-target-auth-injection.md). For a quick start, see [CLI.md — Policy Management](CLI.md#policy-management). The policy schema is at [`v4/schemas/policy.json`](../schemas/policy.json).
 
 ---
 
@@ -78,13 +78,18 @@ capabilities:
 
 audit:
   require_justification: false
+
+auth:
+  on_unresolved_required: deny       # deny | warn | prompt
+  allow_upstream_credentials: false
+  allow_prompt_in_ci: false
 ```
 
 ---
 
-## The Four Admission Gates
+## The Five Admission Gates
 
-Every `sindri resolve` runs all four gates in order. A failure at any gate prevents the component (and any component that depends on it) from entering the lockfile.
+Every `sindri resolve` runs gates 1–4 in order. Gate 5 (auth-resolvable) runs at `sindri apply` time against the per-target lockfile's bindings. A failure at any gate prevents the component (and any component that depends on it) from being applied to the target.
 
 ```mermaid
 flowchart TD
@@ -96,7 +101,10 @@ flowchart TD
     G3 -->|FAIL: transitive dependency denied| DENY
     G3 -->|PASS| G4{Gate 4\nCapability trust}
     G4 -->|FAIL: untrusted collision_handling\nor project_init source| DENY
-    G4 -->|PASS| ADMIT[Admitted — written to sindri.lock]
+    G4 -->|PASS| LOCK[Written to sindri.lock]
+    LOCK -->|sindri apply| G5{Gate 5\nAuth-resolvable}
+    G5 -->|FAIL: ADM_AUTH_UNRESOLVED\nADM_AUTH_UPSTREAM_DENIED\nADM_AUTH_PROMPT_IN_CI| DENY
+    G5 -->|PASS| ADMIT[Applied to target]
 ```
 
 ### Gate 1 — Platform Eligibility
@@ -141,6 +149,56 @@ DENIED (1)
 Components that declare `capabilities.collision_handling` or `capabilities.project_init` from third-party registries are checked against `policy.capabilities.trust_sources`. Untrusted sources are denied (or downgraded to a warning) per policy.
 
 **Collision handling path prefix rule:** `collision_handling.path_prefix` must start with `{component-name}/`. This prevents a component from claiming collision ownership over paths it does not own. Components in `sindri/core` may additionally use `:shared` for cross-component shared paths. See [ADR-008](architecture/adr/008-install-policy-subsystem.md) and the lint error `LINT_COLLISION_PREFIX`.
+
+### Gate 5 — Auth-resolvable
+
+Verifies that every non-`optional` `AuthRequirement` declared by a component in the resolved closure has a bound source on the target's per-target lockfile, AND that the bound source is admissible under operator policy. Implemented in [`sindri-policy::gate5_auth`](../crates/sindri-policy/src/gate5_auth.rs); designed in [ADR-027 §5](architecture/adr/027-target-auth-injection.md).
+
+Unlike Gates 1–4 (which run at `sindri resolve` against the registry), Gate 5 runs at `sindri apply` against the lockfile's `AuthBinding` records. A required binding that the resolver could not bind (env var missing, no `provides:` mapping the audience, no `discovery.env-aliases` match) reaches apply as an unresolved entry; Gate 5 denies before any side effect runs.
+
+Configured under `auth:` in `sindri.policy.yaml`. All three knobs default to **deny** — operators must opt into each relaxation explicitly.
+
+| Code | Trigger |
+|------|---------|
+| `ADM_AUTH_UNRESOLVED` | `auth.on_unresolved_required: deny` and a required binding is unresolved on the target |
+| `ADM_AUTH_UPSTREAM_DENIED` | `auth.allow_upstream_credentials: false` and a binding is sourced via `from-upstream-credentials` |
+| `ADM_AUTH_PROMPT_IN_CI` | `auth.allow_prompt_in_ci: false` and a binding's source is `prompt` in a non-interactive run |
+
+**Non-interactive detection:** `CI` env var present, `SINDRI_CI` env var present, or stdin not attached to a TTY (Unix only; Windows is treated as non-interactive by default).
+
+#### `auth.on_unresolved_required`
+
+| Value | Behaviour |
+|-------|-----------|
+| `deny` | (default) Apply fails with `EXIT_POLICY_DENIED` if any required-and-unbound binding exists. |
+| `warn` | Logs a `tracing::warn!` and admits. The install will likely fail at first run. |
+| `prompt` | Reserved for Phase 5 — interactive resolution. |
+
+Use `warn` only when you intentionally need a "best-effort" install (e.g. base-image bake where credentials will be supplied later via cloud-init). Document the choice; revisit during audit.
+
+#### `auth.allow_upstream_credentials`
+
+| Value | Behaviour |
+|-------|-----------|
+| `false` | (default) Bindings whose source is `from-upstream-credentials` are denied. |
+| `true` | Bindings can reuse the target's own session credentials. |
+
+The target's session token (e.g. an SSH-agent-forwarded GitHub-app installation token) becomes available to every component that declares a matching audience. A maliciously-crafted manifest matching the audience can harvest the token. ADR-014 trust-on-install applies, but treat `allow_upstream_credentials: true` as a privileged setting.
+
+#### `auth.allow_prompt_in_ci`
+
+| Value | Behaviour |
+|-------|-----------|
+| `false` | (default) Bindings whose source is `prompt` are denied in non-interactive runs. |
+| `true` | Prompt sources are allowed even when no TTY is present / `CI=1` is set. |
+
+Without this gate, an apply that needs an interactive credential (SSH passphrase, MFA token) hangs on `stdin.read_line()` until the CI runner times out. There is almost never a legitimate reason to enable this on production CI; the right answer is to switch the credential to a backed source (env var, secrets store).
+
+#### Interaction with `sindri apply --skip-auth`
+
+`--skip-auth` bypasses **redemption** but does NOT bypass Gate 5. Required-binding presence is still enforced. To bypass both, operators must additionally relax `auth.on_unresolved_required` to `warn`.
+
+This split is intentional: `--skip-auth` is for "I know my credentials are out-of-band and will inject them another way"; the gate is for "there exists a bound source somewhere". Different concerns, separate overrides, both auditable in `~/.sindri/ledger.jsonl`.
 
 ---
 
@@ -245,5 +303,6 @@ sindri log --json | jq '.[] | select(.event_type == "policy_override")'
 | Gate 2 — Policy eligibility | Implemented (license check in `sindri-policy::check`) | [ADR-008](architecture/adr/008-install-policy-subsystem.md) |
 | Gate 3 — Dependency closure | Implemented (topological DAG in resolver) | [ADR-008](architecture/adr/008-install-policy-subsystem.md) |
 | Gate 4 — Capability trust | Implemented (collision path prefix enforced in `registry lint`) | [ADR-008](architecture/adr/008-install-policy-subsystem.md) |
+| Gate 5 — Auth-resolvable | Implemented (`sindri-policy::gate5_auth::check_gate5`) | [ADR-027 §5](architecture/adr/027-target-auth-injection.md), [PR #254](https://github.com/pacphi/sindri/pull/254) |
 
-Full script sandboxing (Landlock/Seatbelt/AppContainer) and SLSA L3+ attestation chains are deferred beyond v4.0.
+Full script sandboxing (Landlock/Seatbelt/AppContainer) and SLSA L3+ attestation chains are deferred beyond v4.0. Gate 5's `auth.on_unresolved_required: prompt` value is reserved for a Phase 5 interactive-resolution flow.

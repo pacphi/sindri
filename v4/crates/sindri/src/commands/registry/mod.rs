@@ -3,6 +3,9 @@ use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
 use sindri_registry::signing::TrustedKey;
 use sindri_registry::{CosignVerifier, OciRef, RegistryClient};
 
+pub mod prefetch;
+pub mod serve;
+
 pub enum RegistryCmd {
     Refresh {
         name: String,
@@ -28,6 +31,20 @@ pub enum RegistryCmd {
     FetchChecksums {
         path: String,
     },
+    /// Embedded OCI registry over a components directory (Phase 3.2,
+    /// ADR-028). Serves pre-signed bytes verbatim from the layout on disk.
+    /// `--sign-with` was removed in Phase 3 follow-up; re-signing is Phase 5.
+    Serve {
+        addr: String,
+        root: String,
+    },
+    /// Resolve the closure of one OCI ref into a tarball or OCI image
+    /// layout (Phase 3.3, ADR-028).
+    Prefetch {
+        oci_ref: String,
+        target: Option<String>,
+        layout: Option<String>,
+    },
 }
 
 pub fn run(cmd: RegistryCmd) -> i32 {
@@ -41,6 +58,12 @@ pub fn run(cmd: RegistryCmd) -> i32 {
         RegistryCmd::Trust { name, signer } => trust(&name, &signer),
         RegistryCmd::Verify { name, url } => verify(&name, &url),
         RegistryCmd::FetchChecksums { path } => fetch_checksums(&path),
+        RegistryCmd::Serve { addr, root } => serve::run(&addr, &root),
+        RegistryCmd::Prefetch {
+            oci_ref,
+            target,
+            layout,
+        } => prefetch::run(&oci_ref, target.as_deref(), layout.as_deref()),
     }
 }
 
