@@ -508,8 +508,18 @@ mod tests {
     }
 
     fn fixture_url(repo_dir: &Path) -> String {
-        // `file://` + absolute path. libgit2 accepts this.
-        format!("file://{}", repo_dir.display())
+        // RFC 8089 file URL. On POSIX the path is `/tmp/...` (already absolute,
+        // begins with `/`), giving `file:///tmp/...`. On Windows the path is
+        // `C:\Users\...`; libgit2 will reject `file://C:\...` because the colon
+        // is read as a port separator and backslashes are not URL-safe — so we
+        // forward-slash the path and add the extra `/` before the drive letter,
+        // yielding `file:///C:/Users/...`.
+        let path = repo_dir.display().to_string().replace('\\', "/");
+        if cfg!(windows) {
+            format!("file:///{}", path)
+        } else {
+            format!("file://{}", path)
+        }
     }
 
     #[test]
