@@ -24,3 +24,16 @@ install:
     timeout: "600"
 
 depends_on: []
+
+auth:
+  tokens:
+    - name: dockerhub_token
+      description: "Docker Hub access token used by `docker login` for authenticated pulls/pushes."
+      scope: runtime
+      optional: true
+      audience: "https://hub.docker.com"
+      redemption:
+        kind: env-var
+        env-name: DOCKERHUB_TOKEN
+      discovery:
+        env-aliases: [DOCKERHUB_TOKEN, DOCKER_AUTH, DOCKER_PASSWORD]

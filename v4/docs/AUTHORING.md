@@ -346,3 +346,184 @@ ghcr.io/sindri-dev/registry-core/collections/<name>:<version>
 | `PARSE_ERROR` | YAML is malformed | Check indentation and quoting |
 
 Run `sindri registry lint --json` for machine-readable output in CI.
+
+---
+
+## Auth declarations (ADR-026)
+
+When your component requires a credential — an API token, OAuth flow, X.509
+certificate, or SSH key — declare it under the top-level `auth:` block. The
+field is additive and `#[serde(default)]`, so existing components without an
+`auth:` block continue to work unchanged.
+
+A typical bearer-token declaration looks like this:
+
+```yaml
+auth:
+  tokens:
+    - name: anthropic_api_key
+      description: "Anthropic API key used by the Claude Code CLI."
+      scope: runtime           # install | runtime | both (default: both)
+      optional: false          # if true, install proceeds when no source binds
+      audience: "urn:anthropic:api"
+      redemption:
+        kind: env-var
+        env-name: ANTHROPIC_API_KEY
+      discovery:
+        env-aliases: [ANTHROPIC_API_KEY, CLAUDE_API_KEY]
+```
+
+Field semantics live in the ADR; this document focuses on the conventions you
+should follow when filling the values in.
+
+### `audience`
+
+The `audience` field identifies the *logical resource* the credential
+authenticates against. It is the RFC-9068 audience claim when the token is a
+JWT; otherwise treat it as a free-form URL or vendor URN. The resolver
+(ADR-027) uses audience matching to bind component requirements to target
+capabilities, so consistency across components matters more than perfect
+formal correctness.
+
+Use the values in the table below. If you're adding a service not listed,
+check the upstream OAuth / OIDC discovery document if one exists; otherwise
+mint a sensible URL or `urn:` in the same style.
+
+#### Canonical audience reference
+
+| Provider                      | Audience                              | Used by (examples)                    |
+| ----------------------------- | ------------------------------------- | ------------------------------------- |
+| **AI providers**              |                                       |                                       |
+| Anthropic                     | `urn:anthropic:api`                   | `claude-code`, `claudish`, `compahook`, `ruflo`, `claude-marketplace` |
+| OpenAI                        | `https://api.openai.com`              | `codex`, `openclaw`                   |
+| Google Generative Language    | `https://generativelanguage.googleapis.com` | `gemini-cli`                    |
+| xAI                           | `https://api.x.ai`                    | `grok`                                |
+| **Source forges**             |                                       |                                       |
+| GitHub                        | `https://api.github.com`              | `gh`, `github-cli`, Go private modules |
+| GitLab                        | `https://gitlab.com/api/v4`           | `glab`                                |
+| Atlassian                     | `https://api.atlassian.com`           | `jira-mcp`                            |
+| **Language registries (P2)**  |                                       |                                       |
+| npm                           | `https://registry.npmjs.org`          | `nodejs` (private regs)               |
+| PyPI                          | `https://pypi.org`                    | `python` (publish / private indexes)  |
+| Maven Central / OSSRH         | `https://repo.maven.apache.org`       | `java` (`mvn deploy`)                 |
+| crates.io                     | `https://crates.io`                   | `rust` (`cargo publish`)              |
+| Go module proxy (best-guess)  | `https://api.github.com`              | `golang` (private modules via GitHub) |
+| **Container registries (P2)** |                                       |                                       |
+| Docker Hub                    | `https://hub.docker.com`              | `docker`                              |
+| Supabase Management API       | `https://api.supabase.com`            | `supabase-cli`                        |
+| **Cloud providers (P1)**      |                                       |                                       |
+| AWS STS                       | `https://sts.amazonaws.com`           | `aws-cli`                             |
+| Azure ARM                     | `https://management.azure.com`        | `azure-cli`                           |
+| GCP                           | `https://www.googleapis.com`          | `gcloud`                              |
+| IBM Cloud IAM                 | `https://iam.cloud.ibm.com`           | `ibmcloud`                            |
+| Alibaba Cloud                 | `https://ecs.aliyuncs.com`            | `aliyun`                              |
+| DigitalOcean                  | `https://api.digitalocean.com`        | `doctl`                               |
+| Fly.io                        | `https://api.fly.io`                  | `flyctl`                              |
+
+The list grows. If you migrate a new component and have to invent an audience
+string, please open a PR adding a row here so the next author can reuse it.
+
+### `redemption`
+
+Internally-tagged on `kind` (Phase 0 schema). The three variants:
+
+```yaml
+# Inject as <ENV_NAME>=<value> into the target's apply env.
+redemption:
+  kind: env-var
+  env-name: ANTHROPIC_API_KEY
+
+# Write to a file path. mode defaults to 0600; persist defaults to false
+# (file is deleted post-apply).
+redemption:
+  kind: file
+  path: "/etc/sindri/cert.pem"
+  mode: 0o600
+  persist: false
+
+# env-var pointing at a file (e.g. GOOGLE_APPLICATION_CREDENTIALS).
+redemption:
+  kind: env-file
+  env-name: GOOGLE_APPLICATION_CREDENTIALS
+  path: "/run/secrets/gcp.json"
+```
+
+### `optional`
+
+`optional: true` means the install proceeds even if no source binds — the
+tool installs in degraded mode and surfaces the missing credential at runtime
+(usually as an error from the upstream tool). Use this for:
+
+- Language registry tokens (`nodejs`, `python`, `rust`, `java`, `golang`):
+  the toolchain installs fine; private-registry usage is the user's choice.
+- Service tokens that public usage doesn't need (`docker` for unauthenticated
+  pulls, `supabase-cli` for local dev without the Management API).
+- Internal tokens for components that *can* run without them (e.g. `compahook`,
+  `claudish`, `claude-marketplace`, `ruflo` declare ANTHROPIC_API_KEY as
+  optional even though most users will set it).
+
+`optional: false` means the resolver must bind a source — Gate 5 (Phase 2)
+will deny the apply otherwise. Use this for:
+
+- Provider API keys for AI assistants (`claude-code`, `codex`, `gemini-cli`).
+- Required OAuth flows where the tool is inert without the token.
+
+### `scope`
+
+When the credential is needed: `install`, `runtime`, or `both` (default).
+A token used only by `install.sh` is `install`; a runtime API key is
+`runtime`; an authentication token used by both `install` *and* the
+installed CLI defaults to `both`.
+
+### `discovery`
+
+Hints to the resolver (ADR-027 §"binding algorithm") about how to find a
+source for the requirement automatically. The most common form is a list of
+environment-variable aliases:
+
+```yaml
+discovery:
+  env-aliases: [GITHUB_TOKEN, GH_TOKEN]
+```
+
+This lets the resolver recognise — without the user having to wire
+`provides:` into a target — that an ambient `GITHUB_TOKEN` in the operator's
+shell can satisfy this requirement.
+
+## The `--auth` lint rule
+
+`sindri registry lint --auth <path>` (or
+`python3 tools/validate_registry.py --auth`) enables a warning-only rule that
+fires on components in credentialed categories (tags: `cloud`, `ai`,
+`ai-dev`, `mcp`) that lack an `auth:` block. The rule **never** fails the
+build.
+
+To opt out for a specific component, add this comment to the top of
+`component.yaml` (must be in the first 8 lines):
+
+```yaml
+# sindri-lint: auth-not-required
+metadata:
+  name: my-component
+  ...
+```
+
+Use the opt-out sparingly — usually a real `auth:` block is the right move.
+
+## Migration phases
+
+`auth:` declarations land in waves (see
+[the implementation plan](plans/auth-aware-implementation-plan-2026-04-28.md)):
+
+- **P0** (highest impact): provider API keys for AI assistants and source
+  forges (`claude-code`, `codex`, `gemini-cli`, `gh`, `glab`, …).
+- **P1**: cloud-provider CLIs and MCP servers.
+- **P2**: language registry tokens (`nodejs`, `python`, `rust`, `java`,
+  `golang`) and service-specific tokens (`docker`, `supabase-cli`). All
+  marked `optional: true`.
+- **P3**: internal Anthropic-team tools (`compahook`, `claudish`,
+  `claude-marketplace`, `ruflo`). Marked `optional: true` — internal users
+  escalate locally.
+
+If you're adding a new component, jump straight to declaring the right
+`auth:` block; you don't need to phase it.

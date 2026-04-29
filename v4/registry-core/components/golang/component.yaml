@@ -24,3 +24,16 @@ install:
       go: "1.22.0"
 
 depends_on: []
+
+auth:
+  tokens:
+    - name: goproxy_github_token
+      description: "GitHub token used by GOPROXY for fetching private Go modules from GitHub-hosted repositories."
+      scope: both
+      optional: true
+      audience: "https://api.github.com"
+      redemption:
+        kind: env-var
+        env-name: GITHUB_TOKEN
+      discovery:
+        env-aliases: [GITHUB_TOKEN, GOPROXY_TOKEN]
