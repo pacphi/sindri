@@ -284,6 +284,50 @@ impl RegistryClient {
         Ok((index, Some(digest)))
     }
 
+    /// Fetch the **verbatim manifest bytes** for an OCI reference (Phase 3.3
+    /// follow-up, ADR-028).
+    ///
+    /// Unlike [`Self::fetch_index`] — which parses the manifest and then
+    /// re-serializes the index — this returns the exact bytes the registry
+    /// sent, together with their SHA-256 content digest. The caller can write
+    /// these bytes directly into an OCI image-layout blob store and the
+    /// digest will be identical to `sha256(bytes)`. That byte identity is
+    /// what `sindri registry prefetch` needs to guarantee that the
+    /// `LocalOciSource` consuming the layout sees the same cosign trust chain
+    /// as a live `OciSource` pull.
+    ///
+    /// Accepted media types mirror the OCI Distribution Spec read path:
+    /// `application/vnd.oci.image.manifest.v1+json` and
+    /// `application/vnd.oci.image.index.v1+json`.
+    pub async fn fetch_registry_manifest_bytes(
+        &self,
+        registry_url: &str,
+    ) -> Result<(Vec<u8>, String), RegistryError> {
+        let oci_ref = OciRef::parse(registry_url)?;
+        let reference = oci_reference_for(&oci_ref);
+        let auth = docker_config_auth(&oci_ref.registry).unwrap_or(RegistryAuth::Anonymous);
+
+        tracing::debug!(
+            "fetching verbatim manifest bytes for {} (Phase 3.3 follow-up)",
+            oci_ref.to_canonical()
+        );
+
+        let accepted = &[
+            "application/vnd.oci.image.manifest.v1+json",
+            "application/vnd.oci.image.index.v1+json",
+            "application/vnd.docker.distribution.manifest.v2+json",
+        ];
+        let (raw, digest) = self
+            .oci
+            .pull_manifest_raw(&reference, &auth, accepted)
+            .await
+            .map_err(|e| RegistryError::OciFetch {
+                reference: oci_ref.to_canonical(),
+                detail: format!("raw manifest fetch failed: {}", e),
+            })?;
+        Ok((raw.to_vec(), digest))
+    }
+
     /// Fetch the SHA-256 digest of a *component's* primary OCI layer.
     ///
     /// Wave 5F — D5 (carry-over from PR #228): the resolver populates the
