@@ -50,7 +50,7 @@
 //! The cosign pre-flight (PR #228) runs at the top of **every** apply,
 //! including `--resume` — it is cheap and idempotent.
 
-use crate::commands::apply_lifecycle::{install_one, ApplyError, ApplyOptions};
+use crate::commands::apply_lifecycle::{install_one_with_bindings, ApplyError, ApplyOptions};
 use sindri_core::apply_state::{
     now_rfc3339, try_lock_state_file, ApplyStateStore, ComponentStage, RecordStatus, StateError,
     StateRecord,
@@ -61,9 +61,10 @@ use sindri_core::exit_codes::{
 };
 use sindri_core::lockfile::ResolvedComponent;
 use sindri_core::platform::Platform;
+use sindri_extensions::redeemer::ledger as redeem_ledger;
 use sindri_extensions::{
-    CollisionContext, CollisionResolver, ComponentRef, HookContext, HooksExecutor,
-    ProjectInitContext, ProjectInitExecutor,
+    CollisionContext, CollisionResolver, ComponentBindings, ComponentRef, HookContext,
+    HooksExecutor, ProjectInitContext, ProjectInitExecutor,
 };
 use sindri_targets::{LocalTarget, Target};
 use std::path::{Path, PathBuf};
@@ -78,6 +79,12 @@ pub struct ApplyArgs {
     pub resume: bool,
     /// Wipe the apply-state file for the current BOM (Wave 5H).
     pub clear_state: bool,
+    /// Phase 2A: bypass the redeemer entirely. Required-binding presence
+    /// is still validated by Gate 5 unless that gate is also relaxed via
+    /// `policy.auth.on_unresolved_required: warn`. Every component whose
+    /// redemption was skipped emits a single `AuthSkippedByUser` ledger
+    /// event so the bypass is auditable.
+    pub skip_auth: bool,
 }
 
 /// Synchronous entry point preserved for the CLI dispatch. Internally we
@@ -349,9 +356,28 @@ async fn run_async(args: ApplyArgs) -> i32 {
         );
     }
 
-    let apply_options = ApplyOptions::default();
+    let apply_options = ApplyOptions {
+        skip_auth: args.skip_auth,
+        ..Default::default()
+    };
     let mut failed = 0usize;
     let mut applied: Vec<&ResolvedComponent> = Vec::new();
+
+    if args.skip_auth && !lockfile.auth_bindings.is_empty() {
+        // Emit one AuthSkippedByUser per component that *would* have had
+        // bindings. (Phase 2A — auditable bypass.)
+        let mut seen: std::collections::HashSet<&str> = std::collections::HashSet::new();
+        for b in &lockfile.auth_bindings {
+            if seen.insert(b.component.as_str()) {
+                redeem_ledger::emit_skipped_by_user(&b.component, &lockfile.target);
+            }
+        }
+        eprintln!(
+            "WARNING: --skip-auth bypasses credential redemption for {} component(s). \
+             Components that need credentials may fail at install or runtime.",
+            seen.len()
+        );
+    }
 
     for comp in &lockfile.components {
         let name = &comp.id.name;
@@ -385,13 +411,31 @@ async fn run_async(args: ApplyArgs) -> i32 {
             ts: now_rfc3339(),
         });
 
+        // Look up auth bindings for this component (if any) from the lockfile.
+        let addr = comp.id.to_address();
+        let cb_owned: Vec<&sindri_core::auth::AuthBinding> = lockfile
+            .auth_bindings
+            .iter()
+            .filter(|b| b.component == addr)
+            .collect();
+        let cb: Option<ComponentBindings<'_>> = if !cb_owned.is_empty() {
+            comp.manifest.as_ref().map(|m| ComponentBindings {
+                component: cb_owned[0].component.as_str(),
+                bindings: cb_owned.clone(),
+                auth: &m.auth,
+            })
+        } else {
+            None
+        };
+
         print!("  Installing {} {}...", comp.id.to_address(), comp.version);
-        match install_one(
+        match install_one_with_bindings(
             comp,
             comp.manifest.as_ref(),
             &target,
             &platform,
             &apply_options,
+            cb.as_ref(),
         )
         .await
         {
