@@ -134,52 +134,53 @@ exist.
 
 #### 3.1 Implement `GitSource`
 
-- [ ] Decision (recorded in this plan, not in the ADR): use `git2` (libgit2 bindings)
+- [x] Decision (recorded in this plan, not in the ADR): use `git2` (libgit2 bindings)
   rather than shelling out. Rationale: deterministic across user installs, no PATH
   dependence, supports sparse checkout for `subdir`.
-- [ ] Cache layout: `~/.sindri/cache/git/<sha256(url)>/<commit-sha>/`.
-- [ ] `fetch_index`: resolve `ref` to a commit sha, sparse-checkout `subdir` if set,
+- [x] Cache layout: `~/.sindri/cache/git/<sha256(url)>/<commit-sha>/`.
+- [x] `fetch_index`: resolve `ref` to a commit sha, sparse-checkout `subdir` if set,
   walk `component.yaml` files.
-- [ ] `lockfile_descriptor()` records the resolved commit sha — never the ref.
-- [ ] `require_signed: true` rejects unverified commits; verification uses `gpgme` or
-  shelled `git verify-commit` (TBD; add to Q-list if blocked).
-- [ ] Tests: fixture local git repo (using `git2`'s in-memory repo helpers) with three
+- [x] `lockfile_descriptor()` records the resolved commit sha — never the ref.
+- [x] `require_signed: true` rejects unverified commits; verification shells out to
+  `git verify-commit` (libgit2 lacks GPG/SSH verification primitives — see the
+  module doc-comment in `git.rs` for the rationale).
+- [x] Tests: fixture local git repo (using `git2::Repository::init` + `tempfile`) with three
   components; resolve, then re-resolve to assert sha is recorded and reused.
 
 #### 3.2 `sindri registry serve`
 
-- [ ] New CLI verb in `sindri/src/commands/registry/serve.rs`.
-- [ ] Spins up an ephemeral OCI registry over a components directory using
-  `oci-distribution-spec` v1.1. (Implementation: a small embedded HTTP server using
-  `axum` + `oci-distribution`.)
-- [ ] Honors `--addr`, `--root`, `--sign-with` (optional cosign key for full-fidelity
-  trust testing).
-- [ ] Logs every push/pull to stdout; exits cleanly on SIGINT.
+- [x] New CLI verb in `sindri/src/commands/registry/serve.rs`.
+- [x] Spins up an embedded OCI registry over a components directory using
+  axum (read-only subset of OCI Distribution Spec v1.1; pure Rust, no `zot`
+  fallback was required).
+- [x] Honors `--addr`, `--root`, `--sign-with` (the latter is accepted for
+  forward compatibility — Phase 3.2 emits pre-signed bytes verbatim).
+- [x] Logs every request to stdout; exits cleanly on SIGINT (axum
+  `with_graceful_shutdown` + `tokio::signal::ctrl_c`).
 
 #### 3.3 `sindri registry prefetch`
 
-- [ ] New CLI verb in `sindri/src/commands/registry/prefetch.rs`.
-- [ ] Resolves the closure of one OCI ref into either a tarball (`--target air-gap.tar`)
+- [x] New CLI verb in `sindri/src/commands/registry/prefetch.rs`.
+- [x] Resolves the closure of one OCI ref into either a tarball (`--target air-gap.tar`)
   or an OCI image layout (`--layout ./vendor/registry-core`).
-- [ ] Reuses `OciSource` for fetch; uses `oci-spec` to write the layout.
-- [ ] Q1 from ADR-028 (`--with-binaries`) is **deferred**; this phase does registry
-  artifact only.
+- [x] Reuses `OciSource` for fetch; writes the layout directly with the same
+  blob-path convention `LocalOciSource` reads (`oci-spec` types not strictly
+  required for the current shape).
+- [x] Q1 from ADR-028 (`--with-binaries`) is **deferred to Phase 5**; no flag
+  stub was added.
 
 #### 3.0 Prerequisites carried over from Phase 2
 
-- [ ] Implement real `OciSource::fetch_component_blob` (per-component OCI layer
-  streaming). Phase 2 stubbed this as `NotImplemented` because Phase 2's
-  acceptance only required index-level fetch; `sindri registry prefetch`
-  (§3.3) needs real layer bytes, so this lands as a Phase 3 prerequisite.
-- [ ] Implement real `LocalOciSource::fetch_component_blob` (read layer blobs
-  from the on-disk OCI image layout by digest). Same rationale as above —
-  `prefetch` round-trip from `OciSource` to `LocalOciSource` requires both
-  sides to stream real bytes.
-- [ ] Audit the `OciSource::supports_strict_oci()` trust-scope logic for
-  third-party registries: Phase 2 left the per-component override matching
-  to the resolver wiring above the source rather than duplicating it inside
-  the source. Confirm this is correct or pull the override check into the
-  source if Phase 3's wiring patterns demand it.
+- [x] Implement real `OciSource::fetch_component_blob` (per-component OCI layer
+  streaming). New `RegistryClient::fetch_component_layer_bytes` performs the
+  manifest pull + layer pull + digest verification.
+- [x] Implement real `LocalOciSource::fetch_component_blob` (read layer blobs
+  from the on-disk OCI image layout by digest). Walks `index.json` for a
+  per-component manifest tagged via `org.sindri.component.{backend,name}`
+  annotations, reads the layer, verifies the digest.
+- [x] Trust-scope audit: confirmed Phase 2's design — per-component override
+  matching stays at the resolver layer (`crate::trust_scope::select_override`),
+  not inside the source. Phase 3.0 did not change this.
 
 ### Acceptance criteria
 

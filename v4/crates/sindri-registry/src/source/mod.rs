@@ -7,12 +7,12 @@
 //!
 //! ## Phase status
 //!
-//! | Variant      | Status                              | Phase |
-//! | ------------ | ----------------------------------- | ----- |
-//! | `LocalPath`  | Implemented (real filesystem walk)  | 1     |
-//! | `Oci`        | Implemented ([`OciSource`])         | 2     |
-//! | `LocalOci`   | Implemented ([`LocalOciSource`])    | 2     |
-//! | `Git`        | Implemented ([`git::GitSourceRuntime`]) | 3 |
+//! | Variant      | Status                                            | Phase |
+//! | ------------ | ------------------------------------------------- | ----- |
+//! | `LocalPath`  | Implemented (real filesystem walk)                | 1     |
+//! | `Oci`        | Implemented (real index + layer streaming)        | 2 / 3 |
+//! | `LocalOci`   | Implemented (real index + layer streaming)        | 2 / 3 |
+//! | `Git`        | Implemented ([`git::GitSourceRuntime`])           | 3     |
 
 pub mod git;
 pub mod local_oci;
