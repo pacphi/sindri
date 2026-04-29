@@ -1,46 +1,17 @@
-use crate::error::RegistryError;
-use crate::index::RegistryIndex;
-use sindri_core::component::ComponentManifest;
-use std::fs;
-use std::path::PathBuf;
+//! Deprecated alias for the legacy `LocalRegistry` type.
+//!
+//! The implementation moved to [`crate::source::local_path::LocalPathSource`]
+//! as part of Phase 1 of the source-modes refactor (DDD-08, ADR-028). This
+//! module retains the old name for one release so existing call sites keep
+//! compiling — see `v4/docs/plan/source-modes-implementation.md` §1.2.
 
-/// Local registry loader for development (registry:local:/path protocol, ADR-003)
-pub struct LocalRegistry {
-    root: PathBuf,
-}
-
-impl LocalRegistry {
-    pub fn new(path: &str) -> Self {
-        LocalRegistry {
-            root: PathBuf::from(path),
-        }
-    }
-
-    pub fn load_index(&self) -> Result<RegistryIndex, RegistryError> {
-        let content = fs::read_to_string(self.root.join("index.yaml"))?;
-        RegistryIndex::from_yaml(&content).map_err(RegistryError::Yaml)
-    }
-
-    pub fn load_component(
-        &self,
-        backend: &str,
-        name: &str,
-    ) -> Result<ComponentManifest, RegistryError> {
-        let dir = if backend == "collection" {
-            self.root.join("collections").join(name)
-        } else {
-            self.root.join("components").join(name)
-        };
-        let content = fs::read_to_string(dir.join("component.yaml"))?;
-        serde_yaml::from_str(&content).map_err(RegistryError::Yaml)
-    }
-
-    pub fn list_components(&self) -> Result<Vec<(String, String)>, RegistryError> {
-        let index = self.load_index()?;
-        Ok(index
-            .components
-            .iter()
-            .map(|c| (c.backend.clone(), c.name.clone()))
-            .collect())
-    }
-}
+/// Backwards-compatible alias for [`crate::source::local_path::LocalPathSource`].
+///
+/// New code should refer to `LocalPathSource` directly. This alias exists
+/// solely so call sites that imported `sindri_registry::LocalRegistry`
+/// continue to compile during the v4 source-modes rollout (Phase 1).
+#[deprecated(
+    since = "4.0.0-alpha.2",
+    note = "use sindri_registry::source::LocalPathSource instead"
+)]
+pub type LocalRegistry = crate::source::local_path::LocalPathSource;

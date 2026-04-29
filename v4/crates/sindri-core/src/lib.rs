@@ -10,4 +10,5 @@ pub mod paths;
 pub mod platform;
 pub mod policy;
 pub mod registry;
+pub mod source_descriptor;
 pub mod version;
