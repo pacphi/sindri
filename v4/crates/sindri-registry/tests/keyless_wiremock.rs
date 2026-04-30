@@ -14,7 +14,9 @@
 
 #![cfg(feature = "keyless")]
 
-use rcgen::{BasicConstraints, CertificateParams, DnType, IsCa, KeyPair, KeyUsagePurpose, SanType};
+use rcgen::{
+    BasicConstraints, CertificateParams, DnType, IsCa, Issuer, KeyPair, KeyUsagePurpose, SanType,
+};
 use sindri_registry::keyless::{
     EnvelopeKind, KeylessIdentity, KeylessTrustRoot, KeylessVerifier, SignatureEnvelope,
     VerificationMode,
@@ -60,6 +62,7 @@ fn make_chain_with_root_cn(
     root_params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
     let root_kp = KeyPair::generate().unwrap();
     let root_cert = root_params.self_signed(&root_kp).unwrap();
+    let root_issuer = Issuer::from_params(&root_params, &root_kp);
 
     // 2. Leaf — custom SAN URI + Fulcio OIDC issuer extension.
     let mut leaf_params = CertificateParams::new(vec![]).unwrap();
@@ -78,9 +81,7 @@ fn make_chain_with_root_cn(
     );
     leaf_params.custom_extensions = vec![issuer_ext];
     let leaf_kp = KeyPair::generate().unwrap();
-    let leaf_cert = leaf_params
-        .signed_by(&leaf_kp, &root_cert, &root_kp)
-        .unwrap();
+    let leaf_cert = leaf_params.signed_by(&leaf_kp, &root_issuer).unwrap();
 
     (leaf_cert.pem(), root_cert.pem())
 }

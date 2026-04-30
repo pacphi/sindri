@@ -71,6 +71,6 @@ serde_json = { workspace = true }
 wiremock = "0.6"
 # Wave 6A — keyless test fixtures. rcgen is dev-only; production keyless
 # verification never builds certs, only consumes them.
-rcgen = { version = "0.13", default-features = false, features = ["pem", "ring"] }
+rcgen = { version = "0.14", default-features = false, features = ["pem", "ring"] }
 # rcgen's CertificateParams uses `time::OffsetDateTime` for not_before / not_after.
 time = { version = "0.3", default-features = false, features = ["std"] }
