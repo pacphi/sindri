@@ -425,7 +425,7 @@ string, please open a PR adding a row here so the next author can reuse it.
 
 ### `redemption`
 
-Internally-tagged on `kind` (Phase 0 schema). The three variants:
+Internally-tagged on `kind`. The three variants:
 
 ```yaml
 # Inject as <ENV_NAME>=<value> into the target's apply env.
@@ -462,8 +462,8 @@ tool installs in degraded mode and surfaces the missing credential at runtime
   `claudish`, `claude-marketplace`, `ruflo` declare ANTHROPIC_API_KEY as
   optional even though most users will set it).
 
-`optional: false` means the resolver must bind a source — Gate 5 (Phase 2)
-will deny the apply otherwise. Use this for:
+`optional: false` means the resolver must bind a source — Gate 5 will
+deny the apply otherwise. Use this for:
 
 - Provider API keys for AI assistants (`claude-code`, `codex`, `gemini-cli`).
 - Required OAuth flows where the tool is inert without the token.

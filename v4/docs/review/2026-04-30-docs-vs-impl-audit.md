@@ -37,6 +37,104 @@ spot-checks, and the main-branch README v4 row.
 - Cross-cutting: **all 4 docs that link to ADRs use a non-existent
   `architecture/adr/` path prefix (38 broken links).** See F-XCUT-01.
 
+## Remediation Status (last updated 2026-04-30)
+
+Status legend: ✅ fixed · 🟡 partially fixed · ⏸️ deferred · 🔍 needs verification · ❌ not started
+
+| ID | Severity | Status | Note |
+|----|----------|--------|------|
+| **F-XCUT-01** | critical | ✅ fixed | sed-replaced `architecture/adr/` → `ADRs/` across CLI/AUTHORING/POLICY/REGISTRY/TARGETS (commit 16124e91). |
+| F-XCUT-02 | minor | ❌ not started | `https://schemas.sindri.dev/v4/*` publication-status note still missing. |
+| **F-CLI-01** | critical | ✅ fixed | Exit-code table now lists 6 (`APPLY_IN_PROGRESS`) and 7 (`STRICT_OCI_DENIED`). |
+| F-CLI-02 | major | ✅ fixed | `resolve --strict-oci` added to synopsis + option table; cross-linked to SOURCES.md. |
+| F-CLI-03 | major | ✅ fixed | `apply --no-bom`, `--resume`, `--clear-state` added to synopsis + table. |
+| F-CLI-04 | major | ✅ fixed | `registry refresh --insecure` added with policy-interaction note. |
+| F-CLI-05 | critical | ✅ fixed | "Deferred to Wave 3A.2" stale sentence removed; `registry verify` now describes live cosign flow. |
+| F-CLI-06 | major | ✅ fixed | `registry verify --url <oci-ref>` documented as required. |
+| F-CLI-07 | major | ✅ fixed | New full sections for `registry serve` and `registry prefetch`. |
+| F-CLI-08 | major | ⏸️ deferred | `init` interactive-prompts claim still in doc; impl/doc reconciliation deferred to next pass. |
+| F-CLI-09 | critical | ⏸️ deferred | `init --policy` writes to `~/.sindri/policy.yaml` (global) vs. doc claim of project file — design-vs-impl decision pending. |
+| F-CLI-10 | minor | ❌ not started | `.gitignore` `sindri.*.lock` line still undocumented. |
+| F-CLI-11 | minor | ❌ not started | Unknown-template silent fallback still undocumented. |
+| F-CLI-12 | minor | ✅ fixed | `completions` shell list now includes `elvish`. |
+| F-CLI-13 | major | ✅ fixed | `rollback --lockfile`, `--reason` documented. |
+| F-CLI-14 | minor | ✅ fixed | `self-upgrade --dry-run` documented. |
+| F-CLI-15 | major | ✅ fixed | `edit [target] --schema --no-prompt` synopsis + table. |
+| F-CLI-16 | minor | ✅ fixed | `target add` doc now notes that detailed config requires hand-editing `sindri.yaml`. |
+| F-CLI-17 | major | ✅ fixed | `target use/start/stop/update/plugin` subsections added. |
+| F-CLI-18 | minor | 🔍 needs verification | "Fuzzy-searches" claim — substring vs. fuzzy still not re-verified in code. |
+| **F-CLI-19** | critical | ✅ fixed | CycloneDX corrected to JSON (not XML); default filename and example updated. |
+| F-CLI-20 | minor | ✅ fixed | Default filename now shows `sindri.<target>.bom.<fmt>.json`. |
+| F-CLI-21 | major | ✅ fixed | `doctor` synopsis now includes `--dry-run`, `--json`, `--auth`, `--manifest`. |
+| F-CLI-22 | major | ✅ fixed (correction) | Re-verified in `commands/doctor.rs`: failures return 4 (`EXIT_SCHEMA_OR_RESOLVE_ERROR`). Doc was correct; audit speculation was wrong. Exit-code text refined to cite the constant. |
+| F-CLI-23 | minor | ✅ fixed | `backup --compression {gzip,zstd}` documented; restore auto-detect noted. |
+| F-CLI-24 | minor | 🔍 needs verification | `secrets validate` accepted source-kind list still pending re-verification of `AuthValue` parser. |
+| F-CLI-25 | minor | ❌ not started | Project-level policy preset write still undocumented. |
+| F-AUTH-01 | major | ⏸️ deferred | `sindri.yaml` example still uses map shorthand; reconciliation pass deferred. |
+| F-AUTH-02 | minor | ❌ not started | Worked example for `discovery.env-aliases` resolver pickup not added. |
+| **F-AUTHOR-01** | critical | ⏸️ deferred | Script-backend field schema (`install_sh`/`uninstall_sh`/etc. vs. `sh`/`ps1`) — design vs. impl reconciliation pending. ADR-024 status updated to "partially implemented" as a stop-gap. |
+| F-AUTHOR-02 | major | ⏸️ deferred | `install: { default, overrides }` per-platform structure — same reconciliation pass. |
+| F-AUTHOR-03 | ok | ✅ no action | Confirmed correct. |
+| F-AUTHOR-04 | minor | 🔍 needs verification | `options:` section presence in `Component` aggregate still unverified. |
+| F-AUTHOR-05 | minor | 🔍 needs verification | `validate.commands[*].version_flag` schema still unverified. |
+| F-AUTHOR-06 | ok | ✅ no action | Confirmed correct. |
+| F-REG-01 | major | ⏸️ deferred | `sindri/core` "always trusted" claim — explicitly deferred per user direction. |
+| F-REG-02 | major | ❌ not started | `--no-verify` vs. `--insecure` confusion in §"Trust model" still present. |
+| F-REG-03 | minor | 🔍 needs verification | `index.yaml` schema fields not yet diffed against `RegistryIndex`/`ComponentEntry`. |
+| F-REG-04 | major | 🔍 needs verification | `.github/workflows/registry-core-publish.yml` on `main` not yet confirmed. |
+| F-REG-05 | major | 🔍 needs verification | Three-integrity-checks claim — gates 2 and 3 still need code re-verification. |
+| F-REG-06 | major | ⏸️ deferred | Gate 4 lint-vs-resolve confusion — POLICY.md ADR-008 status updated; sequence diagram phrasing untouched pending the broader Gate 4 reconciliation. |
+| F-REG-07 | major | ✅ fixed | Keyless OIDC section rewritten — implemented behind `keyless` cargo feature; no temporal references. |
+| **F-POL-01** | critical | ⏸️ deferred | Policy schema example (nested vs. flat) — explicitly deferred per user direction. |
+| **F-POL-02** | critical | ⏸️ deferred | Gate 5 admission codes — explicitly deferred per user direction. |
+| F-POL-03 | major | 🟡 partially fixed | ADR-008 status now reads "partially implemented; Gate 4 lint-only"; POLICY.md table row still says "Implemented". |
+| F-POL-04 | major | ❌ not started | `--allow-license` flag claim on `sindri resolve` not yet reconciled. |
+| F-POL-05 | minor | 🔍 needs verification | License-deduplication claim still unverified. |
+| F-POL-06 | minor | 🔍 needs verification | Forced-override audit-trail claim still unverified. |
+| F-SRC-01 | minor | ✅ no action | Phase status table corrected for the `serve` row (no more "Phase 5 deferred" mention). |
+| F-SRC-02 | minor | ❌ not started | `oci-ref` link to `ci/strict-oci.yml` not re-checked. |
+| F-TGT-01 | major | ❌ not started | `Target` trait surface table not yet aligned with code. |
+| F-TGT-02 | major | ❌ not started | Target-kind list still omits 8 supported kinds. |
+| F-TGT-03 | minor | 🔍 needs verification | Sample `targets:` config shapes not re-verified. |
+| F-TGT-04 | major | 🟡 partially fixed | CLI.md now documents the missing target verbs (`use`, `start`, `stop`, `update`, `plugin`); TARGETS.md table not yet updated. |
+| F-TGT-05 | minor | ❌ not started | `target plugin trust --no-verify` reference not re-checked. |
+| F-TGT-06 | minor | 🔍 needs verification | `target shell` interactive-shell claim still unverified. |
+| F-MIG-01 | minor | ❌ not started | One-spot flag in MIGRATION_FROM_V3.md not addressed. |
+
+### ADR drift
+
+| ID | Status | Note |
+|----|--------|------|
+| ADR-002 | ✅ fixed | Header now reads "Accepted; partially implemented" with pointer to missing pieces. |
+| ADR-008 | ✅ fixed | Header now reads "Accepted; partially implemented" — Gate 4 lint-only called out. |
+| ADR-014 | ✅ fixed | REGISTRY.md keyless section reconciled; ADR-014 header already noted Wave 6A close. |
+| ADR-024 | ✅ fixed | Header now reads "Accepted; partially implemented" — `ScriptInstallConfig` shape gap called out. |
+| ADR-028 | ✅ fixed | Bumped from Proposed → Accepted (Implemented). |
+
+### Coverage gaps
+
+| ID | Status | Note |
+|----|--------|------|
+| Gap 1 — Exit codes 6/7 | ✅ fixed | Documented in CLI.md exit-code table. |
+| Gap 2 — `apply --resume` / `--clear-state` | ✅ fixed | Documented in `apply` synopsis + option table. |
+| Gap 3 — `registry serve` / `prefetch` | ✅ fixed | Full sections in CLI.md. |
+| Gap 4 — `target start/stop/update/use` | ✅ fixed | Documented in CLI.md target section. |
+| Gap 5 — `target plugin {ls,install,trust,uninstall}` | ✅ fixed | Documented in CLI.md target section. |
+| Gap 6 — `edit policy` mode | ✅ fixed | Documented in `edit` synopsis. |
+| Gap 7 — `backup --compression` | ✅ fixed | Documented in `backup` option table. |
+| Gap 8 — `completions elvish` | ✅ fixed | Documented in `completions` shell list. |
+| Gap 9 — `registry serve` operational caveats | ✅ fixed | Read-only, no re-signing called out in CLI.md. |
+
+### Cross-cutting cleanup (added 2026-04-30 follow-up)
+
+- **Wave/Phase/Sprint references stripped from user-facing guides.** All
+  internal sprint vocabulary (Wave 2A, Wave 3A.2, Wave 5B, Wave 5E,
+  Wave 6A, Phase 1–5, Sprint 9/10) was removed from CLI, AUTH, AUTHORING,
+  POLICY, REGISTRY, SOURCES, TARGETS, MIGRATION_FROM_V3. ADR cross-links
+  retained (durable identifiers); status statements rephrased as "live"
+  / "in flight" / capability statements. ADRs and review docs left
+  untouched (decision/audit records where temporal context is the point).
+
 ## Findings
 
 ### Cross-cutting

@@ -1,9 +1,9 @@
 # Sindri auth-aware components
 
-> Status: Phase 5. Apply-time redemption + Gate 5 + the inspection
+> Status: live. Apply-time redemption, Gate 5, and the inspection
 > verbs `sindri auth show`, `sindri auth refresh`, `sindri doctor --auth`,
-> and the user-driven `sindri target auth … --bind <req>` write are
-> all live.
+> plus the user-driven `sindri target auth … --bind <req>` write all
+> ship today.
 
 This document is the user-facing guide for the auth-aware component model
 introduced in ADR-026 (component-side declaration), ADR-027 (target-side
@@ -26,8 +26,8 @@ auth requirements    capabilities         (per-target)
 
 2. A **target** advertises what credentials it can fulfill — its
    `auth_capabilities()`. Built-in targets ship sensible defaults
-   (`local` reads `~/.config/...`, `docker` mounts host env, etc., per
-   Phase 4); users can extend per-target with `provides:` in `sindri.yaml`.
+   (`local` reads `~/.config/...`, `docker` mounts host env, etc.);
+   users can extend per-target with `provides:` in `sindri.yaml`.
 
 3. The **resolver** walks each requirement against each target's capability
    set, picks the highest-priority match by audience, and writes an
@@ -128,8 +128,8 @@ Remediation:
      bypass Gate 5 unless `policy.auth.on_unresolved_required: warn`).
 ```
 
-(`sindri auth show` ships in Phase 5; until then, inspect
-`sindri.lock`'s `auth_bindings` block directly.)
+Use `sindri auth show` to inspect bindings, or read `sindri.lock`'s
+`auth_bindings` block directly.
 
 ### Audience mismatch
 
@@ -145,8 +145,8 @@ Audience comparison is exact-string lower-case — globs are not allowed
 By default, sindri does NOT auto-bind your shell's `ANTHROPIC_API_KEY` to
 arbitrary components. It binds only when:
 
-- a target's `auth_capabilities()` advertises it (Phase 4 built-ins do
-  this for the `local` target's well-known env vars), OR
+- a target's `auth_capabilities()` advertises it (the `local` target's
+  built-in defaults cover well-known env vars), OR
 - a requirement's `discovery.env-aliases` includes it AND the target's
   `provides:` whitelists it.
 
@@ -205,8 +205,7 @@ UX details:
 - Prompts that declare `secret: true` are read **without echo** when stdin
   is a TTY. On non-TTY stdin (script, pipe), input is read as-is — set
   `policy.auth.allow_prompt_in_ci: false` (default) to refuse such cases.
-- Default `timeout_secs` is **60 seconds**. Per-requirement override via
-  the component manifest is a Phase 5 enhancement.
+- Default `timeout_secs` is **60 seconds**.
 - Prompt failure (timeout, EOF) marks the binding as `AuthBindingFailed`;
   Gate 5 then denies if the requirement is required.
 
@@ -216,7 +215,7 @@ Emergency override: bypass the redeemer entirely. Every component whose
 redemption was skipped emits one `AuthSkippedByUser` ledger event so the
 bypass is auditable. Note:
 
-- Gate 5 (Phase 2B) still enforces required-binding presence unless
+- Gate 5 still enforces required-binding presence unless
   `policy.auth.on_unresolved_required: warn` is also set.
 - The installed tool will probably fail at first run with whatever native
   "missing credential" error it produces. That is intended.
@@ -226,8 +225,8 @@ reasons. Production CI should never need it.
 
 ## Daily workflow
 
-Phase 5 ships first-class verbs for inspecting and managing bindings.
-Reach for them in this order:
+First-class verbs for inspecting and managing bindings, in the order you
+typically reach for them:
 
 ### Before you `apply`: `sindri doctor --auth`
 

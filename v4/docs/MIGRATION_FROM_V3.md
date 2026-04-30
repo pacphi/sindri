@@ -199,7 +199,7 @@ These v3 features did not carry over to v4:
 - **Renovate-as-extension.** v3 baked Renovate updates into a regular
   extension. v4 ships a [first-class plugin](../renovate-plugin/) that
   the resolver and registry both call into.
-- **HTTPS-tarball and S3 sources.** Listed as Phase 5 polish in
+- **HTTPS-tarball and S3 sources.** Tracked as future polish in
   [`plan/source-modes-implementation.md`](plan/source-modes-implementation.md);
   defer until a real user asks.
 

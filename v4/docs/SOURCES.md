@@ -221,7 +221,7 @@ Resolution rules:
   if a descriptor cannot be re-resolved (e.g. the `local-path` directory
   was deleted), apply fails loudly.
 
-### Project + global merge semantics (Phase 4.1, ADR-028 §4.1)
+### Project + global merge semantics ([ADR-028](ADRs/028-component-source-modes.md) §4.1)
 
 Sindri reads two registry-source lists when it resolves:
 
@@ -311,7 +311,7 @@ not supported.
 | `local-oci`   | **Implemented** — `LocalOciSource` reads OCI image-layout v1.1 directories; blob streaming real | 2/3 |
 | `git`         | **Implemented** — `GitSourceRuntime` via `git2` (vendored libgit2), sparse checkout, commit-pinned | 3 |
 | `--strict-oci` admission gate | **Implemented** — CLI flag + `registry.policy.strict_oci` config | 2 |
-| `sindri registry serve` | **Implemented** — embedded read-only OCI Distribution Spec server (axum); serves pre-signed bytes verbatim; `--sign-with` deferred to Phase 5 | 3 |
+| `sindri registry serve` | **Implemented** — embedded read-only OCI Distribution Spec server (axum); serves pre-signed bytes verbatim; no re-signing | 3 |
 | `sindri registry prefetch` | **Implemented** — air-gap helper: writes verbatim upstream manifest bytes into OCI image layout or tarball; scope filtering is consumption-side | 3 |
 
 See [`plan/source-modes-implementation.md`](plan/source-modes-implementation.md)

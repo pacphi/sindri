@@ -54,7 +54,7 @@ sindri diff --target e2b-sandbox
 
 The host machine. Always present as the implicit default ([ADR-023](ADRs/023-implicit-local-default-target.md)). `sindri apply` without `--target` uses `local`.
 
-**Status:** Fully wired (Wave 2A). The complete apply pipeline including hooks, configure, validate, and project-init steps runs on `local`.
+**Status:** Fully wired. The complete apply pipeline including hooks, configure, validate, and project-init steps runs on `local`.
 
 **Prerequisites:** None beyond the host shell.
 
@@ -76,7 +76,7 @@ sindri target doctor
 
 A Docker container provisioned from a specified base image. Useful for isolated, reproducible environments that mirror a CI or production container.
 
-**Status:** Struct and trait scaffolding complete (Sprint 9/10). Full API integration is Sprint 10 hardening work.
+**Status:** Struct and trait scaffolding complete; full Docker API integration is in flight.
 
 **Prerequisites:** `docker` binary on PATH.
 
@@ -101,7 +101,7 @@ sindri target destroy ci-container  # removes container
 
 A remote host reachable over SSH. Sindri executes commands via `ssh` and transfers files with `scp`/`sftp`.
 
-**Status:** Struct scaffolded (Sprint 9). Full `exec` and `upload`/`download` wiring is Sprint 10.
+**Status:** Struct scaffolded; full `exec` and `upload`/`download` wiring is in flight.
 
 **Prerequisites:** `ssh` binary on PATH; an SSH key with access to the remote host.
 
@@ -126,7 +126,7 @@ sindri target shell dev-server
 
 An E2B cloud sandbox (ephemeral micro-VM). Commands are executed via the E2B CLI (`e2b sandbox exec`).
 
-**Status:** Struct and trait implementation complete (Sprint 10). HTTP API wiring (Wave 5B) will replace CLI delegation for sub-50ms exec round-trips.
+**Status:** Struct and trait implementation complete. Direct HTTP API wiring (to replace CLI delegation for sub-50ms exec round-trips) is in flight.
 
 **Prerequisites:** `npm install -g @e2b/cli` and `e2b auth login`.
 
@@ -154,7 +154,7 @@ sindri target destroy sandbox
 
 A Fly.io application. Commands are executed via `flyctl ssh console --app <name> --command`.
 
-**Status:** Struct and trait implementation complete (Sprint 10). HTTP wiring (Wave 5B) in flight.
+**Status:** Struct and trait implementation complete. Direct HTTP wiring is in flight.
 
 **Prerequisites:** `flyctl` on PATH and authenticated.
 
@@ -180,7 +180,7 @@ sindri apply --target fly-app
 
 A Kubernetes pod reachable via `kubectl exec`. File transfers use `kubectl cp`.
 
-**Status:** Struct and trait implementation complete (Sprint 10). Namespace and pod-name wiring is configurable.
+**Status:** Struct and trait implementation complete. Namespace and pod-name wiring is configurable.
 
 **Prerequisites:** `kubectl` on PATH and configured with cluster access.
 
@@ -202,19 +202,19 @@ sindri target shell k8s-pod
 
 ---
 
-### `runpod` (Wave 5B — HTTP wiring in flight)
+### `runpod` (HTTP wiring in flight)
 
 A RunPod serverless GPU pod. The RunPod REST API is used for pod lifecycle; commands execute via the RunPod SSH relay.
 
-**Status:** Struct scaffolded. HTTP API wiring is tracked as Wave 5B work.
+**Status:** Struct scaffolded. Direct HTTP API wiring is in flight.
 
 ---
 
-### `northflank` (Wave 5B — HTTP wiring in flight)
+### `northflank` (HTTP wiring in flight)
 
 A Northflank service or job. Commands delegate to the Northflank API.
 
-**Status:** Struct scaffolded. HTTP API wiring is tracked as Wave 5B work.
+**Status:** Struct scaffolded. Direct HTTP API wiring is in flight.
 
 ---
 
@@ -305,7 +305,7 @@ See [CLI.md](CLI.md) for full option flags.
 The `Target` trait carries one more concern that's documented separately
 because of its scope: **auth capabilities** — a per-target advertisement
 of which credentials the target can produce, consumed by the resolver's
-binding pass (Phase 1, [ADR-027](ADRs/027-target-auth-injection.md)).
+binding pass ([ADR-027](ADRs/027-target-auth-injection.md)).
 
 - **Status:** Living section, paired with
   [ADR-017](ADRs/017-rename-provider-to-target.md),
@@ -355,8 +355,6 @@ The trait default is `Vec::new()`. Targets opt in by overriding.
 
 ## How built-in targets implement it
 
-(Per ADR-027 §"Phase 4" of the auth-aware implementation plan.)
-
 ### `local` (`sindri-targets/src/local.rs`)
 
 - **Well-known env vars** (priority `10`): walks the static table in
@@ -400,8 +398,7 @@ The trait default is `Vec::new()`. Targets opt in by overriding.
   Fly OAuth token, audience `https://api.fly.io`.
 - **`flyctl secrets`** (priority `12`): the per-app secrets group as a
   `FromCli` source (`flyctl secrets list --app <app> --json`). Audience
-  `urn:fly:secrets`. Per-secret refinement happens at apply time
-  (Phase 2).
+  `urn:fly:secrets`. Per-secret refinement happens at apply time.
 - Both paths are conditional on `flyctl` being on `PATH`.
 
 ### `k8s` (`KubernetesTarget` in `cloud/k8s.rs`)
@@ -409,7 +406,7 @@ The trait default is `Vec::new()`. Targets opt in by overriding.
 - **`secretKeyRef`** (priority `18`): advertises the cluster's projected
   secret mechanism as
   `AuthSource::FromSecretsStore { backend: "k8s", path: <namespace> }`.
-  Per-secret resolution happens at apply time (Phase 2) when a concrete
+  Per-secret resolution happens at apply time when a concrete
   `secretKeyRef.name` / `secretKeyRef.key` are projected into the
   workload pod. Conditional on `kubectl` being on `PATH`.
 
@@ -458,17 +455,16 @@ Custom targets ship as either:
 
 ## Lockfile observability
 
-Once Phase 1 has run, the per-target lockfile includes an
-`auth_bindings:` section that records every requirement and which
-capability bound it (or why no capability did). Operators inspect the
-result with:
+After resolve, the per-target lockfile includes an `auth_bindings:`
+section that records every requirement and which capability bound it
+(or why no capability did). Operators inspect the result with:
 
 ```bash
-sindri auth show <component>     # Phase 5
+sindri auth show <component>
 ```
 
-Until Phase 5 lands, `cat .sindri/<target>.lock | yq .auth_bindings`
-works.
+`cat .sindri/<target>.lock | yq .auth_bindings` is the equivalent raw
+view.
 
 ---
 

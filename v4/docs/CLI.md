@@ -194,8 +194,8 @@ Returns exit code 3 if any component install fails or if collision validation re
 |------|---------|-------------|
 | `--yes` | false | Skip confirmation prompt |
 | `--dry-run` | false | Print plan and exit without applying |
-| `--target <name>` | `local` | Apply to this target (only `local` is fully wired in Wave 2A; remote targets land in Wave 3) |
-| `--skip-auth` | false | **Bypass auth redemption** (Phase 2A, ADR-027). See "Skip-auth semantics" below. |
+| `--target <name>` | `local` | Apply to this target. `local` is fully wired; remote targets are at varying levels of completeness — see [TARGETS.md](TARGETS.md) per-kind status. |
+| `--skip-auth` | false | **Bypass auth redemption** ([ADR-027](ADRs/027-target-auth-injection.md)). See "Skip-auth semantics" below. |
 | `--no-bom` | false | Skip the SBOM auto-emit on success ([ADR-007](ADRs/007-sbom-as-resolver-byproduct.md)). |
 | `--resume` | false | Resume from the last failing component instead of restarting the whole apply. Components already in `completed` state are skipped; `failed` / `pending` components are retried. |
 | `--clear-state` | false | Wipe the apply-state file for the current BOM so the next apply starts from scratch. Combinable with `--resume` (clear-then-resume = full re-apply). |
@@ -215,7 +215,7 @@ sindri apply --target e2b-sandbox --yes
 
 **Auditable**: every component whose redemption was skipped emits a single `AuthSkippedByUser` ledger event under `~/.sindri/ledger.jsonl`. The bypass shows up clearly in `sindri log`.
 
-**Not a Gate 5 bypass**: required-binding presence is still validated by admission Gate 5 (Phase 2B). If you need to install with required credentials genuinely missing, additionally relax the policy:
+**Not a Gate 5 bypass**: required-binding presence is still validated by admission Gate 5. If you need to install with required credentials genuinely missing, additionally relax the policy:
 
 ```yaml
 # sindri.policy.yaml
@@ -621,7 +621,7 @@ Runs environment health checks: target prerequisites, shell configuration, regis
 | `--dry-run` | false | Print would-be remediations without writing (mutually exclusive with `--fix`) |
 | `--components` | false | Also check installed component state |
 | `--json` | false | Machine-readable output |
-| `--auth` | false | Phase 5 ([ADR-027](ADRs/027-target-auth-injection.md) §Phase 5) focused doctor view that runs Gate 5 against the manifest+target set with no apply side effects. See "[Phase 5: `sindri doctor --auth`](#sindri-doctor---auth)" below for the full sub-command contract. |
+| `--auth` | false | Focused doctor view ([ADR-027](ADRs/027-target-auth-injection.md)) that runs Gate 5 against the manifest+target set with no apply side effects. See [`sindri doctor --auth`](#sindri-doctor---auth) below for the full sub-command contract. |
 | `--manifest <path>` | `sindri.yaml` | Manifest to inspect |
 
 **Exit Codes**
@@ -756,7 +756,7 @@ sindri registry trust acme --signer cosign:key=/path/to/acme-registry.pub
 sindri registry verify <name> --url <oci-ref>
 ```
 
-Verifies the cosign signature on the named registry's index against the stored trust set under `~/.sindri/trust/<name>/`. Runs the full cosign verification flow via the `oci-client` + `sigstore` stack (Wave 3A.2). On success prints `Verified registry '<name>': signed by trusted key <key-id>` and exits 0.
+Verifies the cosign signature on the named registry's index against the stored trust set under `~/.sindri/trust/<name>/`. Runs the full cosign verification flow via the `oci-client` + `sigstore` stack. On success prints `Verified registry '<name>': signed by trusted key <key-id>` and exits 0.
 
 The `--url` flag is required because the CLI does not yet maintain a registry-name → URL map; supply the same OCI reference you would pass to `registry refresh`. Run `sindri registry refresh` first to populate the cache.
 
@@ -783,7 +783,7 @@ sindri registry verify core --url ghcr.io/sindri-dev/registry-core:1.0.0
 sindri registry serve --root <path> [--addr <host:port>]
 ```
 
-Runs an embedded read-only OCI Distribution Spec server over a directory containing one or more OCI image layouts (Phase 3.2 of [ADR-028](ADRs/028-component-source-modes.md)). Single-process, no garbage collection, no re-signing — pre-signed bytes are served verbatim. Press Ctrl-C to stop.
+Runs an embedded read-only OCI Distribution Spec server over a directory containing one or more OCI image layouts ([ADR-028](ADRs/028-component-source-modes.md)). Single-process, no garbage collection, no re-signing — pre-signed bytes are served verbatim. Press Ctrl-C to stop.
 
 **Options**
 
@@ -795,7 +795,7 @@ Runs an embedded read-only OCI Distribution Spec server over a directory contain
 **Operational notes**
 
 - Read-only — uploads (`POST/PUT /v2/.../blobs/uploads/`) return 405.
-- No `--sign-with`; re-signing support is planned for Phase 5. CI templates that require signed manifests must pre-sign the layout offline.
+- No `--sign-with`; re-signing is not currently supported. CI templates that require signed manifests must pre-sign the layout offline.
 - Useful for local development and air-gap relay; not intended for production hosting.
 
 **Examples**
@@ -815,7 +815,7 @@ sindri registry serve --root ./offline-bundle --addr 0.0.0.0:5500
 sindri registry prefetch <oci-ref> (--target <tarball> | --layout <dir>)
 ```
 
-Resolves an OCI reference's full closure (manifests + blobs) into either a tarball or an OCI image layout directory for offline / air-gap use (Phase 3.3 of [ADR-028](ADRs/028-component-source-modes.md)). Exactly one of `--target` or `--layout` must be supplied.
+Resolves an OCI reference's full closure (manifests + blobs) into either a tarball or an OCI image layout directory for offline / air-gap use ([ADR-028](ADRs/028-component-source-modes.md)). Exactly one of `--target` or `--layout` must be supplied.
 
 **Options**
 
@@ -1009,7 +1009,7 @@ Stops a running target without destroying its resource. Pair with `target start`
 sindri target update <name> [--auto-approve] [--no-color]
 ```
 
-Reconciles `targets.<name>.infra` in `sindri.yaml` with the on-disk infra lock — a Terraform-plan-style classifier that gates destructive actions behind an interactive confirmation (Wave 5E).
+Reconciles `targets.<name>.infra` in `sindri.yaml` with the on-disk infra lock — a Terraform-plan-style classifier that gates destructive actions behind an interactive confirmation.
 
 | Flag | Default | Description |
 |------|---------|-------------|
@@ -1030,13 +1030,13 @@ Manages target plugins ([ADR-019](ADRs/019-subprocess-json-target-plugins.md)). 
 | Subcommand | Description |
 |------------|-------------|
 | `ls` | List installed target plugins |
-| `install <oci-ref> [--kind <kind>]` | Install a plugin from an OCI reference. `--kind` overrides the auto-derived kind name (defaults to the trailing path component of `<oci-ref>`). EXPERIMENTAL — requires Wave 3A.2 OCI fetch. |
+| `install <oci-ref> [--kind <kind>]` | Install a plugin from an OCI reference. `--kind` overrides the auto-derived kind name (defaults to the trailing path component of `<oci-ref>`). EXPERIMENTAL. |
 | `trust <kind> --signer <signer>` | Trust a cosign public key for a plugin kind |
 | `uninstall <kind> [--yes]` | Uninstall a plugin (`--yes` skips the confirmation prompt) |
 
 ### `sindri target auth`
 
-See [Phase 5: `sindri target auth`](#sindri-target-auth) below for the full `target auth` contract (inspect / `--bind` / wizard modes).
+See [`sindri target auth`](#sindri-target-auth) below for the full `target auth` contract (inspect / `--bind` / wizard modes).
 
 ---
 
@@ -1131,7 +1131,7 @@ sindri restore sindri-backup-20260427T120000Z.tar.gz --force
 
 ---
 
-## Phase 5 (ADR-027) — Auth-aware UX verbs
+## Auth-aware UX verbs ([ADR-027](ADRs/027-target-auth-injection.md))
 
 ## `sindri auth show`
 

@@ -172,7 +172,7 @@ Configured under `auth:` in `sindri.policy.yaml`. All three knobs default to **d
 |-------|-----------|
 | `deny` | (default) Apply fails with `EXIT_POLICY_DENIED` if any required-and-unbound binding exists. |
 | `warn` | Logs a `tracing::warn!` and admits. The install will likely fail at first run. |
-| `prompt` | Reserved for Phase 5 — interactive resolution. |
+| `prompt` | Reserved — interactive resolution. Not currently active. |
 
 Use `warn` only when you intentionally need a "best-effort" install (e.g. base-image bake where credentials will be supplied later via cloud-init). Document the choice; revisit during audit.
 
@@ -305,4 +305,4 @@ sindri log --json | jq '.[] | select(.event_type == "policy_override")'
 | Gate 4 — Capability trust | Implemented (collision path prefix enforced in `registry lint`) | [ADR-008](ADRs/008-install-policy-subsystem.md) |
 | Gate 5 — Auth-resolvable | Implemented (`sindri-policy::gate5_auth::check_gate5`) | [ADR-027 §5](ADRs/027-target-auth-injection.md), [PR #254](https://github.com/pacphi/sindri/pull/254) |
 
-Full script sandboxing (Landlock/Seatbelt/AppContainer) and SLSA L3+ attestation chains are deferred beyond v4.0. Gate 5's `auth.on_unresolved_required: prompt` value is reserved for a Phase 5 interactive-resolution flow.
+Full script sandboxing (Landlock/Seatbelt/AppContainer) and SLSA L3+ attestation chains are deferred beyond v4.0. Gate 5's `auth.on_unresolved_required: prompt` value is reserved for a future interactive-resolution flow and is not currently honored at runtime.

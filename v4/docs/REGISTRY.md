@@ -126,7 +126,7 @@ The key is validated as a P-256 SPKI PEM and stored at `~/.sindri/trust/acme/cos
 
 ### Keyless OIDC
 
-Keyless OIDC signing (Sigstore Fulcio + Rekor transparency log) is **implemented** as of Wave 6A ([ADR-014](ADRs/014-signed-registries-cosign.md) D1, closed 2026-04-27). It is gated behind the `keyless` cargo feature: builds compiled without `--features keyless` reject keyless verification with `RegistryError::KeylessFeatureDisabled`. Per-component trust scoping (one Fulcio identity per component glob) is provided by the `trust_scope` module so a single registry can mix key-based and keyless signers.
+Keyless OIDC signing (Sigstore Fulcio + Rekor transparency log) is **implemented** ([ADR-014](ADRs/014-signed-registries-cosign.md)). It is gated behind the `keyless` cargo feature: builds compiled without `--features keyless` reject keyless verification with `RegistryError::KeylessFeatureDisabled`. Per-component trust scoping (one Fulcio identity per component glob) is provided by the `trust_scope` module so a single registry can mix key-based and keyless signers.
 
 ---
 
