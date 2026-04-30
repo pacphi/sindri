@@ -47,3 +47,72 @@ pub fn sindri_subpath(rest: &[&str]) -> Option<PathBuf> {
     }
     Some(p)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ---------------------------------------------------------------------------
+    // home_dir — SINDRI_HOME override
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn home_dir_honours_sindri_home_env() {
+        unsafe { std::env::set_var(SINDRI_HOME_ENV, "/tmp/fake-home") };
+        let h = home_dir();
+        unsafe { std::env::remove_var(SINDRI_HOME_ENV) };
+        assert_eq!(h, Some(PathBuf::from("/tmp/fake-home")));
+    }
+
+    #[test]
+    fn home_dir_empty_sindri_home_falls_back_to_dirs_next() {
+        unsafe { std::env::set_var(SINDRI_HOME_ENV, "") };
+        let h = home_dir();
+        unsafe { std::env::remove_var(SINDRI_HOME_ENV) };
+        // Falls back to dirs_next::home_dir() — may be Some or None depending on CI
+        // environment, but must not panic.
+        let _ = h;
+    }
+
+    #[test]
+    fn home_dir_without_env_does_not_panic() {
+        unsafe { std::env::remove_var(SINDRI_HOME_ENV) };
+        let _ = home_dir(); // must not panic
+    }
+
+    // ---------------------------------------------------------------------------
+    // sindri_subpath — path construction
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn sindri_subpath_empty_rest_is_dot_sindri() {
+        unsafe { std::env::set_var(SINDRI_HOME_ENV, "/tmp/h") };
+        let p = sindri_subpath(&[]);
+        unsafe { std::env::remove_var(SINDRI_HOME_ENV) };
+        assert_eq!(p, Some(PathBuf::from("/tmp/h/.sindri")));
+    }
+
+    #[test]
+    fn sindri_subpath_single_segment() {
+        unsafe { std::env::set_var(SINDRI_HOME_ENV, "/tmp/h") };
+        let p = sindri_subpath(&["cache"]);
+        unsafe { std::env::remove_var(SINDRI_HOME_ENV) };
+        assert_eq!(p, Some(PathBuf::from("/tmp/h/.sindri/cache")));
+    }
+
+    #[test]
+    fn sindri_subpath_multiple_segments() {
+        unsafe { std::env::set_var(SINDRI_HOME_ENV, "/tmp/h") };
+        let p = sindri_subpath(&["trust", "keys", "registry.pub"]);
+        unsafe { std::env::remove_var(SINDRI_HOME_ENV) };
+        assert_eq!(
+            p,
+            Some(PathBuf::from("/tmp/h/.sindri/trust/keys/registry.pub"))
+        );
+    }
+
+    #[test]
+    fn sindri_home_env_constant_value() {
+        assert_eq!(SINDRI_HOME_ENV, "SINDRI_HOME");
+    }
+}

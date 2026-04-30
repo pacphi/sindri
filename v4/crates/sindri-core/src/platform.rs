@@ -99,3 +99,182 @@ pub struct Capabilities {
     pub has_sudo: bool,
     pub shell: Option<String>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ---------------------------------------------------------------------------
+    // Platform::triple — all 6 combinations
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn triple_linux_x86_64() {
+        let p = Platform {
+            os: Os::Linux,
+            arch: Arch::X86_64,
+        };
+        assert_eq!(p.triple(), "x86_64-unknown-linux-gnu");
+    }
+
+    #[test]
+    fn triple_linux_aarch64() {
+        let p = Platform {
+            os: Os::Linux,
+            arch: Arch::Aarch64,
+        };
+        assert_eq!(p.triple(), "aarch64-unknown-linux-gnu");
+    }
+
+    #[test]
+    fn triple_macos_x86_64() {
+        let p = Platform {
+            os: Os::Macos,
+            arch: Arch::X86_64,
+        };
+        assert_eq!(p.triple(), "x86_64-apple-darwin");
+    }
+
+    #[test]
+    fn triple_macos_aarch64() {
+        let p = Platform {
+            os: Os::Macos,
+            arch: Arch::Aarch64,
+        };
+        assert_eq!(p.triple(), "aarch64-apple-darwin");
+    }
+
+    #[test]
+    fn triple_windows_x86_64() {
+        let p = Platform {
+            os: Os::Windows,
+            arch: Arch::X86_64,
+        };
+        assert_eq!(p.triple(), "x86_64-pc-windows-msvc");
+    }
+
+    #[test]
+    fn triple_windows_aarch64() {
+        let p = Platform {
+            os: Os::Windows,
+            arch: Arch::Aarch64,
+        };
+        assert_eq!(p.triple(), "aarch64-pc-windows-msvc");
+    }
+
+    // ---------------------------------------------------------------------------
+    // parse_override — valid inputs
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn parse_override_linux_x86_64() {
+        let p = Platform::parse_override("linux-x86_64").unwrap();
+        assert_eq!(p.os, Os::Linux);
+        assert_eq!(p.arch, Arch::X86_64);
+    }
+
+    #[test]
+    fn parse_override_macos_aarch64() {
+        let p = Platform::parse_override("macos-aarch64").unwrap();
+        assert_eq!(p.os, Os::Macos);
+        assert_eq!(p.arch, Arch::Aarch64);
+    }
+
+    #[test]
+    fn parse_override_windows_x86_64() {
+        let p = Platform::parse_override("windows-x86_64").unwrap();
+        assert_eq!(p.os, Os::Windows);
+        assert_eq!(p.arch, Arch::X86_64);
+    }
+
+    #[test]
+    fn parse_override_leading_trailing_whitespace() {
+        let p = Platform::parse_override("  linux-x86_64  ").unwrap();
+        assert_eq!(p.os, Os::Linux);
+    }
+
+    // ---------------------------------------------------------------------------
+    // parse_override — invalid inputs
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn parse_override_unknown_os_returns_none() {
+        assert!(Platform::parse_override("freebsd-x86_64").is_none());
+    }
+
+    #[test]
+    fn parse_override_unknown_arch_returns_none() {
+        assert!(Platform::parse_override("linux-riscv64").is_none());
+    }
+
+    #[test]
+    fn parse_override_missing_dash_returns_none() {
+        assert!(Platform::parse_override("linuxx86_64").is_none());
+    }
+
+    #[test]
+    fn parse_override_empty_string_returns_none() {
+        assert!(Platform::parse_override("").is_none());
+    }
+
+    // ---------------------------------------------------------------------------
+    // Platform::current — env-var hook (SINDRI_TEST_PLATFORM_OVERRIDE)
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn current_env_override_linux_x86_64() {
+        // Serial: env mutation — use std::env carefully in unit tests.
+        // SAFETY: this test must not run concurrently with other env-mutating tests.
+        unsafe { std::env::set_var("SINDRI_TEST_PLATFORM_OVERRIDE", "linux-x86_64") };
+        let p = Platform::current();
+        unsafe { std::env::remove_var("SINDRI_TEST_PLATFORM_OVERRIDE") };
+        assert_eq!(p.os, Os::Linux);
+        assert_eq!(p.arch, Arch::X86_64);
+    }
+
+    #[test]
+    fn current_env_override_macos_aarch64() {
+        unsafe { std::env::set_var("SINDRI_TEST_PLATFORM_OVERRIDE", "macos-aarch64") };
+        let p = Platform::current();
+        unsafe { std::env::remove_var("SINDRI_TEST_PLATFORM_OVERRIDE") };
+        assert_eq!(p.os, Os::Macos);
+        assert_eq!(p.arch, Arch::Aarch64);
+    }
+
+    #[test]
+    fn current_without_override_does_not_panic() {
+        // Remove the var if a previous test left it set.
+        unsafe { std::env::remove_var("SINDRI_TEST_PLATFORM_OVERRIDE") };
+        let _p = Platform::current(); // must not panic
+    }
+
+    // ---------------------------------------------------------------------------
+    // Equality and hashing (derive-based, sanity check)
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn platform_equality() {
+        let a = Platform {
+            os: Os::Linux,
+            arch: Arch::X86_64,
+        };
+        let b = Platform {
+            os: Os::Linux,
+            arch: Arch::X86_64,
+        };
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn platform_inequality_different_arch() {
+        let a = Platform {
+            os: Os::Linux,
+            arch: Arch::X86_64,
+        };
+        let b = Platform {
+            os: Os::Linux,
+            arch: Arch::Aarch64,
+        };
+        assert_ne!(a, b);
+    }
+}
