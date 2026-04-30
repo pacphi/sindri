@@ -4008,7 +4008,7 @@ dependencies = [
  "oci-spec 0.9.0",
  "p256",
  "pkcs8",
- "rand_core 0.6.4",
+ "rand_core 0.9.5",
  "rcgen",
  "reqwest 0.12.28",
  "schemars 1.2.1",
