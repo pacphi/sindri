@@ -91,7 +91,7 @@ petgraph = "0.8"
 uuid = { version = "1.23", features = ["v4", "serde"] }
 
 # File locking for concurrent access
-fs4 = "1.0"
+fs4 = "1.1"
 
 # Archive handling (for binary downloads)
 tar = "0.4"
