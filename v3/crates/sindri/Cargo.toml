@@ -25,7 +25,7 @@ sindri-backup = { workspace = true }
 
 # CLI
 clap = { workspace = true }
-clap_complete = "4.6.0"
+clap_complete = "4.6.3"
 tokio = { workspace = true }
 anyhow = { workspace = true }
 futures = { workspace = true }
