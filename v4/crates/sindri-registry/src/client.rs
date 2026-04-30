@@ -189,7 +189,7 @@ impl RegistryClient {
         let policy_requires = self
             .policy
             .as_ref()
-            .and_then(|p| p.require_signed_registries)
+            .map(|p| p.requires_signed_registries())
             .unwrap_or(false);
 
         match verifier {
@@ -555,7 +555,7 @@ impl RegistryClient {
         let policy_requires = self
             .policy
             .as_ref()
-            .and_then(|p| p.require_signed_registries)
+            .map(|p| p.requires_signed_registries())
             .unwrap_or(false);
 
         if self.insecure {
@@ -601,7 +601,7 @@ impl RegistryClient {
                 } else {
                     tracing::warn!(
                         "no trusted keys for registry '{}'; skipping cosign verification \
-                         (policy.require_signed_registries=false)",
+                         (policy.registries.requireSigned=false)",
                         registry_name
                     );
                     Ok(())

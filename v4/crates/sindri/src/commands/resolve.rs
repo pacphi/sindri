@@ -1,7 +1,6 @@
 use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
 use sindri_core::manifest::BomManifest;
 use sindri_core::platform::Platform;
-use sindri_core::policy::InstallPolicy;
 use sindri_core::registry::ComponentEntry;
 use sindri_resolver::lockfile_writer::is_oci_source;
 use std::collections::HashMap;
@@ -55,21 +54,14 @@ pub fn run(args: ResolveArgs) -> i32 {
         eprintln!("Proceeding with empty registry (no components will resolve).");
     }
 
-    // Load policy (defaults for now; Sprint 6 adds full policy loading)
-    let mut policy = InstallPolicy {
-        preset: sindri_core::policy::PolicyPreset::Default,
-        allowed_licenses: Vec::new(),
-        denied_licenses: Vec::new(),
-        on_unknown_license: None,
-        require_signed_registries: None,
-        require_checksums: None,
-        offline: Some(args.offline),
-        audit: None,
-        auth: sindri_core::policy::AuthPolicy::default(),
+    // Load effective policy (global + project merge); fall back to default preset.
+    let mut policy = if args.strict {
+        sindri_policy::loader::preset_strict()
+    } else {
+        sindri_policy::load_effective_policy().policy
     };
-    if args.strict {
-        policy.preset = sindri_core::policy::PolicyPreset::Strict;
-    }
+    // The CLI's --offline flag overrides whatever the policy file said.
+    policy.network.offline = Some(args.offline);
 
     let platform = Platform::current();
     // Wave 3A.2: when the registry was fetched live via oci-client, its

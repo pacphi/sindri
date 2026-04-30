@@ -85,7 +85,7 @@ Status legend: ✅ fixed · 🟡 partially fixed · ⏸️ deferred · 🔍 need
 | F-REG-05 | major | 🔍 needs verification | Three-integrity-checks claim — gates 2 and 3 still need code re-verification. |
 | F-REG-06 | major | ⏸️ deferred | Gate 4 lint-vs-resolve confusion — POLICY.md ADR-008 status updated; sequence diagram phrasing untouched pending the broader Gate 4 reconciliation. |
 | F-REG-07 | major | ✅ fixed | Keyless OIDC section rewritten — implemented behind `keyless` cargo feature; no temporal references. |
-| **F-POL-01** | critical | ⏸️ deferred | Policy schema example (nested vs. flat) — explicitly deferred per user direction. |
+| **F-POL-01** | critical | ✅ fixed (Phase 1) | `InstallPolicy` reshaped into nested sub-structs (`LicensePolicy`/`RegistryPolicy`/`SourcesPolicy`/`NetworkPolicy`/`CapabilitiesPolicy`/`AuditPolicy`); external keys camelCase; `apiVersion`/`kind` validated; `deny_unknown_fields` everywhere. New Gate 2 enforcement: `requirePinnedVersions`, `allowScriptBackend`, `allowPrivileged`, `requireChecksums`, `licenses.onUnknown`. POLICY.md doc/impl roundtrip test guards future drift. |
 | **F-POL-02** | critical | ⏸️ deferred | Gate 5 admission codes — explicitly deferred per user direction. |
 | F-POL-03 | major | 🟡 partially fixed | ADR-008 status now reads "partially implemented; Gate 4 lint-only"; POLICY.md table row still says "Implemented". |
 | F-POL-04 | major | ❌ not started | `--allow-license` flag claim on `sindri resolve` not yet reconciled. |

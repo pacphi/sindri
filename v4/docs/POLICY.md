@@ -29,6 +29,9 @@ Both files are optional. An absent file is treated as empty (all defaults apply)
 
 ### Example `sindri.policy.yaml`
 
+External YAML keys are **camelCase** end-to-end. Every struct sets
+`deny_unknown_fields`, so misspelled keys fail loudly at deserialization.
+
 ```yaml
 apiVersion: sindri.dev/v4
 kind: InstallPolicy
@@ -50,40 +53,43 @@ licenses:
   onUnknown: warn   # allow | warn | prompt | deny
 
 registries:
-  require_signed: true
+  requireSigned: true
   trust:
     - sindri/core
     - acme/internal
 
 sources:
-  require_checksums: true
-  require_pinned_versions: true
-  allow_script_backend: prompt   # allow | warn | prompt | deny
-  allow_privileged: prompt
+  requireChecksums: true
+  requirePinnedVersions: true
+  allowScriptBackend: prompt   # allow | warn | prompt | deny
+  allowPrivileged: prompt
 
 network:
   offline: false
 
 capabilities:
-  trust_sources:
-    collision_handling:
+  trustSources:
+    collisionHandling:
       - sindri/core
-    project_init:
+    projectInit:
       - sindri/core
       - acme/internal
-    mcp_registration: "*"
-    shell_rc_edits:
+    mcpRegistration: "*"
+    shellRcEdits:
       - sindri/core
       - acme/internal
 
 audit:
-  require_justification: false
+  requireJustification: false
 
 auth:
-  on_unresolved_required: deny       # deny | warn | prompt
-  allow_upstream_credentials: false
-  allow_prompt_in_ci: false
+  onUnresolvedRequired: deny       # deny | warn | prompt
+  allowUpstreamCredentials: false
+  allowPromptInCi: false
 ```
+
+**`apiVersion` / `kind`** are validated against the canonical strings
+`sindri.dev/v4` and `InstallPolicy`. Any other value fails parsing.
 
 ---
 
@@ -96,11 +102,11 @@ flowchart TD
     A[Component from registry] --> G1{Gate 1\nPlatform eligibility}
     G1 -->|FAIL: ADM_PLATFORM_UNSUPPORTED| DENY[Denied — exit 2]
     G1 -->|PASS| G2{Gate 2\nPolicy eligibility}
-    G2 -->|FAIL: ADM_LICENSE_DENIED\nADM_UNSIGNED_REGISTRY\nADM_PRIVILEGED_DENIED| DENY
+    G2 -->|FAIL: ADM_LICENSE_DENIED\nADM_UNSIGNED_REGISTRY\nADM_PRIVILEGED_DENIED\nADM_SCRIPT_DENIED\nADM_VERSION_NOT_PINNED\nADM_CHECKSUM_MISSING| DENY
     G2 -->|PASS| G3{Gate 3\nDependency closure}
     G3 -->|FAIL: transitive dependency denied| DENY
     G3 -->|PASS| G4{Gate 4\nCapability trust}
-    G4 -->|FAIL: untrusted collision_handling\nor project_init source| DENY
+    G4 -->|FAIL: untrusted collisionHandling\nor projectInit source| DENY
     G4 -->|PASS| LOCK[Written to sindri.lock]
     LOCK -->|sindri apply| G5{Gate 5\nAuth-resolvable}
     G5 -->|FAIL: ADM_AUTH_UNRESOLVED\nADM_AUTH_UPSTREAM_DENIED\nADM_AUTH_PROMPT_IN_CI| DENY
@@ -126,11 +132,12 @@ The resolved merged policy (global + project) is evaluated. Denial codes:
 | Code | Trigger |
 |------|---------|
 | `ADM_LICENSE_DENIED` | Component license is in `licenses.deny`, or strict mode and not in `licenses.allow` |
-| `ADM_LICENSE_UNKNOWN` | `metadata.license` is empty and `onUnknown: deny` |
-| `ADM_UNSIGNED_REGISTRY` | `registries.require_signed: true` and registry has no trusted key |
-| `ADM_PRIVILEGED_DENIED` | Component requires elevated privileges and `sources.allow_privileged: deny` |
-| `ADM_SCRIPT_DENIED` | Component uses `script` backend and `sources.allow_script_backend: deny` |
-| `ADM_CHECKSUM_MISSING` | `sources.require_checksums: true` and binary component has no checksums |
+| `ADM_LICENSE_UNKNOWN` | `metadata.license` is empty and `licenses.onUnknown: deny` |
+| `ADM_UNSIGNED_REGISTRY` | `registries.requireSigned: true` and registry has no trusted key |
+| `ADM_PRIVILEGED_DENIED` | Component requires elevated privileges and `sources.allowPrivileged: deny` |
+| `ADM_SCRIPT_DENIED` | Component uses `script` backend and `sources.allowScriptBackend: deny` |
+| `ADM_VERSION_NOT_PINNED` | `sources.requirePinnedVersions: true` and a manifest entry is unpinned (`latest`, `^…`, `~…`, `>=…`, etc.) |
+| `ADM_CHECKSUM_MISSING` | `sources.requireChecksums: true` and binary component has no checksums |
 
 ### Gate 3 — Dependency Closure
 
@@ -146,9 +153,9 @@ DENIED (1)
 
 ### Gate 4 — Capability Trust
 
-Components that declare `capabilities.collision_handling` or `capabilities.project_init` from third-party registries are checked against `policy.capabilities.trust_sources`. Untrusted sources are denied (or downgraded to a warning) per policy.
+Components that declare `capabilities.collisionHandling` or `capabilities.projectInit` from third-party registries are checked against `policy.capabilities.trustSources`. Untrusted sources are denied (or downgraded to a warning) per policy.
 
-**Collision handling path prefix rule:** `collision_handling.path_prefix` must start with `{component-name}/`. This prevents a component from claiming collision ownership over paths it does not own. Components in `sindri/core` may additionally use `:shared` for cross-component shared paths. See [ADR-008](ADRs/008-install-policy-subsystem.md) and the lint error `LINT_COLLISION_PREFIX`.
+**Collision handling path prefix rule:** `collisionHandling.pathPrefix` must start with `{component-name}/`. This prevents a component from claiming collision ownership over paths it does not own. Components in `sindri/core` may additionally use `:shared` for cross-component shared paths. See [ADR-008](ADRs/008-install-policy-subsystem.md) and the lint error `LINT_COLLISION_PREFIX`.
 
 ### Gate 5 — Auth-resolvable
 
@@ -156,17 +163,42 @@ Verifies that every non-`optional` `AuthRequirement` declared by a component in 
 
 Unlike Gates 1–4 (which run at `sindri resolve` against the registry), Gate 5 runs at `sindri apply` against the lockfile's `AuthBinding` records. A required binding that the resolver could not bind (env var missing, no `provides:` mapping the audience, no `discovery.env-aliases` match) reaches apply as an unresolved entry; Gate 5 denies before any side effect runs.
 
-Configured under `auth:` in `sindri.policy.yaml`. All three knobs default to **deny** — operators must opt into each relaxation explicitly.
+Configured under `auth:` in `sindri.policy.yaml`. All three knobs default to **deny / false** — operators must opt into each relaxation explicitly.
 
 | Code | Trigger |
 |------|---------|
-| `ADM_AUTH_UNRESOLVED` | `auth.on_unresolved_required: deny` and a required binding is unresolved on the target |
-| `ADM_AUTH_UPSTREAM_DENIED` | `auth.allow_upstream_credentials: false` and a binding is sourced via `from-upstream-credentials` |
-| `ADM_AUTH_PROMPT_IN_CI` | `auth.allow_prompt_in_ci: false` and a binding's source is `prompt` in a non-interactive run |
+| `ADM_AUTH_UNRESOLVED` | `auth.onUnresolvedRequired: deny` and a required binding is unresolved on the target |
+| `ADM_AUTH_UPSTREAM_DENIED` | `auth.allowUpstreamCredentials: false` and a binding is sourced via `from-upstream-credentials` |
+| `ADM_AUTH_PROMPT_IN_CI` | `auth.allowPromptInCi: false` and a binding's source is `prompt` in a non-interactive run |
 
 **Non-interactive detection:** `CI` env var present, `SINDRI_CI` env var present, or stdin not attached to a TTY (Unix only; Windows is treated as non-interactive by default).
 
-#### `auth.on_unresolved_required`
+#### `licenses.onUnknown`
+
+| Value | Behaviour |
+|-------|-----------|
+| `allow` | Empty `license:` is admitted silently. |
+| `warn` | (default for `default` preset) Empty `license:` admitted with a warn log. |
+| `prompt` | Reserved — interactive resolution. Not currently active. |
+| `deny` | (default for `strict` preset) Empty `license:` is denied with `ADM_LICENSE_UNKNOWN`. |
+
+#### `registries.requireSigned` and `registries.trust`
+
+`registries.requireSigned: true` makes every `sindri registry refresh` fetch fail closed unless a trusted cosign key matches the index signature. `registries.trust` is an optional allow-list of registry aliases — when non-empty, any alias outside the list is rejected at refresh time.
+
+#### `sources.requirePinnedVersions`
+
+When `true`, the resolver rejects any manifest entry whose version specifier is not an exact pin. Disallowed forms: empty, `latest`, `*`, `^…`, `~…`, `>=…`, `<…`. Use this in CI to enforce reproducibility (`ADM_VERSION_NOT_PINNED`).
+
+#### `sources.allowScriptBackend`
+
+`PolicyAction` for components installed via the `script` backend. `deny` blocks them outright (`ADM_SCRIPT_DENIED`); `prompt` is the `strict`-preset default and is treated as advisory (admit with a warn) until interactive resolution lands.
+
+#### `sources.allowPrivileged`
+
+`PolicyAction` for components that declare `requiresElevation: true` in their manifest. `deny` blocks them (`ADM_PRIVILEGED_DENIED`).
+
+#### `auth.onUnresolvedRequired`
 
 | Value | Behaviour |
 |-------|-----------|
@@ -176,16 +208,16 @@ Configured under `auth:` in `sindri.policy.yaml`. All three knobs default to **d
 
 Use `warn` only when you intentionally need a "best-effort" install (e.g. base-image bake where credentials will be supplied later via cloud-init). Document the choice; revisit during audit.
 
-#### `auth.allow_upstream_credentials`
+#### `auth.allowUpstreamCredentials`
 
 | Value | Behaviour |
 |-------|-----------|
 | `false` | (default) Bindings whose source is `from-upstream-credentials` are denied. |
 | `true` | Bindings can reuse the target's own session credentials. |
 
-The target's session token (e.g. an SSH-agent-forwarded GitHub-app installation token) becomes available to every component that declares a matching audience. A maliciously-crafted manifest matching the audience can harvest the token. ADR-014 trust-on-install applies, but treat `allow_upstream_credentials: true` as a privileged setting.
+The target's session token (e.g. an SSH-agent-forwarded GitHub-app installation token) becomes available to every component that declares a matching audience. A maliciously-crafted manifest matching the audience can harvest the token. ADR-014 trust-on-install applies, but treat `allowUpstreamCredentials: true` as a privileged setting.
 
-#### `auth.allow_prompt_in_ci`
+#### `auth.allowPromptInCi`
 
 | Value | Behaviour |
 |-------|-----------|
@@ -196,7 +228,7 @@ Without this gate, an apply that needs an interactive credential (SSH passphrase
 
 #### Interaction with `sindri apply --skip-auth`
 
-`--skip-auth` bypasses **redemption** but does NOT bypass Gate 5. Required-binding presence is still enforced. To bypass both, operators must additionally relax `auth.on_unresolved_required` to `warn`.
+`--skip-auth` bypasses **redemption** but does NOT bypass Gate 5. Required-binding presence is still enforced. To bypass both, operators must additionally relax `auth.onUnresolvedRequired` to `warn`.
 
 This split is intentional: `--skip-auth` is for "I know my credentials are out-of-band and will inject them another way"; the gate is for "there exists a bound source somewhere". Different concerns, separate overrides, both auditable in `~/.sindri/ledger.jsonl`.
 
@@ -231,10 +263,10 @@ The `capabilities:` block in `sindri.policy.yaml` controls which registries are 
 
 | Capability | Default trusted sources | Description |
 |------------|-------------------------|-------------|
-| `collision_handling` | `sindri/core` | Registries trusted to declare path-prefix collision rules |
-| `project_init` | `sindri/core` | Registries trusted to run project-init steps post-install |
-| `mcp_registration` | `*` (any) | Registries trusted to register MCP servers |
-| `shell_rc_edits` | `sindri/core` | Registries trusted to edit shell RC files |
+| `collisionHandling` | `sindri/core` | Registries trusted to declare path-prefix collision rules |
+| `projectInit` | `sindri/core` | Registries trusted to run project-init steps post-install |
+| `mcpRegistration` | `*` (any) | Registries trusted to register MCP servers |
+| `shellRcEdits` | `sindri/core` | Registries trusted to edit shell RC files |
 
 Setting a source list to `"*"` (string) trusts any registry. Setting to an empty list `[]` denies all third-party sources for that capability.
 
@@ -266,7 +298,7 @@ Three named presets are available:
 | Preset | Description |
 |--------|-------------|
 | `default` | Permissive. No license restrictions. `onUnknown: warn`. Signing not required. Suitable for personal use. |
-| `strict` | Pinned versions required. Registries must be signed. `onUnknown: deny`. Only allow-listed licenses pass. `allow_script_backend: prompt`. |
+| `strict` | Pinned versions required (`sources.requirePinnedVersions: true`). Registries must be signed. `licenses.onUnknown: deny`. Only allow-listed licenses pass. `sources.allowScriptBackend: prompt`. `sources.allowPrivileged: prompt`. `audit.requireJustification: true`. |
 | `offline` | All network access disabled (`network.offline: true`). Extends `strict`. |
 
 ```bash
@@ -281,7 +313,7 @@ sindri init --policy strict # init with strict policy baked into the project
 
 Policy overrides are allowed but every override is appended to the StatusLedger (`~/.sindri/ledger.jsonl`) with timestamp, user, and optional reason.
 
-When `policy.audit.require_justification: true`, the `--reason` flag is mandatory for overrides:
+When `policy.audit.requireJustification: true`, the `--reason` flag is mandatory for overrides:
 
 ```bash
 sindri resolve --allow-license proprietary --reason "vendor contract SA-2342"
@@ -299,10 +331,10 @@ sindri log --json | jq '.[] | select(.event_type == "policy_override")'
 
 | Gate | Status | Reference |
 |------|--------|-----------|
-| Gate 1 — Platform eligibility | Implemented | [ADR-008](ADRs/008-install-policy-subsystem.md), [PR #205](https://github.com/pacphi/sindri/pull/205) |
-| Gate 2 — Policy eligibility | Implemented (license check in `sindri-policy::check`) | [ADR-008](ADRs/008-install-policy-subsystem.md) |
+| Gate 1 — Platform eligibility | Implemented | [ADR-008](ADRs/008-install-policy-subsystem.md) |
+| Gate 2 — Policy eligibility | Implemented (`sindri-policy::check`: license, version-pinning, script-backend, privileged, checksum checks) | [ADR-008](ADRs/008-install-policy-subsystem.md) |
 | Gate 3 — Dependency closure | Implemented (topological DAG in resolver) | [ADR-008](ADRs/008-install-policy-subsystem.md) |
-| Gate 4 — Capability trust | Implemented (collision path prefix enforced in `registry lint`) | [ADR-008](ADRs/008-install-policy-subsystem.md) |
-| Gate 5 — Auth-resolvable | Implemented (`sindri-policy::gate5_auth::check_gate5`) | [ADR-027 §5](ADRs/027-target-auth-injection.md), [PR #254](https://github.com/pacphi/sindri/pull/254) |
+| Gate 4 — Capability trust | Partially implemented — collision-prefix rule enforced in `registry lint`; resolve-time admission hook is wired in Phase 2 of the docs/impl reconciliation plan | [ADR-008](ADRs/008-install-policy-subsystem.md) |
+| Gate 5 — Auth-resolvable | Implemented (`sindri-policy::gate5_auth::check_gate5`) | [ADR-027 §5](ADRs/027-target-auth-injection.md) |
 
-Full script sandboxing (Landlock/Seatbelt/AppContainer) and SLSA L3+ attestation chains are deferred beyond v4.0. Gate 5's `auth.on_unresolved_required: prompt` value is reserved for a future interactive-resolution flow and is not currently honored at runtime.
+Full script sandboxing (Landlock/Seatbelt/AppContainer) and SLSA L3+ attestation chains are deferred beyond v4.0. Gate 5's `auth.onUnresolvedRequired: prompt` value is reserved for a future interactive-resolution flow and is not currently honored at runtime.

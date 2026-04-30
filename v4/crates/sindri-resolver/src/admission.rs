@@ -335,28 +335,27 @@ mod tests {
     fn permissive_policy() -> InstallPolicy {
         InstallPolicy {
             preset: PolicyPreset::Default,
-            allowed_licenses: vec![],
-            denied_licenses: vec![],
-            on_unknown_license: None,
-            require_signed_registries: None,
-            require_checksums: None,
-            offline: None,
-            audit: None,
-            auth: sindri_core::policy::AuthPolicy::default(),
+            ..Default::default()
         }
     }
 
     fn strict_policy() -> InstallPolicy {
+        use sindri_core::policy::{LicensePolicy, RegistryPolicy, SourcesPolicy};
         InstallPolicy {
             preset: PolicyPreset::Strict,
-            allowed_licenses: vec!["MIT".into(), "Apache-2.0".into()],
-            denied_licenses: vec![],
-            on_unknown_license: None,
-            require_signed_registries: Some(true),
-            require_checksums: Some(true),
-            offline: None,
-            audit: None,
-            auth: sindri_core::policy::AuthPolicy::default(),
+            licenses: LicensePolicy {
+                allow: vec!["MIT".into(), "Apache-2.0".into()],
+                ..Default::default()
+            },
+            registries: RegistryPolicy {
+                require_signed: Some(true),
+                ..Default::default()
+            },
+            sources: SourcesPolicy {
+                require_checksums: Some(true),
+                ..Default::default()
+            },
+            ..Default::default()
         }
     }
 

@@ -51,39 +51,56 @@ fn show_policy() -> i32 {
     let p = &effective.policy;
 
     println!("Effective policy:");
-    println!("  preset:                  {}", preset_name(&p.preset));
+    println!("  preset:                       {}", preset_name(&p.preset));
     println!(
-        "  allowed_licenses:        {}",
-        if p.allowed_licenses.is_empty() {
+        "  licenses.allow:               {}",
+        if p.licenses.allow.is_empty() {
             "(any)".into()
         } else {
-            p.allowed_licenses.join(", ")
+            p.licenses.allow.join(", ")
         }
     );
     println!(
-        "  denied_licenses:         {}",
-        if p.denied_licenses.is_empty() {
+        "  licenses.deny:                {}",
+        if p.licenses.deny.is_empty() {
             "(none)".into()
         } else {
-            p.denied_licenses.join(", ")
+            p.licenses.deny.join(", ")
         }
     );
-    println!("  on_unknown_license:      {:?}", p.on_unknown_license);
     println!(
-        "  require_signed_registries: {}",
-        p.require_signed_registries.unwrap_or(false)
+        "  licenses.onUnknown:           {:?}",
+        p.licenses.on_unknown
     );
     println!(
-        "  require_checksums:       {}",
-        p.require_checksums.unwrap_or(false)
+        "  registries.requireSigned:     {}",
+        p.requires_signed_registries()
     );
-    println!("  offline:                 {}", p.offline.unwrap_or(false));
     println!(
-        "  audit.require_justification: {}",
-        p.audit
-            .as_ref()
-            .map(|a| a.require_justification)
-            .unwrap_or(false)
+        "  registries.trust:             {}",
+        if p.registries.trust.is_empty() {
+            "(any)".into()
+        } else {
+            p.registries.trust.join(", ")
+        }
+    );
+    println!("  sources.requireChecksums:     {}", p.requires_checksums());
+    println!(
+        "  sources.requirePinnedVersions:{}",
+        p.requires_pinned_versions()
+    );
+    println!(
+        "  sources.allowScriptBackend:   {:?}",
+        p.script_backend_action()
+    );
+    println!(
+        "  sources.allowPrivileged:      {:?}",
+        p.privileged_action()
+    );
+    println!("  network.offline:              {}", p.is_offline());
+    println!(
+        "  audit.requireJustification:   {}",
+        p.audit.require_justification
     );
 
     if !effective.sources.is_empty() {
@@ -100,8 +117,8 @@ fn allow_license(spdx: &str, reason: Option<&str>) -> i32 {
     let effective = sindri_policy::load_effective_policy();
     let mut policy = effective.policy;
 
-    if !policy.allowed_licenses.contains(&spdx.to_string()) {
-        policy.allowed_licenses.push(spdx.to_string());
+    if !policy.licenses.allow.contains(&spdx.to_string()) {
+        policy.licenses.allow.push(spdx.to_string());
     }
 
     let path = sindri_policy::loader::global_policy_path();

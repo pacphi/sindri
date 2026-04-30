@@ -220,7 +220,7 @@ sindri apply --target e2b-sandbox --yes
 ```yaml
 # sindri.policy.yaml
 auth:
-  on_unresolved_required: warn   # default: deny
+  onUnresolvedRequired: warn   # default: deny
 ```
 
 **Run-time consequences**: the installed tool will fail at first run with whatever native "missing credential" error it produces (e.g. `anthropic.AuthenticationError: invalid x-api-key`). That is intended.
@@ -887,7 +887,7 @@ Prints the effective merged policy with source annotations (which file each fiel
 sindri policy allow-license <spdx> [--reason <text>]
 ```
 
-Appends an SPDX identifier to the global allow list. `--reason` is optional by default but required when `policy.audit.require_justification: true`.
+Appends an SPDX identifier to the global allow list. `--reason` is optional by default but required when `policy.audit.requireJustification: true`.
 
 **Examples**
 
@@ -1321,7 +1321,7 @@ auth bindings: 1 resolved, 1 deferred, 1 failed
        `local` has no bound source.
        fix: Bind a source via `targets.<name>.provides:`, mark the
             requirement `optional: true`, or relax
-            `auth.on_unresolved_required` to `warn`.
+            `auth.onUnresolvedRequired` to `warn`.
 
 Remediation:
   1. `sindri auth show --target local` to see why bindings failed.

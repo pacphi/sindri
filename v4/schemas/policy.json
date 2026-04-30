@@ -1,33 +1,104 @@
 {
   "$defs": {
-    "AuditConfig": {
+    "ApiVersion": {
+      "enum": [
+        "sindri.dev/v4"
+      ],
+      "type": "string"
+    },
+    "AuditPolicy": {
+      "additionalProperties": false,
       "properties": {
-        "require_justification": {
+        "requireJustification": {
+          "default": false,
+          "description": "When `true`, override commands (e.g. `sindri resolve --allow <id>=<reason>`)\nrequire a non-empty reason string. Phase 5 wires the `--reason` enforcement.",
           "type": "boolean"
         }
       },
-      "required": [
-        "require_justification"
-      ],
       "type": "object"
     },
     "AuthPolicy": {
-      "description": "Auth-aware admission policy (ADR-027 §5).\n\nAll three knobs default to the **deny** stance. Operators must opt in\nexplicitly to relax any of them, and each opt-in is documented with a\nsecurity caveat in `v4/docs/policy.md`.",
+      "additionalProperties": false,
+      "description": "Auth-aware admission policy (Gate 5, ADR-027 §5).\n\nAll three knobs default to the **deny** stance. Operators must opt in\nexplicitly to relax any of them.",
       "properties": {
-        "allow_prompt_in_ci": {
+        "allowPromptInCi": {
           "default": false,
-          "description": "If `false` (default), bindings whose `AuthSource` is `Prompt` are\ndenied at Gate 5 in non-interactive runs (no TTY OR `CI=1` /\n`SINDRI_CI=1` set).",
+          "description": "If `false` (default), bindings whose `AuthSource` is `Prompt` are\ndenied at Gate 5 in non-interactive runs.",
           "type": "boolean"
         },
-        "allow_upstream_credentials": {
+        "allowUpstreamCredentials": {
           "default": false,
-          "description": "If `false` (default), bindings whose `AuthSource` is\n`FromUpstreamCredentials` are denied at Gate 5. Forces operators\nto mint dedicated child-workload credentials rather than reusing\nthe target's session token.",
+          "description": "If `false` (default), bindings whose `AuthSource` is\n`FromUpstreamCredentials` are denied at Gate 5.",
           "type": "boolean"
         },
-        "on_unresolved_required": {
+        "onUnresolvedRequired": {
           "$ref": "#/$defs/PolicyAction",
           "default": "deny",
-          "description": "What to do when a non-`optional` requirement has no bound source\nin the lockfile. Default: `deny` (Gate 5 fails-fast at admission).\nSetting `warn` makes the gate purely advisory; `prompt` is reserved\nfor Phase 5 interactive resolution."
+          "description": "What to do when a non-`optional` requirement has no bound source\nin the lockfile. Default: `deny`."
+        }
+      },
+      "type": "object"
+    },
+    "CapabilitiesPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "trustSources": {
+          "$ref": "#/$defs/TrustSources",
+          "default": {
+            "collisionHandling": [],
+            "mcpRegistration": [],
+            "projectInit": [],
+            "shellRcEdits": []
+          },
+          "description": "Per-capability trust lists (Gate 4 input)."
+        }
+      },
+      "type": "object"
+    },
+    "LicensePolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "allow": {
+          "default": [],
+          "description": "Strict-preset allow list. Empty = unrestricted (default preset only).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "deny": {
+          "default": [],
+          "description": "Explicit deny list. Always wins.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "onUnknown": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PolicyAction"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Action when a component declares an empty `license:` field.\nDefaults to `warn` for the default preset and `deny` for strict\n(set by the preset constructors in `sindri-policy::loader`)."
+        }
+      },
+      "type": "object"
+    },
+    "NetworkPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "offline": {
+          "default": null,
+          "description": "Disable all network access (cache-only mode).",
+          "type": [
+            "boolean",
+            "null"
+          ]
         }
       },
       "type": "object"
@@ -41,6 +112,12 @@
       ],
       "type": "string"
     },
+    "PolicyKind": {
+      "enum": [
+        "InstallPolicy"
+      ],
+      "type": "string"
+    },
     "PolicyPreset": {
       "enum": [
         "default",
@@ -48,76 +125,206 @@
         "offline"
       ],
       "type": "string"
+    },
+    "RegistryPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "requireSigned": {
+          "default": null,
+          "description": "Require a valid cosign signature on every registry index fetched.\n`None` is treated as `false` (permissive).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "trust": {
+          "default": [],
+          "description": "Allow-list of registry aliases that may be `sindri registry refresh`-ed.\nEmpty list = no restriction (any alias is allowed).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "SourcesPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "allowPrivileged": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PolicyAction"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Action for components that declare `requiresElevation: true`."
+        },
+        "allowScriptBackend": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PolicyAction"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Action for components installed via the `script` backend."
+        },
+        "requireChecksums": {
+          "default": null,
+          "description": "Reject components whose registry entry omits checksums for binary assets.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "requirePinnedVersions": {
+          "default": null,
+          "description": "Reject components whose manifest entry has no exact `@version` pin.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "TrustList": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WildcardLiteral",
+          "description": "String literal `\"*\"` — trust any registry."
+        },
+        {
+          "description": "Explicit allow-list. Empty list = trust no third-party registry.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      ],
+      "description": "Either an explicit allow-list of registry aliases or the wildcard `\"*\"`\n(string) meaning \"any registry.\""
+    },
+    "TrustSources": {
+      "additionalProperties": false,
+      "properties": {
+        "collisionHandling": {
+          "$ref": "#/$defs/TrustList",
+          "default": [],
+          "description": "Registries trusted to declare `capabilities.collisionHandling`."
+        },
+        "mcpRegistration": {
+          "$ref": "#/$defs/TrustList",
+          "default": [],
+          "description": "Registries trusted to register MCP servers."
+        },
+        "projectInit": {
+          "$ref": "#/$defs/TrustList",
+          "default": [],
+          "description": "Registries trusted to run project-init steps post-install."
+        },
+        "shellRcEdits": {
+          "$ref": "#/$defs/TrustList",
+          "default": [],
+          "description": "Registries trusted to edit shell-RC files."
+        }
+      },
+      "type": "object"
+    },
+    "WildcardLiteral": {
+      "description": "Single-value enum so `serde_yaml` can validate the string `\"*\"` exactly.",
+      "enum": [
+        "*"
+      ],
+      "type": "string"
     }
   },
   "$id": "https://schemas.sindri.dev/v4/policy.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
   "description": "sindri v4 policy schema",
   "properties": {
-    "allowed_licenses": {
-      "default": [],
-      "items": {
-        "type": "string"
-      },
-      "type": "array"
+    "apiVersion": {
+      "$ref": "#/$defs/ApiVersion",
+      "default": "sindri.dev/v4",
+      "description": "`sindri.dev/v4` — validated."
     },
     "audit": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/AuditConfig"
-        },
-        {
-          "type": "null"
-        }
-      ]
+      "$ref": "#/$defs/AuditPolicy",
+      "default": {
+        "requireJustification": false
+      },
+      "description": "Audit-trail enforcement.\nPhase 1 deserialises into typed data; the `--reason` requirement is wired in Phase 5."
     },
     "auth": {
       "$ref": "#/$defs/AuthPolicy",
       "default": {
-        "allow_prompt_in_ci": false,
-        "allow_upstream_credentials": false,
-        "on_unresolved_required": "deny"
+        "allowPromptInCi": false,
+        "allowUpstreamCredentials": false,
+        "onUnresolvedRequired": "deny"
       },
-      "description": "Auth-aware admission knobs (Gate 5; ADR-027 §5).\n\nAdditive; existing policy files without an `auth:` block deserialize\nas [`AuthPolicy::default()`] which is the **strict default-deny**\nposture user-approved for Phase 2B:\n- `on_unresolved_required: deny`\n- `allow_upstream_credentials: false`\n- `allow_prompt_in_ci: false`"
+      "description": "Auth-aware admission knobs (Gate 5; ADR-027 §5).\n\nExisting policy files without an `auth:` block deserialise as\n[`AuthPolicy::default()`] which is the strict default-deny posture:\n- `onUnresolvedRequired: deny`\n- `allowUpstreamCredentials: false`\n- `allowPromptInCi: false`"
     },
-    "denied_licenses": {
-      "default": [],
-      "items": {
-        "type": "string"
-      },
-      "type": "array"
-    },
-    "offline": {
-      "type": [
-        "boolean",
-        "null"
-      ]
-    },
-    "on_unknown_license": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/PolicyAction"
-        },
-        {
-          "type": "null"
+    "capabilities": {
+      "$ref": "#/$defs/CapabilitiesPolicy",
+      "default": {
+        "trustSources": {
+          "collisionHandling": [],
+          "mcpRegistration": [],
+          "projectInit": [],
+          "shellRcEdits": []
         }
-      ]
+      },
+      "description": "Capability-trust admission inputs (Gate 4; ADR-008).\nPhase 1 deserialises into typed data; Gate 4 enforcement lands in Phase 2."
+    },
+    "kind": {
+      "$ref": "#/$defs/PolicyKind",
+      "default": "InstallPolicy",
+      "description": "`InstallPolicy` — validated."
+    },
+    "licenses": {
+      "$ref": "#/$defs/LicensePolicy",
+      "default": {
+        "allow": [],
+        "deny": [],
+        "onUnknown": null
+      },
+      "description": "License allow/deny lists and unknown-license action."
+    },
+    "network": {
+      "$ref": "#/$defs/NetworkPolicy",
+      "default": {
+        "offline": null
+      },
+      "description": "Network-access knobs."
     },
     "preset": {
       "$ref": "#/$defs/PolicyPreset",
-      "default": "default"
+      "default": "default",
+      "description": "One of `default`, `strict`, `offline`."
     },
-    "require_checksums": {
-      "type": [
-        "boolean",
-        "null"
-      ]
+    "registries": {
+      "$ref": "#/$defs/RegistryPolicy",
+      "default": {
+        "requireSigned": null,
+        "trust": []
+      },
+      "description": "Registry signing requirements and trust list."
     },
-    "require_signed_registries": {
-      "type": [
-        "boolean",
-        "null"
-      ]
+    "sources": {
+      "$ref": "#/$defs/SourcesPolicy",
+      "default": {
+        "allowPrivileged": null,
+        "allowScriptBackend": null,
+        "requireChecksums": null,
+        "requirePinnedVersions": null
+      },
+      "description": "Source-quality knobs (checksums, version pinning, script/privileged backends)."
     }
   },
   "title": "InstallPolicy",

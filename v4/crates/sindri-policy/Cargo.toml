@@ -15,3 +15,6 @@ serde_yaml = { workspace = true }
 thiserror = { workspace = true }
 dirs-next = { workspace = true }
 tracing = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

@@ -593,7 +593,7 @@ fn render_apply_err(e: &ApplyError) -> String {
 /// Wave 5A — D5: per-component cosign signature pre-flight.
 ///
 /// Behaviour matrix (loaded against `sindri.policy.yaml`, defaulting to
-/// `require_signed_registries=false`):
+/// `registries.requireSigned=false`):
 ///
 /// | policy strict | digest present | trust keys | outcome                    |
 /// |---------------|----------------|------------|----------------------------|
@@ -612,7 +612,7 @@ async fn preflight_component_signatures(
     lockfile: &sindri_core::lockfile::Lockfile,
 ) -> Result<(), String> {
     let strict = load_install_policy()
-        .and_then(|p| p.require_signed_registries)
+        .map(|p| p.requires_signed_registries())
         .unwrap_or(false);
 
     // Best-effort trust-store load. A missing `~/.sindri/trust/` is treated
@@ -643,7 +643,7 @@ async fn preflight_component_signatures(
             None => {
                 if strict {
                     return Err(format!(
-                        "component '{}' is missing `component_digest` but policy.require_signed_registries=true \
+                        "component '{}' is missing `component_digest` but policy.registries.requireSigned=true \
                          (re-resolve to populate the digest, or relax the policy)",
                         comp.id.to_address()
                     ));

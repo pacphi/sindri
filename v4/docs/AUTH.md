@@ -125,7 +125,7 @@ Remediation:
      control (file:, cli:, secret:), or
   4. Mark the requirement `optional: true` in the component manifest, or
   5. Re-run with `--skip-auth` to bypass redemption (auditable; does NOT
-     bypass Gate 5 unless `policy.auth.on_unresolved_required: warn`).
+     bypass Gate 5 unless `policy.auth.onUnresolvedRequired: warn`).
 ```
 
 Use `sindri auth show` to inspect bindings, or read `sindri.lock`'s
@@ -156,7 +156,7 @@ your `sindri.policy.yaml`:
 
 ```yaml
 auth:
-  allow_upstream_credentials: true   # (off by default — security caveat)
+  allowUpstreamCredentials: true   # (off by default — security caveat)
 ```
 
 **Caveat**: enabling this means a malicious component manifest matching
@@ -178,7 +178,7 @@ Remediation:
   2. Or relax the policy (NOT recommended for production CI):
 
        auth:
-         allow_prompt_in_ci: true
+         allowPromptInCi: true
 ```
 
 ### Crashed mid-apply / stale temp files
@@ -204,7 +204,7 @@ UX details:
 
 - Prompts that declare `secret: true` are read **without echo** when stdin
   is a TTY. On non-TTY stdin (script, pipe), input is read as-is — set
-  `policy.auth.allow_prompt_in_ci: false` (default) to refuse such cases.
+  `policy.auth.allowPromptInCi: false` (default) to refuse such cases.
 - Default `timeout_secs` is **60 seconds**.
 - Prompt failure (timeout, EOF) marks the binding as `AuthBindingFailed`;
   Gate 5 then denies if the requirement is required.
@@ -216,7 +216,7 @@ redemption was skipped emits one `AuthSkippedByUser` ledger event so the
 bypass is auditable. Note:
 
 - Gate 5 still enforces required-binding presence unless
-  `policy.auth.on_unresolved_required: warn` is also set.
+  `policy.auth.onUnresolvedRequired: warn` is also set.
 - The installed tool will probably fail at first run with whatever native
   "missing credential" error it produces. That is intended.
 

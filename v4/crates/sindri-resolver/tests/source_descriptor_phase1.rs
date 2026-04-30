@@ -18,14 +18,10 @@ use tempfile::TempDir;
 fn permissive_policy() -> InstallPolicy {
     InstallPolicy {
         preset: PolicyPreset::Default,
-        allowed_licenses: Vec::new(),
-        denied_licenses: Vec::new(),
-        on_unknown_license: None,
-        require_signed_registries: None,
-        require_checksums: None,
-        offline: Some(true),
-        audit: None,
-        auth: Default::default(),
+        network: sindri_core::policy::NetworkPolicy {
+            offline: Some(true),
+        },
+        ..Default::default()
     }
 }
 
