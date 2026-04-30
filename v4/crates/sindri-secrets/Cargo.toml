@@ -22,10 +22,10 @@ reqwest = { workspace = true }
 # ChaCha20-Poly1305 AEAD for encrypted-at-rest file backend (ADR-025)
 chacha20poly1305 = "0.10"
 # HKDF + SHA-256 for passphrase-to-key derivation
-hkdf = "0.12"
-sha2_v10 = { package = "sha2", version = "0.10" }
+hkdf = "0.13"
+sha2 = { workspace = true }
 # Random nonce generation
-rand = "0.8"
+rand = "0.9"
 hex = { workspace = true }
 base64 = { workspace = true }
 

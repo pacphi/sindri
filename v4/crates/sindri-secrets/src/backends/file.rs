@@ -38,7 +38,7 @@ use chacha20poly1305::{
 };
 use hkdf::Hkdf;
 use rand::RngCore;
-use sha2_v10::Sha256;
+use sha2::Sha256;
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
@@ -120,7 +120,7 @@ impl FileBackend {
         let plaintext = serde_json::to_vec(map)
             .map_err(|e| SecretsError::Serde(format!("cannot serialise secrets store: {}", e)))?;
         let mut nonce_bytes = [0u8; 12];
-        rand::thread_rng().fill_bytes(&mut nonce_bytes);
+        rand::rng().fill_bytes(&mut nonce_bytes);
         let nonce = Nonce::from_slice(&nonce_bytes);
         let ciphertext = self
             .cipher
@@ -139,7 +139,7 @@ impl FileBackend {
 
 /// Derive a 32-byte ChaCha20-Poly1305 key from `passphrase` + `path`.
 fn derive_key(passphrase: &str, path: &Path) -> [u8; 32] {
-    use sha2_v10::Digest;
+    use sha2::Digest;
     // salt = SHA-256("sindri-file-backend-salt" || path-bytes)
     let mut salt_input = b"sindri-file-backend-salt".to_vec();
     salt_input.extend_from_slice(path.to_string_lossy().as_bytes());

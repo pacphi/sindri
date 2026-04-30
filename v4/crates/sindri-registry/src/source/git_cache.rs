@@ -36,7 +36,6 @@
 //! dir, plus one `remove_dir_all` per evicted dir — bounded by the
 //! number of cached commits which is small in practice.
 
-use fs4::fs_std::FileExt;
 use sindri_core::cache_config::GitCacheConfig;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -85,7 +84,7 @@ pub fn run_eviction(cache_root: &Path, cfg: &GitCacheConfig) -> std::io::Result<
         .write(true)
         .truncate(false)
         .open(&lock_path)?;
-    if FileExt::try_lock_exclusive(&lock_file).is_err() {
+    if lock_file.try_lock().is_err() {
         tracing::debug!(
             "git-cache eviction skipped: lock held at {}",
             lock_path.display()
@@ -95,7 +94,7 @@ pub fn run_eviction(cache_root: &Path, cfg: &GitCacheConfig) -> std::io::Result<
 
     let mut entries = collect_entries(cache_root);
     if entries.is_empty() {
-        let _ = FileExt::unlock(&lock_file);
+        let _ = lock_file.unlock();
         return Ok(0);
     }
 
@@ -134,7 +133,7 @@ pub fn run_eviction(cache_root: &Path, cfg: &GitCacheConfig) -> std::io::Result<
         }
     }
 
-    let _ = FileExt::unlock(&lock_file);
+    let _ = lock_file.unlock();
     Ok(evicted)
 }
 
@@ -368,14 +367,14 @@ mod tests {
             .truncate(false)
             .open(tmp.path().join(LOCK_FILE))
             .unwrap();
-        FileExt::lock_exclusive(&other).unwrap();
+        other.lock().unwrap();
 
         let n = run_eviction(tmp.path(), &cfg("10GB", "90d")).unwrap();
         assert_eq!(n, 0, "should skip when lock held");
         // Old entry is still present because eviction was skipped.
         assert!(tmp.path().join("urlA").join("shaA").exists());
 
-        FileExt::unlock(&other).unwrap();
+        other.unlock().unwrap();
     }
 
     #[test]

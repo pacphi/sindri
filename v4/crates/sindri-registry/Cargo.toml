@@ -40,7 +40,7 @@ tar = { workspace = true }
 # Phase 3.1 — `GitSource` reads commits via libgit2 bindings (vendored).
 git2 = { workspace = true }
 # Phase 4.5 — advisory file lock for best-effort git-cache eviction.
-fs4 = "0.12"
+fs4 = "1.1"
 
 [features]
 default = ["keyless"]

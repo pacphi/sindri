@@ -343,7 +343,7 @@ impl Drop for StateLock {
 /// Cross-platform via [`fs4`]: `flock(LOCK_EX | LOCK_NB)` on Unix and
 /// `LockFileEx(LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY)` on Windows.
 pub fn try_lock_state_file(path: &Path) -> Result<StateLock, StateError> {
-    use fs4::fs_std::FileExt;
+    use std::fs::TryLockError;
 
     let mut opts = OpenOptions::new();
     // The lock handle needs `read | write` access on Windows: `LockFileEx`
@@ -374,15 +374,20 @@ pub fn try_lock_state_file(path: &Path) -> Result<StateLock, StateError> {
         source: e,
     })?;
 
-    match file.try_lock_exclusive() {
+    match file.try_lock() {
         Ok(()) => Ok(StateLock {
             _file: file,
             path: path.to_path_buf(),
         }),
-        Err(err) if is_lock_contention(&err) => Err(StateError::AlreadyRunning {
+        Err(TryLockError::WouldBlock) => Err(StateError::AlreadyRunning {
             path: path.to_path_buf(),
         }),
-        Err(err) => Err(StateError::Io {
+        Err(TryLockError::Error(err)) if is_lock_contention(&err) => {
+            Err(StateError::AlreadyRunning {
+                path: path.to_path_buf(),
+            })
+        }
+        Err(TryLockError::Error(err)) => Err(StateError::Io {
             path: path.to_path_buf(),
             source: err,
         }),
