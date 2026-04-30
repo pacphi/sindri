@@ -2,7 +2,7 @@
 
 This document explains the target abstraction, describes each built-in target kind, covers the plugin protocol for extending Sindri with community targets, and lists all `sindri target` subverbs. It is aimed at developers who need to provision components on non-local environments and platform engineers who want to write custom target plugins.
 
-The target system is defined in [ADR-017](architecture/adr/017-rename-provider-to-target.md) (Provider → Target rename and `TargetProfile` trait), [ADR-018](architecture/adr/018-per-target-lockfiles.md) (per-target lockfiles), [ADR-019](architecture/adr/019-subprocess-json-target-plugins.md) (plugin protocol), and [ADR-023](architecture/adr/023-implicit-local-default-target.md) (local as the implicit default).
+The target system is defined in [ADR-017](ADRs/017-rename-provider-to-target.md) (Provider → Target rename and `TargetProfile` trait), [ADR-018](ADRs/018-per-target-lockfiles.md) (per-target lockfiles), [ADR-019](ADRs/019-subprocess-json-target-plugins.md) (plugin protocol), and [ADR-023](ADRs/023-implicit-local-default-target.md) (local as the implicit default).
 
 ---
 
@@ -28,7 +28,7 @@ pub trait Target: Send + Sync {
 }
 ```
 
-`TargetProfile` carries the OS, architecture, and capabilities (system package manager, Docker availability, sudo, shell path) that the resolver uses to intersect with each component's `platforms:` list and to drive backend selection. Different targets from the same `sindri.yaml` produce different lockfiles ([ADR-018](architecture/adr/018-per-target-lockfiles.md)).
+`TargetProfile` carries the OS, architecture, and capabilities (system package manager, Docker availability, sudo, shell path) that the resolver uses to intersect with each component's `platforms:` list and to drive backend selection. Different targets from the same `sindri.yaml` produce different lockfiles ([ADR-018](ADRs/018-per-target-lockfiles.md)).
 
 ---
 
@@ -52,7 +52,7 @@ sindri diff --target e2b-sandbox
 
 ### `local`
 
-The host machine. Always present as the implicit default ([ADR-023](architecture/adr/023-implicit-local-default-target.md)). `sindri apply` without `--target` uses `local`.
+The host machine. Always present as the implicit default ([ADR-023](ADRs/023-implicit-local-default-target.md)). `sindri apply` without `--target` uses `local`.
 
 **Status:** Fully wired (Wave 2A). The complete apply pipeline including hooks, configure, validate, and project-init steps runs on `local`.
 
@@ -218,7 +218,7 @@ A Northflank service or job. Commands delegate to the Northflank API.
 
 ---
 
-## Target Plugin Protocol ([ADR-019](architecture/adr/019-subprocess-json-target-plugins.md))
+## Target Plugin Protocol ([ADR-019](ADRs/019-subprocess-json-target-plugins.md))
 
 Sindri supports community-authored target plugins using a subprocess-JSON protocol — the same pattern used by `terraform-provider-*`, `kubectl` plugins, and `gh` extensions.
 
@@ -305,12 +305,12 @@ See [CLI.md](CLI.md) for full option flags.
 The `Target` trait carries one more concern that's documented separately
 because of its scope: **auth capabilities** — a per-target advertisement
 of which credentials the target can produce, consumed by the resolver's
-binding pass (Phase 1, [ADR-027](architecture/adr/027-target-auth-injection.md)).
+binding pass (Phase 1, [ADR-027](ADRs/027-target-auth-injection.md)).
 
 - **Status:** Living section, paired with
-  [ADR-017](architecture/adr/017-rename-provider-to-target.md),
-  [ADR-019](architecture/adr/019-subprocess-json-target-plugins.md),
-  and [ADR-027](architecture/adr/027-target-auth-injection.md).
+  [ADR-017](ADRs/017-rename-provider-to-target.md),
+  [ADR-019](ADRs/019-subprocess-json-target-plugins.md),
+  and [ADR-027](ADRs/027-target-auth-injection.md).
 - **Audience:** authors of new built-in targets, plugin authors, and
   operators reading `sindri auth show` output who want to understand where
   the capabilities listed for each target came from.

@@ -1,6 +1,6 @@
 # ADR-024: Script Component Lifecycle Contract
 
-**Status:** Accepted  
+**Status:** Accepted; **partially implemented** — `ScriptInstallConfig` today carries only `sh:` / `ps1:` fields. The lifecycle phases described in this ADR (separate `install` / `uninstall` / `validate` / `upgrade` script slots) are not yet modelled on `ScriptInstallConfig`; the corresponding hooks live under `capabilities.hooks.*`. Tracked in the 2026-04-30 docs-vs-impl audit (F-AUTHOR-01).  
 **Date:** 2026-04-24  
 **Deciders:** sindri-dev team
 

@@ -1,6 +1,6 @@
 # ADR-008: Install Policy as First-Class Subsystem
 
-**Status:** Accepted
+**Status:** Accepted; **partially implemented** — Gates 1, 2, 3, and 5 are live in `sindri-resolver` / `sindri-policy`. **Gate 4 (capability trust)** is currently enforced only at *lint time* (`registry lint` flags collision-prefix violations) — the resolve-time admission hook is still a stub. Tracked in the 2026-04-30 docs-vs-impl audit.
 **Date:** 2026-04-24
 **Deciders:** sindri-dev team
 

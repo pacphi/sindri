@@ -1,6 +1,6 @@
 # ADR-002: Atomic Component Replaces Extension
 
-**Status:** Accepted
+**Status:** Accepted; **partially implemented** — `Component` aggregate, atomic identity, and the no-`Hybrid`-method invariant are live in `crates/sindri-core/src/component.rs`. The `Options`, `ValidateConfig`, `ConfigureConfig`, and `RemoveConfig` schemas described here are still pending (tracked under DDD-01 follow-up; surfaced in the 2026-04-30 docs-vs-impl audit).
 **Date:** 2026-04-24
 **Deciders:** sindri-dev team
 

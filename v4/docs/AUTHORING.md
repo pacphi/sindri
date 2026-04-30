@@ -8,15 +8,15 @@ For design rationale, consult the ADRs cross-linked throughout this document.
 
 ## Concepts Before You Write
 
-### One tool, one component ([ADR-002](architecture/adr/002-atomic-component-unit.md))
+### One tool, one component ([ADR-002](ADRs/002-atomic-component-unit.md))
 
 Each `component.yaml` wraps exactly one logical tool and one install backend. If your tool requires two operations — for example, installing a system package and then running a configure script — model them as two separate components connected with a `dependsOn` edge.
 
-### Backend-addressed install ([ADR-004](architecture/adr/004-backend-addressed-manifest-syntax.md))
+### Backend-addressed install ([ADR-004](ADRs/004-backend-addressed-manifest-syntax.md))
 
 The backend (`mise`, `npm`, `binary`, `script`, etc.) is explicit in the manifest and in the user's `sindri.yaml`. There is no silent auto-pick.
 
-### Policy gates ([ADR-008](architecture/adr/008-install-policy-subsystem.md))
+### Policy gates ([ADR-008](ADRs/008-install-policy-subsystem.md))
 
 During `sindri resolve`, every component passes through four admission gates:
 
@@ -25,11 +25,11 @@ During `sindri resolve`, every component passes through four admission gates:
 3. **Dependency closure** — every transitive dependency also passes gates 1 and 2.
 4. **Capability trust** — `collision_handling` and `project_init` from third-party registries are gated by the trust policy.
 
-### Cross-platform coverage ([ADR-009](architecture/adr/009-cross-platform-backend-coverage.md))
+### Cross-platform coverage ([ADR-009](ADRs/009-cross-platform-backend-coverage.md))
 
 Declare every platform your component supports. Resolution fails loudly for undeclared platforms rather than falling back silently. Prefer typed backends (`mise`, `brew`, `winget`) over `script` wherever possible.
 
-### Script lifecycle contract ([ADR-024](architecture/adr/024-script-component-lifecycle-contract.md))
+### Script lifecycle contract ([ADR-024](ADRs/024-script-component-lifecycle-contract.md))
 
 If your component uses the `script` backend, the CLI injects `SINDRI_COMPONENT_VERSION` before every lifecycle script. Your `install.sh` must implement version-aware idempotency using the `at_version` helper.
 
@@ -102,7 +102,7 @@ platforms:
     arch: x86_64
 ```
 
-Note: macOS `x86_64` (Intel) is intentionally out of scope for v4.0 (Apple-deprecated host). See [ADR-009](architecture/adr/009-cross-platform-backend-coverage.md).
+Note: macOS `x86_64` (Intel) is intentionally out of scope for v4.0 (Apple-deprecated host). See [ADR-009](ADRs/009-cross-platform-backend-coverage.md).
 
 ### `install`
 
@@ -158,7 +158,7 @@ install:
     upgrade_sh: "upgrade.sh"
 ```
 
-Every script receives `SINDRI_COMPONENT_VERSION` from the CLI (see [ADR-024](architecture/adr/024-script-component-lifecycle-contract.md)). Scripts must implement version-aware idempotency.
+Every script receives `SINDRI_COMPONENT_VERSION` from the CLI (see [ADR-024](ADRs/024-script-component-lifecycle-contract.md)). Scripts must implement version-aware idempotency.
 
 #### Per-platform overrides
 
@@ -232,7 +232,7 @@ capabilities:
     protocol: "stdio"
 ```
 
-**Collision handling path prefix rule:** the `path_prefix` field must start with `{component-name}/`. Core registry components may also use `:shared`. See [ADR-008](architecture/adr/008-install-policy-subsystem.md) Gate 4 and [ADR-024](architecture/adr/024-script-component-lifecycle-contract.md).
+**Collision handling path prefix rule:** the `path_prefix` field must start with `{component-name}/`. Core registry components may also use `:shared`. See [ADR-008](ADRs/008-install-policy-subsystem.md) Gate 4 and [ADR-024](ADRs/024-script-component-lifecycle-contract.md).
 
 ### `validate`
 
@@ -319,7 +319,7 @@ capabilities:
 3. Run the linter: `sindri registry lint v4/registry-core/components/<name>/component.yaml`.
 4. Add an entry to `v4/registry-core/index.yaml` with the component name, backend, latest version, license, and OCI reference.
 5. Open a PR. The CI workflow (`ci-v4.yml`) will re-run the linter and schema validation.
-6. After merge, the registry-core publish workflow (`registry-core-publish.yml`, see [ADR-016](architecture/adr/016-registry-tag-cadence.md)) creates a patch tag and cosign-signs the new OCI artifact (see [ADR-014](architecture/adr/014-signed-registries-cosign.md)).
+6. After merge, the registry-core publish workflow (`registry-core-publish.yml`, see [ADR-016](ADRs/016-registry-tag-cadence.md)) creates a patch tag and cosign-signs the new OCI artifact (see [ADR-014](ADRs/014-signed-registries-cosign.md)).
 
 ### OCI reference format
 

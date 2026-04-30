@@ -1,6 +1,6 @@
 ## ADR-028: Component Source Modes for Development and Air-Gap
 
-**Status:** Proposed
+**Status:** Accepted (Implemented — Phases 1–3 shipped per [SOURCES.md](../SOURCES.md) phase table; `--strict-oci` flag, `GitSource`, `registry serve`, `registry prefetch`, OCI blob streaming all live as of 2026-04-30)
 **Date:** 2026-04-28
 **Deciders:** sindri-dev team
 **Related:** ADR-003 (OCI-only registry distribution), ADR-014 (signed registries),

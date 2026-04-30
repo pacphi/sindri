@@ -2,7 +2,7 @@
 
 This document describes the install policy system: admission gates, license deduplication, capability execution controls, and the denylist/allowlist semantics. It is aimed at security engineers, platform teams, and developers who need to enforce compliance constraints on Sindri-managed environments.
 
-The design is documented in [ADR-008](architecture/adr/008-install-policy-subsystem.md). Gate 5 (auth-resolvable) is added in [ADR-027 §5](architecture/adr/027-target-auth-injection.md). For a quick start, see [CLI.md — Policy Management](CLI.md#policy-management). The policy schema is at [`v4/schemas/policy.json`](../schemas/policy.json).
+The design is documented in [ADR-008](ADRs/008-install-policy-subsystem.md). Gate 5 (auth-resolvable) is added in [ADR-027 §5](ADRs/027-target-auth-injection.md). For a quick start, see [CLI.md — Policy Management](CLI.md#policy-management). The policy schema is at [`v4/schemas/policy.json`](../schemas/policy.json).
 
 ---
 
@@ -148,11 +148,11 @@ DENIED (1)
 
 Components that declare `capabilities.collision_handling` or `capabilities.project_init` from third-party registries are checked against `policy.capabilities.trust_sources`. Untrusted sources are denied (or downgraded to a warning) per policy.
 
-**Collision handling path prefix rule:** `collision_handling.path_prefix` must start with `{component-name}/`. This prevents a component from claiming collision ownership over paths it does not own. Components in `sindri/core` may additionally use `:shared` for cross-component shared paths. See [ADR-008](architecture/adr/008-install-policy-subsystem.md) and the lint error `LINT_COLLISION_PREFIX`.
+**Collision handling path prefix rule:** `collision_handling.path_prefix` must start with `{component-name}/`. This prevents a component from claiming collision ownership over paths it does not own. Components in `sindri/core` may additionally use `:shared` for cross-component shared paths. See [ADR-008](ADRs/008-install-policy-subsystem.md) and the lint error `LINT_COLLISION_PREFIX`.
 
 ### Gate 5 — Auth-resolvable
 
-Verifies that every non-`optional` `AuthRequirement` declared by a component in the resolved closure has a bound source on the target's per-target lockfile, AND that the bound source is admissible under operator policy. Implemented in [`sindri-policy::gate5_auth`](../crates/sindri-policy/src/gate5_auth.rs); designed in [ADR-027 §5](architecture/adr/027-target-auth-injection.md).
+Verifies that every non-`optional` `AuthRequirement` declared by a component in the resolved closure has a bound source on the target's per-target lockfile, AND that the bound source is admissible under operator policy. Implemented in [`sindri-policy::gate5_auth`](../crates/sindri-policy/src/gate5_auth.rs); designed in [ADR-027 §5](ADRs/027-target-auth-injection.md).
 
 Unlike Gates 1–4 (which run at `sindri resolve` against the registry), Gate 5 runs at `sindri apply` against the lockfile's `AuthBinding` records. A required binding that the resolver could not bind (env var missing, no `provides:` mapping the audience, no `discovery.env-aliases` match) reaches apply as an unresolved entry; Gate 5 denies before any side effect runs.
 
@@ -299,10 +299,10 @@ sindri log --json | jq '.[] | select(.event_type == "policy_override")'
 
 | Gate | Status | Reference |
 |------|--------|-----------|
-| Gate 1 — Platform eligibility | Implemented | [ADR-008](architecture/adr/008-install-policy-subsystem.md), [PR #205](https://github.com/pacphi/sindri/pull/205) |
-| Gate 2 — Policy eligibility | Implemented (license check in `sindri-policy::check`) | [ADR-008](architecture/adr/008-install-policy-subsystem.md) |
-| Gate 3 — Dependency closure | Implemented (topological DAG in resolver) | [ADR-008](architecture/adr/008-install-policy-subsystem.md) |
-| Gate 4 — Capability trust | Implemented (collision path prefix enforced in `registry lint`) | [ADR-008](architecture/adr/008-install-policy-subsystem.md) |
-| Gate 5 — Auth-resolvable | Implemented (`sindri-policy::gate5_auth::check_gate5`) | [ADR-027 §5](architecture/adr/027-target-auth-injection.md), [PR #254](https://github.com/pacphi/sindri/pull/254) |
+| Gate 1 — Platform eligibility | Implemented | [ADR-008](ADRs/008-install-policy-subsystem.md), [PR #205](https://github.com/pacphi/sindri/pull/205) |
+| Gate 2 — Policy eligibility | Implemented (license check in `sindri-policy::check`) | [ADR-008](ADRs/008-install-policy-subsystem.md) |
+| Gate 3 — Dependency closure | Implemented (topological DAG in resolver) | [ADR-008](ADRs/008-install-policy-subsystem.md) |
+| Gate 4 — Capability trust | Implemented (collision path prefix enforced in `registry lint`) | [ADR-008](ADRs/008-install-policy-subsystem.md) |
+| Gate 5 — Auth-resolvable | Implemented (`sindri-policy::gate5_auth::check_gate5`) | [ADR-027 §5](ADRs/027-target-auth-injection.md), [PR #254](https://github.com/pacphi/sindri/pull/254) |
 
 Full script sandboxing (Landlock/Seatbelt/AppContainer) and SLSA L3+ attestation chains are deferred beyond v4.0. Gate 5's `auth.on_unresolved_required: prompt` value is reserved for a Phase 5 interactive-resolution flow.

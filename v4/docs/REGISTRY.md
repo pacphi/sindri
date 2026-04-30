@@ -2,7 +2,7 @@
 
 This document covers the OCI registry design, cosign verification flow, the publish workflow, and sequence diagrams for the two critical runtime operations: `resolve` and `apply`. It is aimed at registry maintainers and platform engineers who need to operate or mirror a Sindri registry. Component authors who only want to write manifests should start with [AUTHORING.md](AUTHORING.md). For the layer *above* OCI — how the four registry source modes (`oci`, `local-path`, `git`, `local-oci`) compose and when to reach for each — see [SOURCES.md](SOURCES.md).
 
-Design decisions are documented in [ADR-003](architecture/adr/003-oci-only-registry-distribution.md) (OCI-only transport), [ADR-014](architecture/adr/014-signed-registries-cosign.md) (cosign signing), [ADR-016](architecture/adr/016-registry-tag-cadence.md) (tag cadence), and [ADR-028](ADRs/028-component-source-modes.md) (component source modes).
+Design decisions are documented in [ADR-003](ADRs/003-oci-only-registry-distribution.md) (OCI-only transport), [ADR-014](ADRs/014-signed-registries-cosign.md) (cosign signing), [ADR-016](ADRs/016-registry-tag-cadence.md) (tag cadence), and [ADR-028](ADRs/028-component-source-modes.md) (component source modes).
 
 ---
 
@@ -16,7 +16,7 @@ Sindri v4 uses OCI as the only production registry transport. The key properties
 - **Corporate mirrors** — any OCI-compliant registry (GHCR, ECR, Harbor, Artifactory) is a valid Sindri registry mirror.
 - **Offline support** — OCI layout spec (`oci://path/to/dir`) provides a standard local cache format.
 
-See [ADR-003](architecture/adr/003-oci-only-registry-distribution.md) for the full analysis.
+See [ADR-003](ADRs/003-oci-only-registry-distribution.md) for the full analysis.
 
 ---
 
@@ -78,7 +78,7 @@ The `digest` field is the SHA-256 of the `component.yaml` blob. `sindri resolve`
 
 ---
 
-## Tag Semantics ([ADR-016](architecture/adr/016-registry-tag-cadence.md))
+## Tag Semantics ([ADR-016](ADRs/016-registry-tag-cadence.md))
 
 | Tag pattern | Semantics | Mutable? |
 |-------------|-----------|----------|
@@ -99,7 +99,7 @@ A pin to `:2026.04` resolves to the latest patch tag under that monthly (e.g., `
 
 ---
 
-## Cosign Verification Flow ([ADR-014](architecture/adr/014-signed-registries-cosign.md))
+## Cosign Verification Flow ([ADR-014](ADRs/014-signed-registries-cosign.md))
 
 ### Trust model
 
@@ -126,11 +126,11 @@ The key is validated as a P-256 SPKI PEM and stored at `~/.sindri/trust/acme/cos
 
 ### Keyless OIDC
 
-Keyless OIDC signing (Sigstore Fulcio + Rekor transparency log) is architecturally supported by the cosign integration but is **deferred** to a future wave. Today only key-based signing is active.
+Keyless OIDC signing (Sigstore Fulcio + Rekor transparency log) is **implemented** as of Wave 6A ([ADR-014](ADRs/014-signed-registries-cosign.md) D1, closed 2026-04-27). It is gated behind the `keyless` cargo feature: builds compiled without `--features keyless` reject keyless verification with `RegistryError::KeylessFeatureDisabled`. Per-component trust scoping (one Fulcio identity per component glob) is provided by the `trust_scope` module so a single registry can mix key-based and keyless signers.
 
 ---
 
-## Publish Workflow ([ADR-016](architecture/adr/016-registry-tag-cadence.md))
+## Publish Workflow ([ADR-016](ADRs/016-registry-tag-cadence.md))
 
 The CI workflow at `.github/workflows/registry-core-publish.yml` (on `main` branch) drives the monthly and patch publish process. The pipeline steps are:
 
