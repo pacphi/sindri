@@ -18,7 +18,7 @@ use crate::error::ResolverError;
 use sindri_core::component::ComponentManifest;
 use sindri_core::platform::TargetProfile;
 use sindri_core::policy::InstallPolicy;
-use sindri_core::registry::{ComponentEntry, CORE_REGISTRY_NAME, SHARED_PATH_PREFIX};
+use sindri_core::registry::ComponentEntry;
 use sindri_policy::check::check_license;
 
 /// Bundle of the data each gate may need.
@@ -142,7 +142,7 @@ impl<'a> AdmissionChecker<'a> {
                 "platform check skipped: manifest not yet fetched"
             );
             return AdmissionResult::skipped(
-                "ADM_PLATFORM_SKIPPED",
+                sindri_policy::admission_codes::ADM_PLATFORM_SKIPPED,
                 "Manifest not yet fetched; platform gate deferred",
             );
         };
@@ -165,7 +165,7 @@ impl<'a> AdmissionChecker<'a> {
                 .map(|p| p.triple().to_string())
                 .collect();
             AdmissionResult::deny(
-                "ADM_PLATFORM_UNSUPPORTED",
+                sindri_policy::admission_codes::ADM_PLATFORM_UNSUPPORTED,
                 &format!(
                     "Component `{}` does not support target {} (supported: {})",
                     candidate.entry.name,
@@ -238,56 +238,30 @@ impl<'a> AdmissionChecker<'a> {
                 "capability-trust check skipped: manifest not yet fetched"
             );
             return AdmissionResult::skipped(
-                "ADM_CAPABILITY_TRUST_SKIPPED",
+                sindri_policy::admission_codes::ADM_CAPABILITY_TRUST_SKIPPED,
                 "Manifest not yet fetched; capability-trust gate deferred",
             );
         };
 
-        let Some(coll) = manifest.capabilities.collision_handling.as_ref() else {
-            // No collision-handling declared, nothing to enforce.
-            return AdmissionResult::ok();
-        };
-
-        let prefix = coll.path_prefix.trim();
-        let component_name = manifest.metadata.name.as_str();
-
-        // The :shared escape hatch: only the core registry can claim it.
-        if prefix == SHARED_PATH_PREFIX {
-            if candidate.registry_name == CORE_REGISTRY_NAME {
-                return AdmissionResult::ok();
-            }
-            return AdmissionResult::deny(
-                "ADM_CAPABILITY_TRUST_VIOLATION",
-                &format!(
-                    "Component `{}` from registry `{}` declares the `:shared` \
-                     collision-handling prefix, which is reserved for `{}`",
-                    component_name, candidate.registry_name, CORE_REGISTRY_NAME,
-                ),
-                Some(
-                    "Replace `:shared` with `{component-name}/...` or publish via the core registry",
-                ),
-            );
-        }
-
-        // Otherwise the first path segment must equal the component's name.
-        // Strip a leading slash, then take the first segment.
-        let normalized = prefix.trim_start_matches('/');
-        let first_segment = normalized.split('/').next().unwrap_or("");
-
-        if first_segment == component_name {
-            AdmissionResult::ok()
-        } else {
-            AdmissionResult::deny(
-                "ADM_CAPABILITY_TRUST_VIOLATION",
-                &format!(
-                    "Component `{}` declares collision-handling prefix `{}` whose \
-                     first segment must equal the component name `{}`",
-                    component_name, prefix, component_name,
-                ),
-                Some(
-                    "Use a path of the form `{component-name}/...` (or publish via the core registry to use `:shared`)",
-                ),
-            )
+        // Delegate to the centralised rule (Phase 2 / F-REG-06). Same
+        // function the publish-time `registry lint` calls, so the two
+        // paths cannot drift.
+        let prefix = manifest
+            .capabilities
+            .collision_handling
+            .as_ref()
+            .map(|c| c.path_prefix.as_str());
+        match sindri_policy::check_collision_prefix(
+            manifest.metadata.name.as_str(),
+            candidate.registry_name,
+            prefix,
+        ) {
+            Ok(()) => AdmissionResult::ok(),
+            Err(v) => AdmissionResult::deny(
+                sindri_policy::admission_codes::ADM_CAPABILITY_TRUST_VIOLATION,
+                &v.message(),
+                Some(v.fix()),
+            ),
         }
     }
 
@@ -323,6 +297,7 @@ mod tests {
     };
     use sindri_core::platform::{Arch, Capabilities, Os, Platform, TargetProfile};
     use sindri_core::policy::{InstallPolicy, PolicyPreset};
+    use sindri_core::registry::CORE_REGISTRY_NAME;
     use sindri_core::registry::{ComponentEntry, ComponentKind};
 
     fn target(os: Os, arch: Arch) -> TargetProfile {
@@ -423,7 +398,10 @@ mod tests {
 
         let r = checker.check_platform(&cand);
         assert!(!r.allowed, "expected deny, got {:?}", r);
-        assert_eq!(r.code, "ADM_PLATFORM_UNSUPPORTED");
+        assert_eq!(
+            r.code,
+            sindri_policy::admission_codes::ADM_PLATFORM_UNSUPPORTED
+        );
     }
 
     #[test]
@@ -473,7 +451,7 @@ mod tests {
         let r = checker.check_platform(&cand);
         assert!(r.allowed, "skipped should be non-fatal");
         assert!(r.skipped, "expected skipped=true, got {:?}", r);
-        assert_eq!(r.code, "ADM_PLATFORM_SKIPPED");
+        assert_eq!(r.code, sindri_policy::admission_codes::ADM_PLATFORM_SKIPPED);
     }
 
     // ---- Gate 4 ----

@@ -4091,6 +4091,7 @@ dependencies = [
  "sha2 0.11.0",
  "sigstore",
  "sindri-core",
+ "sindri-policy",
  "tar",
  "tempfile",
  "thiserror 2.0.18",

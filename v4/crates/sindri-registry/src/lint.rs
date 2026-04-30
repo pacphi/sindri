@@ -75,22 +75,27 @@ fn lint_file(path: &Path) -> Result<LintResult, RegistryError> {
         }
     }
 
-    // collision-handling path prefix must start with `<component-name>/` (ADR-008 Gate 4)
-    if let Some(cap) = &manifest.capabilities.collision_handling {
-        let expected = format!("{}/", manifest.metadata.name);
-        if !cap.path_prefix.starts_with(&expected) && cap.path_prefix != ":shared" {
-            errors.push(LintDiagnostic {
-                code: "LINT_COLLISION_PREFIX".into(),
-                message: format!(
-                    "`collision_handling.path_prefix` must start with `{}/`",
-                    manifest.metadata.name
-                ),
-                fix: Some(format!(
-                    "Change path_prefix to `{}/...`",
-                    manifest.metadata.name
-                )),
-            });
-        }
+    // collision-handling path prefix — Gate 4 (ADR-008). The rule lives in
+    // `sindri-policy::capability_trust` and is also evaluated at resolve
+    // time by `sindri-resolver::admission`. The lint sees the file in
+    // isolation (no source registry), so we pass `sindri/core` to admit the
+    // `:shared` escape hatch — the resolve-time gate is the authority that
+    // rejects `:shared` from non-core registries.
+    let prefix = manifest
+        .capabilities
+        .collision_handling
+        .as_ref()
+        .map(|c| c.path_prefix.as_str());
+    if let Err(violation) = sindri_policy::check_collision_prefix(
+        manifest.metadata.name.as_str(),
+        sindri_core::registry::CORE_REGISTRY_NAME,
+        prefix,
+    ) {
+        errors.push(LintDiagnostic {
+            code: "LINT_COLLISION_PREFIX".into(),
+            message: violation.message(),
+            fix: Some(violation.fix().into()),
+        });
     }
 
     // description empty is a warning, not error

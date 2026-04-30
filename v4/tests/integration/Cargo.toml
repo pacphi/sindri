@@ -25,6 +25,10 @@ name = "admission_gate_denies_unsupported_platform"
 path = "tests/admission_gate_denies_unsupported_platform.rs"
 
 [[test]]
+name = "admission_gate4_capability_trust"
+path = "tests/admission_gate4_capability_trust.rs"
+
+[[test]]
 name = "registry_lint_finds_missing_license"
 path = "tests/registry_lint_finds_missing_license.rs"
 

@@ -23,6 +23,9 @@
 //! install with required credentials missing must additionally set
 //! `auth.on_unresolved_required: warn`.
 
+use crate::admission_codes::{
+    ADM_AUTH_PROMPT_IN_CI, ADM_AUTH_UNRESOLVED, ADM_AUTH_UPSTREAM_DENIED,
+};
 use crate::check::PolicyCheckResult;
 use sindri_core::auth::{AuthBinding, AuthBindingStatus, AuthSource};
 use sindri_core::policy::{AuthPolicy, PolicyAction};
@@ -51,7 +54,7 @@ pub fn check_gate5_with_env(
             match policy.on_unresolved_required {
                 PolicyAction::Deny => {
                     return PolicyCheckResult::deny(
-                        "AUTH_REQUIRED_UNRESOLVED",
+                        ADM_AUTH_UNRESOLVED,
                         &format!(
                             "Auth-aware Gate 5 denied apply: component `{}` requirement \
                              `{}` (audience `{}`) on target `{}` has no bound source.",
@@ -86,7 +89,7 @@ pub fn check_gate5_with_env(
         for b in bindings {
             if matches!(b.source, Some(AuthSource::FromUpstreamCredentials)) {
                 return PolicyCheckResult::deny(
-                    "AUTH_UPSTREAM_REUSE_FORBIDDEN",
+                    ADM_AUTH_UPSTREAM_DENIED,
                     &format!(
                         "Auth-aware Gate 5 denied apply: binding `{}` on target `{}` \
                          selected `from-upstream-credentials`, but policy \
@@ -109,7 +112,7 @@ pub fn check_gate5_with_env(
         for b in bindings {
             if matches!(b.source, Some(AuthSource::Prompt)) {
                 return PolicyCheckResult::deny(
-                    "AUTH_PROMPT_IN_CI",
+                    ADM_AUTH_PROMPT_IN_CI,
                     &format!(
                         "Auth-aware Gate 5 denied apply: binding `{}` on target `{}` \
                          selected `prompt`, but the run is non-interactive (no TTY or \
@@ -226,7 +229,7 @@ mod tests {
         let bs = vec![binding("a", AuthBindingStatus::Failed, None)];
         let r = check_gate5(&bs, &AuthPolicy::default());
         assert!(!r.allowed);
-        assert_eq!(r.code, "AUTH_REQUIRED_UNRESOLVED");
+        assert_eq!(r.code, ADM_AUTH_UNRESOLVED);
     }
 
     #[test]
@@ -257,7 +260,7 @@ mod tests {
         )];
         let r = check_gate5(&bs, &AuthPolicy::default());
         assert!(!r.allowed);
-        assert_eq!(r.code, "AUTH_UPSTREAM_REUSE_FORBIDDEN");
+        assert_eq!(r.code, ADM_AUTH_UPSTREAM_DENIED);
     }
 
     #[test]
@@ -284,7 +287,7 @@ mod tests {
         )];
         let r = check_gate5_with_env(&bs, &AuthPolicy::default(), &FakeEnv { interactive: false });
         assert!(!r.allowed);
-        assert_eq!(r.code, "AUTH_PROMPT_IN_CI");
+        assert_eq!(r.code, ADM_AUTH_PROMPT_IN_CI);
     }
 
     #[test]
@@ -326,7 +329,7 @@ mod tests {
         ];
         let r = check_gate5(&bs, &AuthPolicy::default());
         assert!(!r.allowed);
-        assert_eq!(r.code, "AUTH_REQUIRED_UNRESOLVED");
+        assert_eq!(r.code, ADM_AUTH_UNRESOLVED);
     }
 
     #[test]

@@ -102,7 +102,7 @@ flowchart TD
     A[Component from registry] --> G1{Gate 1\nPlatform eligibility}
     G1 -->|FAIL: ADM_PLATFORM_UNSUPPORTED| DENY[Denied — exit 2]
     G1 -->|PASS| G2{Gate 2\nPolicy eligibility}
-    G2 -->|FAIL: ADM_LICENSE_DENIED\nADM_UNSIGNED_REGISTRY\nADM_PRIVILEGED_DENIED\nADM_SCRIPT_DENIED\nADM_VERSION_NOT_PINNED\nADM_CHECKSUM_MISSING| DENY
+    G2 -->|FAIL: ADM_LICENSE_DENIED\nADM_PRIVILEGED_DENIED\nADM_SCRIPT_DENIED\nADM_VERSION_NOT_PINNED\nADM_CHECKSUM_MISSING| DENY
     G2 -->|PASS| G3{Gate 3\nDependency closure}
     G3 -->|FAIL: transitive dependency denied| DENY
     G3 -->|PASS| G4{Gate 4\nCapability trust}
@@ -133,11 +133,12 @@ The resolved merged policy (global + project) is evaluated. Denial codes:
 |------|---------|
 | `ADM_LICENSE_DENIED` | Component license is in `licenses.deny`, or strict mode and not in `licenses.allow` |
 | `ADM_LICENSE_UNKNOWN` | `metadata.license` is empty and `licenses.onUnknown: deny` |
-| `ADM_UNSIGNED_REGISTRY` | `registries.requireSigned: true` and registry has no trusted key |
 | `ADM_PRIVILEGED_DENIED` | Component requires elevated privileges and `sources.allowPrivileged: deny` |
 | `ADM_SCRIPT_DENIED` | Component uses `script` backend and `sources.allowScriptBackend: deny` |
 | `ADM_VERSION_NOT_PINNED` | `sources.requirePinnedVersions: true` and a manifest entry is unpinned (`latest`, `^…`, `~…`, `>=…`, etc.) |
 | `ADM_CHECKSUM_MISSING` | `sources.requireChecksums: true` and binary component has no checksums |
+
+> **Note on `registries.requireSigned`:** This knob is enforced at *registry refresh time* — `sindri registry refresh` fails with `RegistryError::SignatureRequired` (or `InsecureForbiddenByPolicy` when `--insecure` is combined with a signed-required policy) before any admission gate runs. There is no `ADM_UNSIGNED_REGISTRY` admission code; the registry never reaches admission unsigned.
 
 ### Gate 3 — Dependency Closure
 
@@ -155,7 +156,14 @@ DENIED (1)
 
 Components that declare `capabilities.collisionHandling` or `capabilities.projectInit` from third-party registries are checked against `policy.capabilities.trustSources`. Untrusted sources are denied (or downgraded to a warning) per policy.
 
-**Collision handling path prefix rule:** `collisionHandling.pathPrefix` must start with `{component-name}/`. This prevents a component from claiming collision ownership over paths it does not own. Components in `sindri/core` may additionally use `:shared` for cross-component shared paths. See [ADR-008](ADRs/008-install-policy-subsystem.md) and the lint error `LINT_COLLISION_PREFIX`.
+**Collision handling path prefix rule:** `collisionHandling.pathPrefix` must start with `{component-name}/`. This prevents a component from claiming collision ownership over paths it does not own. Components in `sindri/core` may additionally use `:shared` for cross-component shared paths.
+
+The rule is enforced in **two places**, both calling the same checker in [`sindri-policy::capability_trust::check_collision_prefix`](../crates/sindri-policy/src/capability_trust.rs):
+
+1. **Publish time** — `sindri registry lint` emits `LINT_COLLISION_PREFIX` for any violation, blocking publish.
+2. **Resolve time** — `sindri-resolver::admission::check_capability_trust` emits `ADM_CAPABILITY_TRUST_VIOLATION` and denies admission. Defense-in-depth catches manifests that were tampered with after publish, or shipped from registries that skipped lint.
+
+See [ADR-008](ADRs/008-install-policy-subsystem.md).
 
 ### Gate 5 — Auth-resolvable
 
@@ -334,7 +342,7 @@ sindri log --json | jq '.[] | select(.event_type == "policy_override")'
 | Gate 1 — Platform eligibility | Implemented | [ADR-008](ADRs/008-install-policy-subsystem.md) |
 | Gate 2 — Policy eligibility | Implemented (`sindri-policy::check`: license, version-pinning, script-backend, privileged, checksum checks) | [ADR-008](ADRs/008-install-policy-subsystem.md) |
 | Gate 3 — Dependency closure | Implemented (topological DAG in resolver) | [ADR-008](ADRs/008-install-policy-subsystem.md) |
-| Gate 4 — Capability trust | Partially implemented — collision-prefix rule enforced in `registry lint`; resolve-time admission hook is wired in Phase 2 of the docs/impl reconciliation plan | [ADR-008](ADRs/008-install-policy-subsystem.md) |
+| Gate 4 — Capability trust | Implemented — single collision-prefix checker in `sindri-policy::capability_trust` is called from both `registry lint` (publish-time) and `sindri-resolver::admission` (resolve-time); defense in depth | [ADR-008](ADRs/008-install-policy-subsystem.md) |
 | Gate 5 — Auth-resolvable | Implemented (`sindri-policy::gate5_auth::check_gate5`) | [ADR-027 §5](ADRs/027-target-auth-injection.md) |
 
 Full script sandboxing (Landlock/Seatbelt/AppContainer) and SLSA L3+ attestation chains are deferred beyond v4.0. Gate 5's `auth.onUnresolvedRequired: prompt` value is reserved for a future interactive-resolution flow and is not currently honored at runtime.

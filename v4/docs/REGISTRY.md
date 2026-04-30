@@ -168,7 +168,7 @@ sequenceDiagram
     CLI->>CLI: Gate 1 — platform eligibility check (platforms: vs TargetProfile)
     CLI->>CLI: Gate 2 — policy check (license, signed, checksums)
     CLI->>CLI: Gate 3 — build dependency closure (dependsOn DAG)
-    CLI->>CLI: Gate 4 — capability trust (collision_handling, project_init)
+    CLI->>CLI: Gate 4 — capability trust (sindri-policy::check_collision_prefix; same rule that registry lint enforces at publish time)
     alt any gate fails
         CLI-->>User: exit 2 (POLICY_DENIED) or exit 3 (RESOLUTION_CONFLICT)
     else all gates pass

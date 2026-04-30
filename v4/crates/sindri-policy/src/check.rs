@@ -1,3 +1,7 @@
+use crate::admission_codes::{
+    ADM_CHECKSUM_MISSING, ADM_LICENSE_DENIED, ADM_LICENSE_UNKNOWN, ADM_PRIVILEGED_DENIED,
+    ADM_SCRIPT_DENIED, ADM_VERSION_NOT_PINNED,
+};
 use sindri_core::policy::{InstallPolicy, PolicyAction, PolicyPreset};
 use sindri_core::registry::ComponentEntry;
 
@@ -39,7 +43,7 @@ pub fn check_license(license: &str, policy: &InstallPolicy) -> PolicyCheckResult
     // Explicit deny list always wins.
     if policy.licenses.deny.iter().any(|d| d == license) {
         return PolicyCheckResult::deny(
-            "ADM_LICENSE_DENIED",
+            ADM_LICENSE_DENIED,
             &format!("License `{}` is explicitly denied by policy", license),
             Some("Remove this license from policy.licenses.deny or use `sindri policy allow-license`"),
         );
@@ -52,7 +56,7 @@ pub fn check_license(license: &str, policy: &InstallPolicy) -> PolicyCheckResult
         && !license.trim().is_empty()
     {
         return PolicyCheckResult::deny(
-            "ADM_LICENSE_DENIED",
+            ADM_LICENSE_DENIED,
             &format!("License `{}` not in strict-mode allow list", license),
             Some("Run `sindri policy allow-license <spdx>` to add it"),
         );
@@ -63,7 +67,7 @@ pub fn check_license(license: &str, policy: &InstallPolicy) -> PolicyCheckResult
         match policy.unknown_license_action() {
             PolicyAction::Deny => {
                 return PolicyCheckResult::deny(
-                    "ADM_LICENSE_UNKNOWN",
+                    ADM_LICENSE_UNKNOWN,
                     "No license specified; denied by policy",
                     Some("Add `license:` to the component manifest"),
                 );
@@ -114,7 +118,7 @@ pub fn check_pinned_version(
         PolicyCheckResult::ok()
     } else {
         PolicyCheckResult::deny(
-            "ADM_VERSION_NOT_PINNED",
+            ADM_VERSION_NOT_PINNED,
             &format!(
                 "Component `{}` requires an exact version pin (policy.sources.requirePinnedVersions=true)",
                 component_address
@@ -137,7 +141,7 @@ pub fn check_script_backend(
     match policy.script_backend_action() {
         PolicyAction::Allow | PolicyAction::Warn | PolicyAction::Prompt => PolicyCheckResult::ok(),
         PolicyAction::Deny => PolicyCheckResult::deny(
-            "ADM_SCRIPT_DENIED",
+            ADM_SCRIPT_DENIED,
             &format!(
                 "Component `{}` uses the `script` backend; policy.sources.allowScriptBackend=deny",
                 component_address
@@ -161,7 +165,7 @@ pub fn check_privileged(
     match policy.privileged_action() {
         PolicyAction::Allow | PolicyAction::Warn | PolicyAction::Prompt => PolicyCheckResult::ok(),
         PolicyAction::Deny => PolicyCheckResult::deny(
-            "ADM_PRIVILEGED_DENIED",
+            ADM_PRIVILEGED_DENIED,
             &format!(
                 "Component `{}` requires elevation; policy.sources.allowPrivileged=deny",
                 component_address
@@ -186,7 +190,7 @@ pub fn check_checksums(
         PolicyCheckResult::ok()
     } else {
         PolicyCheckResult::deny(
-            "ADM_CHECKSUM_MISSING",
+            ADM_CHECKSUM_MISSING,
             &format!(
                 "Component `{}` has no asset checksums; policy.sources.requireChecksums=true",
                 component_address
@@ -206,7 +210,7 @@ mod tests {
         let policy = preset_strict();
         let result = check_license("GPL-3.0-only", &policy);
         assert!(!result.allowed);
-        assert_eq!(result.code, "ADM_LICENSE_DENIED");
+        assert_eq!(result.code, ADM_LICENSE_DENIED);
     }
 
     #[test]
@@ -229,7 +233,7 @@ mod tests {
         let policy = preset_strict();
         let result = check_license("", &policy);
         assert!(!result.allowed);
-        assert_eq!(result.code, "ADM_LICENSE_UNKNOWN");
+        assert_eq!(result.code, ADM_LICENSE_UNKNOWN);
     }
 
     #[test]
@@ -237,7 +241,7 @@ mod tests {
         let policy = preset_strict();
         let r = check_pinned_version("npm:foo", Some("latest"), &policy);
         assert!(!r.allowed);
-        assert_eq!(r.code, "ADM_VERSION_NOT_PINNED");
+        assert_eq!(r.code, ADM_VERSION_NOT_PINNED);
     }
 
     #[test]
@@ -274,7 +278,7 @@ mod tests {
         policy.sources.allow_script_backend = Some(PolicyAction::Deny);
         let r = check_script_backend("script:foo", "script", &policy);
         assert!(!r.allowed);
-        assert_eq!(r.code, "ADM_SCRIPT_DENIED");
+        assert_eq!(r.code, ADM_SCRIPT_DENIED);
     }
 
     #[test]
@@ -298,7 +302,7 @@ mod tests {
         policy.sources.allow_privileged = Some(PolicyAction::Deny);
         let r = check_privileged("apt:docker", true, &policy);
         assert!(!r.allowed);
-        assert_eq!(r.code, "ADM_PRIVILEGED_DENIED");
+        assert_eq!(r.code, ADM_PRIVILEGED_DENIED);
     }
 
     #[test]
@@ -314,7 +318,7 @@ mod tests {
         let policy = preset_strict();
         let r = check_checksums("binary:gh", false, &policy);
         assert!(!r.allowed);
-        assert_eq!(r.code, "ADM_CHECKSUM_MISSING");
+        assert_eq!(r.code, ADM_CHECKSUM_MISSING);
     }
 
     #[test]
