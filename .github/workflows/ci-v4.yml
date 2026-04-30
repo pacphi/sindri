@@ -82,10 +82,122 @@ jobs:
   audit:
     name: Security audit
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - uses: actions/checkout@v6
       - name: Install cargo-audit
         run: cargo install cargo-audit --locked
-      - name: Run audit
+
+      # `cargo audit --json` honors v4/.cargo/audit.toml ignores, so SARIF
+      # output below reflects the same advisory set the human-readable
+      # `cargo audit` step would surface. The SARIF upload routes findings
+      # to the GitHub Security tab keyed to refs/heads/v4 (since this
+      # workflow only triggers on the v4 branch), keeping advisories
+      # attributed to the right branch after the April 2026 reorg.
+      - name: Run audit (JSON)
+        id: audit
         working-directory: v4
-        run: cargo audit
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          cargo audit --json > "$RUNNER_TEMP/audit.json"
+
+      - name: Convert audit JSON to SARIF
+        if: always() && hashFiles(format('{0}/audit.json', runner.temp)) != ''
+        run: |
+          jq '
+            def sev_to_level:
+              ascii_downcase
+              | if   . == "critical" then "error"
+                elif . == "high"     then "error"
+                elif . == "medium"   then "warning"
+                elif . == "low"      then "note"
+                else "warning" end;
+            {
+              "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+              "version": "2.1.0",
+              "runs": [{
+                "tool": {
+                  "driver": {
+                    "name": "cargo-audit",
+                    "informationUri": "https://github.com/rustsec/rustsec/tree/main/cargo-audit",
+                    "rules": (
+                      [.vulnerabilities.list[]?
+                        | .advisory as $a
+                        | {
+                            "id": $a.id,
+                            "name": $a.id,
+                            "shortDescription": { "text": $a.title },
+                            "fullDescription":  { "text": ($a.description // $a.title) },
+                            "helpUri": ($a.url // "https://rustsec.org/advisories/\($a.id).html"),
+                            "defaultConfiguration": {
+                              "level": (($a.severity // "warning") | sev_to_level)
+                            },
+                            "properties": {
+                              "tags": ["security", "rust", "rustsec"],
+                              "security-severity": (
+                                if   ($a.severity // "" | ascii_downcase) == "critical" then "9.5"
+                                elif ($a.severity // "" | ascii_downcase) == "high"     then "7.5"
+                                elif ($a.severity // "" | ascii_downcase) == "medium"   then "5.0"
+                                elif ($a.severity // "" | ascii_downcase) == "low"      then "3.0"
+                                else "5.0" end
+                              )
+                            }
+                          }
+                      ] | unique_by(.id)
+                    )
+                  }
+                },
+                "results": (
+                  [.vulnerabilities.list[]?
+                    | {
+                        "ruleId": .advisory.id,
+                        "level":  ((.advisory.severity // "warning") | sev_to_level),
+                        "message": {
+                          "text": "\(.package.name) \(.package.version): \(.advisory.title) (\(.advisory.id))"
+                        },
+                        "locations": [{
+                          "physicalLocation": {
+                            "artifactLocation": { "uri": "v4/Cargo.lock" },
+                            "region": { "startLine": 1 }
+                          }
+                        }],
+                        "partialFingerprints": {
+                          "advisory/package/version":
+                            "\(.advisory.id)/\(.package.name)/\(.package.version)"
+                        }
+                      }
+                  ]
+                )
+              }]
+            }
+          ' "$RUNNER_TEMP/audit.json" > "$RUNNER_TEMP/audit.sarif"
+          echo "SARIF results:"
+          jq '.runs[0].results | length' "$RUNNER_TEMP/audit.sarif"
+
+      - name: Upload SARIF to GitHub Security
+        if: always() && hashFiles(format('{0}/audit.sarif', runner.temp)) != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: ${{ runner.temp }}/audit.sarif
+          category: cargo-audit-v4
+
+      - name: Audit summary
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/audit.json" ]; then
+            COUNT=$(jq '.vulnerabilities.count // 0' "$RUNNER_TEMP/audit.json")
+            echo "## cargo-audit (v4)" >> "$GITHUB_STEP_SUMMARY"
+            echo "- **Vulnerabilities reported (post-ignore):** $COUNT" >> "$GITHUB_STEP_SUMMARY"
+            echo "- **Ignores honored from:** \`v4/.cargo/audit.toml\`" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # Re-fail the job if cargo audit found anything, so CI status reflects
+      # the audit result even though the JSON step uses continue-on-error.
+      - name: Enforce audit verdict
+        if: steps.audit.outcome == 'failure'
+        run: |
+          echo "::error::cargo audit reported vulnerabilities (see SARIF / Security tab)"
+          exit 1
