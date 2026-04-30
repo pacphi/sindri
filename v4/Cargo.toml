@@ -58,7 +58,7 @@ ecdsa = { version = "0.16", default-features = false, features = ["pem", "pkcs8"
 x509-cert = { version = "0.2", default-features = false, features = ["std"] }
 # DER + PEM trait imports used by the keyless verifier alongside `x509-cert`.
 # Matches sigstore 0.13's pinned version.
-pkcs8 = { version = "0.10", default-features = false, features = ["std"] }
+pkcs8 = { version = "0.11", default-features = false, features = ["std"] }
 # base64 decoding for cosign signature annotation payloads (ADR-014).
 base64 = "0.22"
 tempfile = "3"
