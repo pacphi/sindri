@@ -30,6 +30,47 @@
 
 use crate::error::RegistryError;
 use crate::oci_ref::OciRef;
+
+/// RFC3339 timestamp for the current instant. Used by
+/// [`CosignVerifier::load_from_trust_dir`] when filtering embedded keys
+/// by their `valid_until` window.
+fn current_rfc3339() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default();
+    // Minimal RFC3339 — `YYYY-MM-DDTHH:MM:SSZ` from a unix timestamp.
+    // Avoids pulling in `chrono` for a single format. Active-key filter
+    // uses lexicographic comparison, which RFC3339 supports.
+    let secs = now.as_secs();
+    let (year, month, day, hour, minute, second) = unix_to_ymdhms(secs);
+    format!("{year:04}-{month:02}-{day:02}T{hour:02}:{minute:02}:{second:02}Z")
+}
+
+/// Convert a unix timestamp (seconds since epoch, UTC) to broken-down
+/// year/month/day/hour/minute/second. Pure function, no allocations.
+fn unix_to_ymdhms(secs: u64) -> (u32, u32, u32, u32, u32, u32) {
+    // Days since 1970-01-01.
+    let days = (secs / 86_400) as i64;
+    let rem = (secs % 86_400) as u32;
+    let hour = rem / 3600;
+    let minute = (rem % 3600) / 60;
+    let second = rem % 60;
+
+    // Civil from days — based on Howard Hinnant's algorithm.
+    let z = days + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let doe = z - era * 146_097; // [0, 146096]
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let year = if m <= 2 { y + 1 } else { y };
+
+    (year as u32, m as u32, d as u32, hour, minute, second)
+}
 use base64::Engine as _;
 use ecdsa::elliptic_curve::pkcs8::DecodePublicKey;
 use ecdsa::signature::Verifier;
@@ -87,60 +128,102 @@ pub struct CosignVerifier {
 }
 
 impl CosignVerifier {
-    /// Load all trust keys under `root` (typically `~/.sindri/trust/`).
+    /// Load all trust keys under `root` (typically `~/.sindri/trust/`),
+    /// **plus** any [`EmbeddedKey`](crate::embedded_keys::EmbeddedKey)s
+    /// active for first-party registries (ADR-014, F-REG-01).
     ///
-    /// - Each immediate subdirectory is treated as a registry name.
+    /// Embedded keys are merged in first; disk-loaded keys are appended
+    /// per registry. The merged set is what `keys_for(name)` returns.
+    /// This is the recommended constructor for production callers.
+    ///
+    /// - Each immediate subdirectory of `root` is treated as a registry name.
     /// - Inside each subdirectory, every file matching `cosign-*.pub` is
     ///   parsed as a P-256 public key.
     /// - A malformed key file aborts the whole load with
     ///   [`RegistryError::TrustKeyParseFailed`] — we fail closed rather than
     ///   silently dropping bad keys.
-    /// - A non-existent `root` is treated as an empty trust set.
+    /// - A non-existent `root` is treated as an empty disk trust set
+    ///   (embedded keys are still honored).
     pub fn load_from_trust_dir(root: &Path) -> Result<Self, RegistryError> {
+        Self::load_with_embedded(
+            root,
+            crate::embedded_keys::EMBEDDED_KEYS,
+            &current_rfc3339(),
+        )
+    }
+
+    /// Like [`Self::load_from_trust_dir`] but takes the embedded-key
+    /// slice and a clock time as parameters. Suitable for tests that
+    /// want deterministic time or a custom embedded set.
+    pub fn load_with_embedded(
+        root: &Path,
+        embedded: &[crate::embedded_keys::EmbeddedKey],
+        now_rfc3339: &str,
+    ) -> Result<Self, RegistryError> {
         let mut trusted_keys: HashMap<String, Vec<TrustedKey>> = HashMap::new();
-        if !root.exists() {
-            return Ok(CosignVerifier { trusted_keys });
+
+        // 1. Embedded keys first — these are vetted at build time and do
+        //    not require any disk presence to be honored.
+        let mut embedded_aliases: std::collections::HashSet<&str> =
+            std::collections::HashSet::new();
+        for ek in embedded {
+            embedded_aliases.insert(ek.registry_alias);
         }
-        for entry in fs::read_dir(root)? {
-            let entry = entry?;
-            let path = entry.path();
-            if !path.is_dir() {
-                continue;
+        for alias in &embedded_aliases {
+            let active = crate::embedded_keys::active_keys_for(embedded, alias, now_rfc3339);
+            for ek in active {
+                let key = crate::embedded_keys::embedded_to_trusted(ek)?;
+                trusted_keys
+                    .entry(ek.registry_alias.to_string())
+                    .or_default()
+                    .push(key);
             }
-            let registry_name = match path.file_name().and_then(|s| s.to_str()) {
-                Some(s) => s.to_string(),
-                None => continue,
-            };
-            let mut keys: Vec<TrustedKey> = Vec::new();
-            for key_entry in fs::read_dir(&path)? {
-                let key_entry = key_entry?;
-                let key_path = key_entry.path();
-                if !key_path.is_file() {
+        }
+
+        // 2. Disk keys, appended per registry.
+        if root.exists() {
+            for entry in fs::read_dir(root)? {
+                let entry = entry?;
+                let path = entry.path();
+                if !path.is_dir() {
                     continue;
                 }
-                let name = key_path
-                    .file_name()
-                    .and_then(|s| s.to_str())
-                    .unwrap_or_default();
-                if !name.starts_with("cosign-") || !name.ends_with(".pub") {
-                    continue;
-                }
-                let pem = fs::read_to_string(&key_path)?;
-                let key = TrustedKey::from_pem(&pem).map_err(|e| match e {
-                    RegistryError::TrustKeyParseFailed { detail, .. } => {
-                        RegistryError::TrustKeyParseFailed {
-                            path: key_path.display().to_string(),
-                            detail,
-                        }
+                let registry_name = match path.file_name().and_then(|s| s.to_str()) {
+                    Some(s) => s.to_string(),
+                    None => continue,
+                };
+                let mut keys: Vec<TrustedKey> = Vec::new();
+                for key_entry in fs::read_dir(&path)? {
+                    let key_entry = key_entry?;
+                    let key_path = key_entry.path();
+                    if !key_path.is_file() {
+                        continue;
                     }
-                    other => other,
-                })?;
-                keys.push(key);
-            }
-            if !keys.is_empty() {
-                trusted_keys.insert(registry_name, keys);
+                    let name = key_path
+                        .file_name()
+                        .and_then(|s| s.to_str())
+                        .unwrap_or_default();
+                    if !name.starts_with("cosign-") || !name.ends_with(".pub") {
+                        continue;
+                    }
+                    let pem = fs::read_to_string(&key_path)?;
+                    let key = TrustedKey::from_pem(&pem).map_err(|e| match e {
+                        RegistryError::TrustKeyParseFailed { detail, .. } => {
+                            RegistryError::TrustKeyParseFailed {
+                                path: key_path.display().to_string(),
+                                detail,
+                            }
+                        }
+                        other => other,
+                    })?;
+                    keys.push(key);
+                }
+                if !keys.is_empty() {
+                    trusted_keys.entry(registry_name).or_default().extend(keys);
+                }
             }
         }
+
         Ok(CosignVerifier { trusted_keys })
     }
 

@@ -1,6 +1,6 @@
 # ADR-014: Signed Registries with cosign from Day One
 
-**Status:** Accepted (key-based: PR #220, PR #228; **keyless OIDC: PR for Wave 6A — D1 closed 2026-04-27**)
+**Status:** Accepted; key-based and keyless OIDC verification implemented. Phase 3 of the 2026-04-30 reconciliation plan (F-REG-01) added the `EmbeddedKey[]` array (`crates/sindri-registry/src/embedded_keys.rs`) with rotation-overlap support, modeled on cosign / Sigstore's TUF root distribution. **Production array is empty today** — production-grade `sindri-core` cosign signing infrastructure is a prerequisite track that lands out-of-band; once the keypair exists, the SPKI PEM is `include_bytes!`-ed into a new entry. Until then the `sindri/core` registry must be trusted explicitly via `sindri registry trust`.
 **Date:** 2026-04-24
 **Deciders:** sindri-dev team
 

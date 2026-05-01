@@ -107,6 +107,12 @@ pub fn run(args: ApplyArgs) -> i32 {
 }
 
 async fn run_async(args: ApplyArgs) -> i32 {
+    // Phase 3 (F-TGT-05, Q2=B+C): print a banner if any plugin is
+    // currently trusted via `--insecure` so the operator can never
+    // forget the bypass is in effect. Borrowed from Terraform's
+    // `dev_overrides` UX.
+    emit_insecure_plugin_banner();
+
     // Determine lockfile path (ADR-018)
     let lock_name = if args.target == "local" {
         "sindri.lock".to_string()
@@ -740,4 +746,52 @@ fn compute_hash(content: &str) -> String {
     let mut h = Sha256::new();
     h.update(content.as_bytes());
     hex::encode(h.finalize())
+}
+
+/// Phase 3 (F-TGT-05, Q2=B+C) — banner emitter.
+///
+/// Reads `.sindri/insecure-plugins.yaml` (defaults to empty if absent)
+/// and prints a yellow stderr banner listing every plugin currently
+/// trusted without a cosign signature. Modeled after Terraform's
+/// `dev_overrides` warning. Silent when the file is empty.
+fn emit_insecure_plugin_banner() {
+    use sindri_core::insecure_plugins::{insecure_plugins_path, InsecurePluginsFile};
+
+    let path = insecure_plugins_path();
+    let file = match InsecurePluginsFile::load(&path) {
+        Ok(f) => f,
+        Err(e) => {
+            // The file exists but is malformed — surface that as a soft
+            // warning. We don't block apply on a bad insecure-plugins file.
+            eprintln!(
+                "warning: cannot read {}: {} — proceeding without insecure-plugin banner",
+                path.display(),
+                e
+            );
+            return;
+        }
+    };
+    if file.is_empty() {
+        return;
+    }
+    eprintln!();
+    eprintln!("┌─────────────────────────────────────────────────────────────────────────");
+    eprintln!(
+        "│ ⚠️  WARNING: {} plugin{} running WITHOUT signature verification",
+        file.plugins.len(),
+        if file.plugins.len() == 1 { "" } else { "s" }
+    );
+    eprintln!("│ Source of truth: {}", path.display());
+    eprintln!("│");
+    for p in &file.plugins {
+        eprintln!(
+            "│   • {} (added {}, reason: {})",
+            p.kind, p.timestamp, p.reason
+        );
+    }
+    eprintln!("│");
+    eprintln!("│ To restore verification: edit the file or run");
+    eprintln!("│   sindri target plugin trust <kind> --signer <ref>");
+    eprintln!("└─────────────────────────────────────────────────────────────────────────");
+    eprintln!();
 }

@@ -50,7 +50,7 @@ Status legend: ✅ fixed · 🟡 partially fixed · ⏸️ deferred · 🔍 need
 | F-CLI-03 | major | ✅ fixed | `apply --no-bom`, `--resume`, `--clear-state` added to synopsis + table. |
 | F-CLI-04 | major | ✅ fixed | `registry refresh --insecure` added with policy-interaction note. |
 | F-CLI-05 | critical | ✅ fixed | "Deferred to Wave 3A.2" stale sentence removed; `registry verify` now describes live cosign flow. |
-| F-CLI-06 | major | ✅ fixed | `registry verify --url <oci-ref>` documented as required. |
+| F-CLI-06 | major | ✅ revised (Phase 3) | F-REG-04 (Q4=B): `--url` is now **optional**; verify falls back to `sindri.yaml` `registry.sources:` lookup by `registry_name`. Matches Docker/Helm/kubectl/Cargo convention. CLI.md updated. |
 | F-CLI-07 | major | ✅ fixed | New full sections for `registry serve` and `registry prefetch`. |
 | F-CLI-08 | major | ⏸️ deferred | `init` interactive-prompts claim still in doc; impl/doc reconciliation deferred to next pass. |
 | F-CLI-09 | critical | ⏸️ deferred | `init --policy` writes to `~/.sindri/policy.yaml` (global) vs. doc claim of project file — design-vs-impl decision pending. |
@@ -78,8 +78,8 @@ Status legend: ✅ fixed · 🟡 partially fixed · ⏸️ deferred · 🔍 need
 | F-AUTHOR-04 | minor | 🔍 needs verification | `options:` section presence in `Component` aggregate still unverified. |
 | F-AUTHOR-05 | minor | 🔍 needs verification | `validate.commands[*].version_flag` schema still unverified. |
 | F-AUTHOR-06 | ok | ✅ no action | Confirmed correct. |
-| F-REG-01 | major | ⏸️ deferred | `sindri/core` "always trusted" claim — explicitly deferred per user direction. |
-| F-REG-02 | major | ❌ not started | `--no-verify` vs. `--insecure` confusion in §"Trust model" still present. |
+| F-REG-01 | major | ✅ fixed (Phase 3) | New `sindri-registry::embedded_keys` module with `EmbeddedKey[]` rotation-overlap support, modeled on cosign / Sigstore TUF. `CosignVerifier::load_with_embedded` merges embedded + disk trust. Production array empty pending out-of-band signing infrastructure; REGISTRY.md and ADR-014 are explicit about the prerequisite. 4 integration tests prove the path with runtime-generated P-256 keys. |
+| F-REG-02 | major | ✅ fixed (Phase 3) | New `sindri registry add <name> <url> [--type] [--insecure] [--no-refresh]` verb. Scheme-prefix sniff for unambiguous URLs (oci://, git+, .git, paths with oci-layout); explicit `--type` required for bare https://. Detected type printed before write. REGISTRY.md "Trust model" rewritten — `--no-verify` references replaced with `--insecure`. |
 | F-REG-03 | minor | 🔍 needs verification | `index.yaml` schema fields not yet diffed against `RegistryIndex`/`ComponentEntry`. |
 | F-REG-04 | major | 🔍 needs verification | `.github/workflows/registry-core-publish.yml` on `main` not yet confirmed. |
 | F-REG-05 | major | 🔍 needs verification | Three-integrity-checks claim — gates 2 and 3 still need code re-verification. |
@@ -97,7 +97,7 @@ Status legend: ✅ fixed · 🟡 partially fixed · ⏸️ deferred · 🔍 need
 | F-TGT-02 | major | ❌ not started | Target-kind list still omits 8 supported kinds. |
 | F-TGT-03 | minor | 🔍 needs verification | Sample `targets:` config shapes not re-verified. |
 | F-TGT-04 | major | 🟡 partially fixed | CLI.md now documents the missing target verbs (`use`, `start`, `stop`, `update`, `plugin`); TARGETS.md table not yet updated. |
-| F-TGT-05 | minor | ❌ not started | `target plugin trust --no-verify` reference not re-checked. |
+| F-TGT-05 | minor | ✅ fixed (Phase 3) | `target plugin trust <kind> --insecure --reason <text>` added, mutually exclusive with `--signer`. Records to `.sindri/insecure-plugins.yaml` (committed alongside sindri.yaml); one-time stderr warn at trust + every-`apply` banner per Q2=B+C. New `sindri-core::insecure_plugins` module + 6 unit tests. Pattern modeled on Terraform `dev_overrides`. ADR-019 status updated. |
 | F-TGT-06 | minor | 🔍 needs verification | `target shell` interactive-shell claim still unverified. |
 | F-MIG-01 | minor | ❌ not started | One-spot flag in MIGRATION_FROM_V3.md not addressed. |
 

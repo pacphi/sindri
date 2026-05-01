@@ -684,6 +684,47 @@ StatusLedger maintenance subcommands.
 
 ## Registry Management
 
+### `sindri registry add`
+
+**Synopsis**
+
+```
+sindri registry add <name> <url> [--type <kind>] [--insecure] [--no-refresh] [-m <manifest>]
+```
+
+Registers a new registry source in `<manifest>` (default `sindri.yaml`) and runs an implicit `registry refresh <name>` afterward (oci sources only). The source type is sniffed from the URL scheme:
+
+| URL form | Detected `--type` |
+|----------|-------------------|
+| `oci://...` | `oci` |
+| `git+https://...`, `git+ssh://...`, or any URL ending in `.git` | `git` |
+| absolute / relative path containing an `oci-layout` file | `local-oci` |
+| absolute / relative path otherwise | `local-path` |
+| bare `https://...` (or any other ambiguous URL) | **error** — pass `--type` to disambiguate |
+
+The detected type is printed to stderr before the manifest is written.
+
+**Options**
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `<name>` | required | Registry alias (used as `registry_name` on the new source entry) |
+| `<url>` | required | URL or path. Sniffed for type unless `--type` is set. |
+| `--type <kind>` | (sniffed) | One of `oci` \| `local-path` \| `git` \| `local-oci`. Required for ambiguous URLs. |
+| `--insecure` | false | Bypass cosign verification on the implicit refresh. Forbidden under strict policy. |
+| `--no-refresh` | false | Skip the implicit `registry refresh <name>` after writing. Always implied for non-`oci` types. |
+| `-m, --manifest <path>` | `sindri.yaml` | Manifest to mutate |
+
+**Examples**
+
+```bash
+sindri registry add core oci://ghcr.io/sindri-dev/registry-core
+sindri registry add acme oci://ghcr.io/acme/internal --insecure
+sindri registry add experimental ./local-components --type local-path --no-refresh
+```
+
+---
+
 ### `sindri registry refresh`
 
 **Synopsis**
@@ -753,24 +794,29 @@ sindri registry trust acme --signer cosign:key=/path/to/acme-registry.pub
 **Synopsis**
 
 ```
-sindri registry verify <name> --url <oci-ref>
+sindri registry verify <name> [--url <oci-ref>] [-m <manifest>]
 ```
 
-Verifies the cosign signature on the named registry's index against the stored trust set under `~/.sindri/trust/<name>/`. Runs the full cosign verification flow via the `oci-client` + `sigstore` stack. On success prints `Verified registry '<name>': signed by trusted key <key-id>` and exits 0.
+Verifies the cosign signature on the named registry's index against the stored trust set under `~/.sindri/trust/<name>/` plus any embedded keys ([ADR-014](ADRs/014-signed-registries-cosign.md)). On success prints `Verified registry '<name>': signed by trusted key <key-id>` and exits 0.
 
-The `--url` flag is required because the CLI does not yet maintain a registry-name → URL map; supply the same OCI reference you would pass to `registry refresh`. Run `sindri registry refresh` first to populate the cache.
+`--url` is **optional**. When omitted, the URL is resolved from `<manifest>`'s `registry.sources:` entry whose `registry_name` matches `<name>` — the same convention Docker, Helm, kubectl, and Cargo use after a registry has been registered. If the name is not registered, the error message instructs the user to run `sindri registry add` or pass `--url` for ad-hoc verification.
 
 **Options**
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `<name>` | required | Registry alias (must already be trusted via `sindri registry trust`) |
-| `--url <oci-ref>` | required | OCI reference for the registry artifact, e.g. `ghcr.io/sindri-dev/registry-core:1.0.0` |
+| `<name>` | required | Registry alias (must be either registered in the manifest or supplied via `--url`) |
+| `--url <oci-ref>` | (sindri.yaml lookup) | Override or fallback when the name is not registered |
+| `-m, --manifest <path>` | `sindri.yaml` | Manifest to consult for the name → URL mapping |
 
 **Examples**
 
 ```bash
-sindri registry verify core --url ghcr.io/sindri-dev/registry-core:1.0.0
+# Common case: name resolved from sindri.yaml.
+sindri registry verify core
+
+# Ad-hoc: registry not yet added.
+sindri registry verify core --url oci://ghcr.io/sindri-dev/registry-core:1.0.0
 ```
 
 ---
@@ -1022,6 +1068,7 @@ Reconciles `targets.<name>.infra` in `sindri.yaml` with the on-disk infra lock �
 sindri target plugin ls
 sindri target plugin install <oci-ref> [--kind <kind>]
 sindri target plugin trust <kind> --signer <signer>
+sindri target plugin trust <kind> --insecure --reason <text>
 sindri target plugin uninstall <kind> [--yes]
 ```
 
@@ -1031,8 +1078,27 @@ Manages target plugins ([ADR-019](ADRs/019-subprocess-json-target-plugins.md)). 
 |------------|-------------|
 | `ls` | List installed target plugins |
 | `install <oci-ref> [--kind <kind>]` | Install a plugin from an OCI reference. `--kind` overrides the auto-derived kind name (defaults to the trailing path component of `<oci-ref>`). EXPERIMENTAL. |
-| `trust <kind> --signer <signer>` | Trust a cosign public key for a plugin kind |
+| `trust <kind> --signer <signer>` | Trust a cosign public key for a plugin kind. Mutually exclusive with `--insecure`. |
+| `trust <kind> --insecure --reason <text>` | **Bypass** signature verification for `<kind>` and record the override in `.sindri/insecure-plugins.yaml`. `--reason` is mandatory and surfaces in `git diff` and the `sindri apply` banner (Phase 3 / F-TGT-05). |
 | `uninstall <kind> [--yes]` | Uninstall a plugin (`--yes` skips the confirmation prompt) |
+
+#### `--insecure` plugin trust ([ADR-019](ADRs/019-subprocess-json-target-plugins.md))
+
+The `--insecure` form is the documented escape hatch for plugin development without committing to signing infrastructure. Modeled after Terraform's `dev_overrides` UX:
+
+1. Writes an entry to `.sindri/insecure-plugins.yaml` capturing `kind`, `reason`, RFC3339 timestamp, and (best-effort) user/hostname.
+2. Prints a one-time stderr warning at trust time.
+3. Every subsequent `sindri apply` prints a banner listing every active insecure entry — the override is **never silent**.
+
+Restore verification by editing the file or by running `sindri target plugin trust <kind> --signer <ref>`.
+
+```bash
+# Trust with a real key (production).
+sindri target plugin trust myplugin --signer cosign:key=./myplugin.pub
+
+# Bypass for development — banner appears on every apply until restored.
+sindri target plugin trust myplugin --insecure --reason "Local debugging of issue #1234"
+```
 
 ### `sindri target auth`
 

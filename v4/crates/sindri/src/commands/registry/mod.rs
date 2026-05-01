@@ -7,6 +7,22 @@ pub mod prefetch;
 pub mod serve;
 
 pub enum RegistryCmd {
+    /// Register a new registry source in `sindri.yaml` (Phase 3, F-REG-02).
+    /// Sniffs the URL scheme to infer the source type; falls back to
+    /// `--type` for ambiguous URLs (e.g. bare `https://...`).
+    Add {
+        name: String,
+        url: String,
+        /// Force a specific source type (`oci` | `local-path` | `git` | `local-oci`).
+        /// Required when the URL scheme cannot be inferred unambiguously.
+        kind: Option<String>,
+        /// Skip cosign verification on the implicit refresh.
+        insecure: bool,
+        /// Skip the implicit `registry refresh <name>` after writing.
+        no_refresh: bool,
+        /// Manifest path (default: `sindri.yaml`).
+        manifest: String,
+    },
     Refresh {
         name: String,
         url: String,
@@ -24,9 +40,14 @@ pub enum RegistryCmd {
         name: String,
         signer: String,
     },
+    /// Verify a registry's cosign signature. Per F-REG-04, `url` is now
+    /// optional — when omitted, the URL is looked up from
+    /// `sindri.yaml`'s `registry.sources:` by `registry_name` (Q4=B,
+    /// matches Docker/Helm/kubectl/Cargo convention).
     Verify {
         name: String,
-        url: String,
+        url: Option<String>,
+        manifest: String,
     },
     FetchChecksums {
         path: String,
@@ -49,6 +70,21 @@ pub enum RegistryCmd {
 
 pub fn run(cmd: RegistryCmd) -> i32 {
     match cmd {
+        RegistryCmd::Add {
+            name,
+            url,
+            kind,
+            insecure,
+            no_refresh,
+            manifest,
+        } => add(
+            &name,
+            &url,
+            kind.as_deref(),
+            insecure,
+            no_refresh,
+            &manifest,
+        ),
         RegistryCmd::Refresh {
             name,
             url,
@@ -56,7 +92,11 @@ pub fn run(cmd: RegistryCmd) -> i32 {
         } => refresh(&name, &url, insecure),
         RegistryCmd::Lint { path, json, auth } => lint(&path, json, auth),
         RegistryCmd::Trust { name, signer } => trust(&name, &signer),
-        RegistryCmd::Verify { name, url } => verify(&name, &url),
+        RegistryCmd::Verify {
+            name,
+            url,
+            manifest,
+        } => verify(&name, url.as_deref(), &manifest),
         RegistryCmd::FetchChecksums { path } => fetch_checksums(&path),
         RegistryCmd::Serve { addr, root } => serve::run(&addr, &root),
         RegistryCmd::Prefetch {
@@ -443,14 +483,32 @@ fn trust(name: &str, signer: &str) -> i32 {
 
 /// Verify the cosign signature on a registry's artifact (ADR-014).
 ///
-/// Wave 3A.2: runs the full cosign verification flow against the trust
-/// keys in `~/.sindri/trust/<name>/`. The OCI ref must be supplied because
-/// the CLI does not yet maintain a registry-name → URL map.
-fn verify(name: &str, url: &str) -> i32 {
-    let oci_ref = match OciRef::parse(url) {
+/// Runs the full cosign verification flow against trust keys in
+/// `~/.sindri/trust/<name>/` plus any embedded keys (F-REG-01).
+///
+/// `url` is optional (F-REG-04, Q4=B): when omitted, the URL is
+/// resolved from `<manifest>`'s `registry.sources:` entry whose
+/// `registry_name` matches `name`. Field consensus across Docker,
+/// Helm, kubectl, Cargo: registered name is the primary handle.
+fn verify(name: &str, url: Option<&str>, manifest: &str) -> i32 {
+    let resolved_url = match url {
+        Some(u) => u.to_string(),
+        None => match lookup_registry_url(name, std::path::Path::new(manifest)) {
+            Ok(u) => {
+                eprintln!("Resolved URL for '{}' from {}: {}", name, manifest, u);
+                u
+            }
+            Err(e) => {
+                eprintln!("{}", e);
+                return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+            }
+        },
+    };
+
+    let oci_ref = match OciRef::parse(&resolved_url) {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("Invalid OCI reference '{}': {}", url, e);
+            eprintln!("Invalid OCI reference '{}': {}", resolved_url, e);
             return EXIT_SCHEMA_OR_RESOLVE_ERROR;
         }
     };
@@ -515,6 +573,318 @@ fn fetch_checksums(path: &str) -> i32 {
         path
     );
     EXIT_SUCCESS
+}
+
+// =============================================================================
+// `sindri registry add` (F-REG-02, Phase 3)
+// =============================================================================
+
+/// Sniff the source type from a URL or path. Q3=B: scheme-prefix sniff
+/// for unambiguous cases; refuse ambiguous URLs without `--type`.
+///
+/// Returns `(detected_kind, reason)` so the caller can print the
+/// inference for transparency before writing config.
+fn detect_source_kind(url: &str) -> Result<(&'static str, String), String> {
+    if url.starts_with("oci://") {
+        return Ok(("oci", "from oci:// scheme".into()));
+    }
+    if url.starts_with("git+") || url.ends_with(".git") {
+        return Ok(("git", "from git+ scheme or .git suffix".into()));
+    }
+    // Path detection — accept absolute or `./` paths.
+    if url.starts_with('/') || url.starts_with("./") || url.starts_with("../") {
+        let path = std::path::Path::new(url);
+        if path.join("oci-layout").exists() {
+            return Ok(("local-oci", "directory contains an oci-layout file".into()));
+        }
+        return Ok(("local-path", "filesystem path (no oci-layout file)".into()));
+    }
+    if url.starts_with("https://") || url.starts_with("http://") {
+        return Err(format!(
+            "Cannot infer source type from `{}`. \
+             Pass --type oci|local-path|git|local-oci to disambiguate.",
+            url
+        ));
+    }
+    Err(format!(
+        "Cannot infer source type from `{}`. \
+         Recognised schemes: oci://, git+, .git suffix, /absolute or ./relative paths. \
+         Pass --type to override.",
+        url
+    ))
+}
+
+fn add(
+    name: &str,
+    url: &str,
+    explicit_kind: Option<&str>,
+    insecure: bool,
+    no_refresh: bool,
+    manifest_path: &str,
+) -> i32 {
+    use sindri_core::manifest::{
+        BomManifest, GitSourceConfig, LocalOciSourceConfig, LocalPathSourceConfig, OciSourceConfig,
+        RegistrySourceConfig,
+    };
+
+    // 1. Determine the source kind: explicit --type wins; otherwise sniff.
+    let kind = match explicit_kind {
+        Some(k) => k.to_string(),
+        None => match detect_source_kind(url) {
+            Ok((k, reason)) => {
+                eprintln!("Detected source type: {} ({})", k, reason);
+                k.to_string()
+            }
+            Err(e) => {
+                eprintln!("{}", e);
+                return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+            }
+        },
+    };
+
+    // 2. Build the typed RegistrySourceConfig variant.
+    let new_source = match kind.as_str() {
+        "oci" => RegistrySourceConfig::Oci(OciSourceConfig {
+            url: url.to_string(),
+            tag: "latest".to_string(),
+            scope: None,
+            registry_name: Some(name.to_string()),
+        }),
+        "local-path" => RegistrySourceConfig::LocalPath(LocalPathSourceConfig {
+            path: std::path::PathBuf::from(url),
+            scope: None,
+        }),
+        "local-oci" => RegistrySourceConfig::LocalOci(LocalOciSourceConfig {
+            layout: std::path::PathBuf::from(url),
+            scope: None,
+            registry_name: Some(name.to_string()),
+            artifact_ref: None,
+        }),
+        "git" => RegistrySourceConfig::Git(GitSourceConfig {
+            url: url.trim_start_matches("git+").to_string(),
+            git_ref: "main".to_string(),
+            subdir: None,
+            scope: None,
+            require_signed: false,
+        }),
+        other => {
+            eprintln!(
+                "Unknown source type `{}`. Valid: oci | local-path | git | local-oci",
+                other
+            );
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+
+    // 3. Read + parse manifest (or start an empty one if missing).
+    let path = std::path::Path::new(manifest_path);
+    let mut manifest = if path.exists() {
+        let content = match std::fs::read_to_string(path) {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("Cannot read {}: {}", path.display(), e);
+                return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+            }
+        };
+        match serde_yaml::from_str::<BomManifest>(&content) {
+            Ok(m) => m,
+            Err(e) => {
+                eprintln!("Cannot parse {}: {}", path.display(), e);
+                return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+            }
+        }
+    } else {
+        eprintln!(
+            "Note: {} does not exist. Run `sindri init` first; aborting.",
+            path.display()
+        );
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    };
+
+    // 4. Reject duplicate registry_name on existing oci entries.
+    for src in &manifest.registry.sources {
+        if let RegistrySourceConfig::Oci(o) = src {
+            if o.registry_name.as_deref() == Some(name) {
+                eprintln!(
+                    "Registry '{}' is already registered in {}. \
+                     Edit the existing entry or remove it first.",
+                    name,
+                    path.display()
+                );
+                return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+            }
+        }
+    }
+
+    // 5. Append + write back atomically.
+    manifest.registry.sources.push(new_source);
+    let yaml = match serde_yaml::to_string(&manifest) {
+        Ok(y) => y,
+        Err(e) => {
+            eprintln!("Cannot serialise updated manifest: {}", e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+    let tmp = path.with_extension("yaml.tmp");
+    if let Err(e) = std::fs::write(&tmp, &yaml) {
+        eprintln!("Cannot write {}: {}", tmp.display(), e);
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+    if let Err(e) = std::fs::rename(&tmp, path) {
+        eprintln!("Cannot finalise {}: {}", path.display(), e);
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+
+    println!(
+        "Added registry '{}' ({} source) to {}",
+        name,
+        kind,
+        path.display()
+    );
+
+    // 6. Implicit refresh unless suppressed (oci only — other types are local).
+    if no_refresh || kind != "oci" {
+        return EXIT_SUCCESS;
+    }
+    eprintln!("Refreshing '{}'…", name);
+    refresh(name, url, insecure)
+}
+
+/// Look up an OCI URL from `manifest_path`'s `registry.sources:` entry
+/// whose `registry_name` matches `name` (Q4=B). Returns a helpful error
+/// when the name is not registered.
+fn lookup_registry_url(name: &str, manifest_path: &std::path::Path) -> Result<String, String> {
+    use sindri_core::manifest::{BomManifest, RegistrySourceConfig};
+
+    if !manifest_path.exists() {
+        return Err(format!(
+            "Registry '{}' not found: {} does not exist. \
+             Run `sindri registry add {} <url>` first, or pass `--url` to verify ad-hoc.",
+            name,
+            manifest_path.display(),
+            name
+        ));
+    }
+
+    let content = std::fs::read_to_string(manifest_path)
+        .map_err(|e| format!("Cannot read {}: {}", manifest_path.display(), e))?;
+    let manifest: BomManifest = serde_yaml::from_str(&content)
+        .map_err(|e| format!("Cannot parse {}: {}", manifest_path.display(), e))?;
+
+    for src in &manifest.registry.sources {
+        if let RegistrySourceConfig::Oci(o) = src {
+            if o.registry_name.as_deref() == Some(name) {
+                return Ok(o.url.clone());
+            }
+        }
+    }
+
+    Err(format!(
+        "Registry '{}' not registered in {}. \
+         Run `sindri registry add {} <url>` first, or pass `--url` to verify ad-hoc.",
+        name,
+        manifest_path.display(),
+        name
+    ))
+}
+
+#[cfg(test)]
+mod add_verb_tests {
+    use super::*;
+
+    #[test]
+    fn detect_source_kind_oci_scheme() {
+        let (kind, _) = detect_source_kind("oci://ghcr.io/foo/bar").unwrap();
+        assert_eq!(kind, "oci");
+    }
+
+    #[test]
+    fn detect_source_kind_git_prefix() {
+        let (kind, _) = detect_source_kind("git+https://github.com/foo/bar").unwrap();
+        assert_eq!(kind, "git");
+    }
+
+    #[test]
+    fn detect_source_kind_dot_git_suffix() {
+        let (kind, _) = detect_source_kind("https://github.com/foo/bar.git").unwrap();
+        assert_eq!(kind, "git");
+    }
+
+    #[test]
+    fn detect_source_kind_absolute_path_no_layout() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (kind, _) = detect_source_kind(tmp.path().to_str().unwrap()).unwrap();
+        assert_eq!(kind, "local-path");
+    }
+
+    #[test]
+    fn detect_source_kind_absolute_path_with_oci_layout() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(
+            tmp.path().join("oci-layout"),
+            "{\"imageLayoutVersion\":\"1.0.0\"}",
+        )
+        .unwrap();
+        let (kind, _) = detect_source_kind(tmp.path().to_str().unwrap()).unwrap();
+        assert_eq!(kind, "local-oci");
+    }
+
+    #[test]
+    fn detect_source_kind_bare_https_requires_explicit_type() {
+        let err = detect_source_kind("https://example.com/foo").unwrap_err();
+        assert!(err.contains("--type"));
+    }
+
+    #[test]
+    fn detect_source_kind_unknown_scheme_rejected() {
+        let err = detect_source_kind("ftp://example.com/foo").unwrap_err();
+        assert!(err.contains("--type"));
+    }
+
+    #[test]
+    fn lookup_registry_url_finds_match() {
+        use sindri_core::manifest::{BomManifest, OciSourceConfig, RegistrySourceConfig};
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("sindri.yaml");
+        let mut manifest = BomManifest {
+            schema: None,
+            name: None,
+            components: vec![],
+            registry: Default::default(),
+            targets: Default::default(),
+            preferences: None,
+            r#override: None,
+            secrets: Default::default(),
+        };
+        manifest
+            .registry
+            .sources
+            .push(RegistrySourceConfig::Oci(OciSourceConfig {
+                url: "oci://ghcr.io/sindri/core".into(),
+                tag: "1.0".into(),
+                scope: None,
+                registry_name: Some("core".into()),
+            }));
+        std::fs::write(&path, serde_yaml::to_string(&manifest).unwrap()).unwrap();
+        let resolved = lookup_registry_url("core", &path).unwrap();
+        assert_eq!(resolved, "oci://ghcr.io/sindri/core");
+    }
+
+    #[test]
+    fn lookup_registry_url_missing_name_returns_helpful_error() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("sindri.yaml");
+        std::fs::write(&path, "components: []\n").unwrap();
+        let err = lookup_registry_url("missing", &path).unwrap_err();
+        assert!(err.contains("registry add"), "{}", err);
+        assert!(err.contains("--url"), "{}", err);
+    }
+
+    #[test]
+    fn lookup_registry_url_missing_manifest_returns_helpful_error() {
+        let err = lookup_registry_url("core", std::path::Path::new("/no/such/path")).unwrap_err();
+        assert!(err.contains("does not exist"));
+    }
 }
 
 #[cfg(test)]

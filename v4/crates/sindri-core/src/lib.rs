@@ -5,6 +5,7 @@ pub mod auth;
 pub mod cache_config;
 pub mod component;
 pub mod exit_codes;
+pub mod insecure_plugins;
 pub mod lockfile;
 pub mod manifest;
 pub mod paths;

@@ -105,9 +105,9 @@ A pin to `:2026.04` resolves to the latest patch tag under that monthly (e.g., `
 
 | Source | Trust level |
 |--------|-------------|
-| `sindri/core` (published by sindri-dev) | Always trusted — hardcoded public key in the CLI binary |
-| User-added registries | Must explicitly `sindri registry trust <name> --signer cosign:key=<path>` |
-| Registries added with `--no-verify` | Added without signature; logged as unverified in the StatusLedger; surfaced as a warning at resolve time |
+| `sindri-core` (published by sindri-dev) | Honored via the embedded `EmbeddedKey[]` array baked into the binary (see [ADR-014](ADRs/014-signed-registries-cosign.md)). The production array is empty until the `sindri-core` cosign signing infrastructure ships; until then the `sindri/core` trust must still be established explicitly via `sindri registry trust`. |
+| User-added registries | Register with `sindri registry add <name> <url>` (writes `registry.sources:` in `sindri.yaml`); trust the publisher's key with `sindri registry trust <name> --signer cosign:key=<path>` |
+| Registries refreshed with `--insecure` | Bypass cosign verification with a loud warning. Forbidden when the active install policy sets `registries.requireSigned: true`. |
 
 Sindri enforces **three independent integrity checks**, each at a distinct layer boundary:
 
@@ -115,14 +115,24 @@ Sindri enforces **three independent integrity checks**, each at a distinct layer
 2. `sindri resolve` — verifies each `component.yaml` blob's SHA-256 digest against the digest declared in `index.yaml`. Any mismatch is a hard error.
 3. `sindri apply` — verifies downloaded binary artifacts against the checksums declared in `component.yaml` before executing them.
 
-### Registering a trusted key
+### Registering a registry and trusting its key
 
 ```bash
-# Trust a cosign P-256 SPKI PEM public key for registry "acme"
+# 1. Add the registry source to sindri.yaml.
+sindri registry add acme oci://ghcr.io/acme/registry-core
+
+# 2. Trust the publisher's cosign P-256 SPKI PEM public key.
 sindri registry trust acme --signer cosign:key=./acme-registry-signing.pub
 ```
 
-The key is validated as a P-256 SPKI PEM and stored at `~/.sindri/trust/acme/cosign-<key-id>.pub`.
+The key is validated as a P-256 SPKI PEM and stored at `~/.sindri/trust/acme/cosign-<key-id>.pub`. Subsequent `sindri registry refresh acme` (or the implicit refresh that `sindri registry add` runs unless `--no-refresh` is passed) verifies the OCI manifest signature against this key.
+
+After registering, name-only verbs work without `--url`:
+
+```bash
+sindri registry verify acme         # looks up URL from sindri.yaml
+sindri registry refresh acme oci://ghcr.io/acme/registry-core   # explicit URL still works
+```
 
 ### Keyless OIDC
 

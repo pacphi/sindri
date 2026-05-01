@@ -109,7 +109,18 @@ pub enum PluginSub {
     },
     Trust {
         kind: String,
-        signer: String,
+        /// Cosign signer reference (`cosign:key=<path>` or a bare path).
+        /// Mutually exclusive with `--insecure`.
+        signer: Option<String>,
+        /// Mark this plugin as trusted **without** any signature
+        /// verification. Writes an entry to
+        /// `.sindri/insecure-plugins.yaml` with a mandatory `--reason`,
+        /// emits a one-time stderr warning, and triggers a banner on
+        /// every subsequent `sindri apply` (Phase 3, F-TGT-05, Q2=B+C).
+        insecure: bool,
+        /// Required when `--insecure` is set; documents why the bypass
+        /// was used. Surfaces in `git diff` and the apply-time banner.
+        reason: Option<String>,
     },
     Uninstall {
         kind: String,
@@ -1327,7 +1338,12 @@ fn run_plugin(sub: PluginSub) -> i32 {
     match sub {
         PluginSub::Ls => plugin_ls(),
         PluginSub::Install { oci_ref, kind } => plugin_install(&oci_ref, kind.as_deref()),
-        PluginSub::Trust { kind, signer } => plugin_trust(&kind, &signer),
+        PluginSub::Trust {
+            kind,
+            signer,
+            insecure,
+            reason,
+        } => plugin_trust(&kind, signer.as_deref(), insecure, reason.as_deref()),
         PluginSub::Uninstall { kind, yes } => plugin_uninstall(&kind, yes),
     }
 }
@@ -1410,7 +1426,38 @@ fn derive_kind_from_ref(oci_ref: &str) -> String {
         .to_string()
 }
 
-fn plugin_trust(kind: &str, signer: &str) -> i32 {
+fn plugin_trust(kind: &str, signer: Option<&str>, insecure: bool, reason: Option<&str>) -> i32 {
+    // F-TGT-05 (Q2=B+C): --insecure bypass — record in
+    // .sindri/insecure-plugins.yaml with mandatory --reason. Every
+    // `sindri apply` thereafter prints a banner via emit_banner().
+    if insecure {
+        if signer.is_some() {
+            eprintln!("--insecure and --signer are mutually exclusive");
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+        let reason = match reason {
+            Some(r) if !r.trim().is_empty() => r.trim(),
+            _ => {
+                eprintln!(
+                    "--insecure requires --reason <text>. \
+                     The reason is recorded in .sindri/insecure-plugins.yaml \
+                     and surfaces in code review and the apply-time banner."
+                );
+                return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+            }
+        };
+        return record_insecure_plugin(kind, reason);
+    }
+
+    let signer = match signer {
+        Some(s) => s,
+        None => {
+            eprintln!(
+                "`target plugin trust <kind>` requires either --signer <ref> or --insecure --reason <text>"
+            );
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
     let root = match plugin_trust_root() {
         Some(r) => r,
         None => {
@@ -1450,6 +1497,50 @@ fn plugin_trust(kind: &str, signer: &str) -> i32 {
         kind,
         target.display()
     );
+    EXIT_SUCCESS
+}
+
+/// F-TGT-05 (Q2=B+C): write an entry into `.sindri/insecure-plugins.yaml`
+/// and emit a one-time stderr warn. The `sindri apply` banner is the
+/// long-term surface — see `crate::commands::apply::emit_insecure_plugin_banner`.
+fn record_insecure_plugin(kind: &str, reason: &str) -> i32 {
+    use sindri_core::insecure_plugins::{insecure_plugins_path, new_entry, InsecurePluginsFile};
+
+    let path = insecure_plugins_path();
+    let mut file = match InsecurePluginsFile::load(&path) {
+        Ok(f) => f,
+        Err(e) => {
+            eprintln!("Cannot read {}: {}", path.display(), e);
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+    let entry = new_entry(kind, reason);
+    let prev = file.upsert(entry);
+    if let Err(e) = file.save(&path) {
+        eprintln!("Cannot write {}: {}", path.display(), e);
+        return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+    }
+
+    eprintln!();
+    eprintln!(
+        "⚠️  WARNING: plugin '{}' is now trusted WITHOUT signature verification.",
+        kind
+    );
+    eprintln!("   Reason: {}", reason);
+    eprintln!("   Recorded in: {}", path.display());
+    eprintln!("   Every `sindri apply` will print a banner listing this override.");
+    if prev.is_some() {
+        eprintln!("   (Replaced an earlier --insecure entry for the same plugin.)");
+    }
+    eprintln!(
+        "   Remove with: edit {} and delete the entry, OR run",
+        path.display()
+    );
+    eprintln!(
+        "   `sindri target plugin trust {} --signer <ref>` to restore verification.",
+        kind
+    );
+    eprintln!();
     EXIT_SUCCESS
 }
 

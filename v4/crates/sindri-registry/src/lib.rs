@@ -13,6 +13,7 @@
 
 pub mod cache;
 pub mod client;
+pub mod embedded_keys;
 pub mod error;
 pub mod index;
 pub mod keyless;
@@ -25,6 +26,7 @@ pub mod trust_scope;
 
 pub use cache::{BlobKind, RegistryCache};
 pub use client::RegistryClient;
+pub use embedded_keys::{active_keys_for, embedded_to_trusted, EmbeddedKey, EMBEDDED_KEYS};
 pub use error::RegistryError;
 pub use index::RegistryIndex;
 pub use keyless::{

@@ -1,6 +1,6 @@
 # ADR-019: Subprocess-JSON Target Plugin Protocol for v4.0
 
-**Status:** Accepted
+**Status:** Accepted; trust-establishment surface extended in Phase 3 of the 2026-04-30 reconciliation plan (F-TGT-05). `sindri target plugin trust <kind>` now accepts a mutually-exclusive `--insecure --reason <text>` form that records the bypass in `.sindri/insecure-plugins.yaml` (committed alongside `sindri.yaml`) and surfaces a banner on every `sindri apply`. Pattern modeled on Terraform's `dev_overrides`. Reason field is mandatory so the override is self-documenting in `git diff`.
 **Date:** 2026-04-24
 **Deciders:** sindri-dev team
 

@@ -345,6 +345,32 @@ enum Commands {
 
 #[derive(Subcommand)]
 enum RegistrySubcmds {
+    /// Register a new registry source in `sindri.yaml` (Phase 3, F-REG-02).
+    ///
+    /// Sniffs the URL scheme to infer the source type:
+    ///   - `oci://...` → `oci`
+    ///   - `git+...` or URL ending in `.git` → `git`
+    ///   - absolute / relative path containing an `oci-layout` file → `local-oci`
+    ///   - other absolute / relative path → `local-path`
+    ///   - bare `https://...` → require `--type` to disambiguate
+    ///
+    /// After writing the source, runs `registry refresh <name>` unless
+    /// `--no-refresh` is set (oci sources only).
+    Add {
+        name: String,
+        url: String,
+        /// Force a specific source type. Required for ambiguous URLs.
+        #[arg(long, value_name = "oci|local-path|git|local-oci")]
+        kind: Option<String>,
+        /// Bypass cosign verification on the implicit refresh.
+        #[arg(long)]
+        insecure: bool,
+        /// Skip the implicit `registry refresh <name>` after writing.
+        #[arg(long)]
+        no_refresh: bool,
+        #[arg(short, long, default_value = "sindri.yaml")]
+        manifest: String,
+    },
     /// Fetch and cache the registry index (live OCI pull + cosign verify, ADR-003 + ADR-014).
     Refresh {
         name: String,
@@ -378,17 +404,23 @@ enum RegistrySubcmds {
     },
     /// Verify a registry's cosign signature against trusted keys (ADR-014).
     ///
-    /// Resolves the cached OCI ref + digest for the registry and runs the
-    /// full cosign verification flow against the trust set under
-    /// `~/.sindri/trust/<name>/`. Run `sindri registry refresh` first to
-    /// populate the cache.
+    /// Runs the full cosign verification flow against the trust set under
+    /// `~/.sindri/trust/<name>/` plus any embedded keys (F-REG-01).
+    ///
+    /// `--url` is optional (F-REG-04, Q4=B): when omitted, the URL is
+    /// resolved from `<manifest>`'s `registry.sources:` entry whose
+    /// `registry_name` matches `name`. If the name is not registered,
+    /// the error message instructs the user to run `sindri registry add`
+    /// first or pass `--url` for ad-hoc verification.
     Verify {
         name: String,
         /// OCI reference for the registry artifact (e.g.
-        /// `ghcr.io/sindri-dev/registry-core:1.0.0`). Required because the
-        /// CLI does not yet maintain a registry-name → URL map.
+        /// `ghcr.io/sindri-dev/registry-core:1.0.0`). Optional — falls
+        /// back to a sindri.yaml lookup by `registry_name`.
         #[arg(long)]
-        url: String,
+        url: Option<String>,
+        #[arg(short, long, default_value = "sindri.yaml")]
+        manifest: String,
     },
     /// Download assets and write sha256 checksums
     FetchChecksums { path: String },
@@ -541,11 +573,26 @@ enum TargetPluginSubcmds {
         #[arg(long)]
         kind: Option<String>,
     },
-    /// Trust a cosign public key for a plugin kind
+    /// Trust a cosign public key for a plugin kind, OR mark a plugin
+    /// trusted **without** verification via `--insecure --reason`
+    /// (Phase 3, F-TGT-05).
     Trust {
         kind: String,
+        /// Cosign signer reference (`cosign:key=<path>` or path).
+        /// Mutually exclusive with `--insecure`.
+        #[arg(long, conflicts_with = "insecure")]
+        signer: Option<String>,
+        /// **SECURITY:** mark this plugin trusted with no signature
+        /// check. Records an entry in `.sindri/insecure-plugins.yaml`
+        /// and prints a banner on every `sindri apply`. Requires
+        /// `--reason`.
+        #[arg(long, requires = "reason", conflicts_with = "signer")]
+        insecure: bool,
+        /// Operator-supplied justification (mandatory with `--insecure`).
+        /// Surfaces in code review (file is committed) and the
+        /// apply-time banner.
         #[arg(long)]
-        signer: String,
+        reason: Option<String>,
     },
     /// Uninstall a plugin
     Uninstall {
@@ -712,6 +759,21 @@ fn run() -> i32 {
         }),
         Some(Commands::Registry { cmd }) => {
             let registry_cmd = match cmd {
+                RegistrySubcmds::Add {
+                    name,
+                    url,
+                    kind,
+                    insecure,
+                    no_refresh,
+                    manifest,
+                } => RegistryCmd::Add {
+                    name,
+                    url,
+                    kind,
+                    insecure,
+                    no_refresh,
+                    manifest,
+                },
                 RegistrySubcmds::Refresh {
                     name,
                     url,
@@ -725,7 +787,15 @@ fn run() -> i32 {
                     RegistryCmd::Lint { path, json, auth }
                 }
                 RegistrySubcmds::Trust { name, signer } => RegistryCmd::Trust { name, signer },
-                RegistrySubcmds::Verify { name, url } => RegistryCmd::Verify { name, url },
+                RegistrySubcmds::Verify {
+                    name,
+                    url,
+                    manifest,
+                } => RegistryCmd::Verify {
+                    name,
+                    url,
+                    manifest,
+                },
                 RegistrySubcmds::FetchChecksums { path } => RegistryCmd::FetchChecksums { path },
                 RegistrySubcmds::Serve { root, addr } => RegistryCmd::Serve { addr, root },
                 RegistrySubcmds::Prefetch {
@@ -892,9 +962,17 @@ fn run() -> i32 {
                         TargetPluginSubcmds::Install { oci_ref, kind } => {
                             PluginSub::Install { oci_ref, kind }
                         }
-                        TargetPluginSubcmds::Trust { kind, signer } => {
-                            PluginSub::Trust { kind, signer }
-                        }
+                        TargetPluginSubcmds::Trust {
+                            kind,
+                            signer,
+                            insecure,
+                            reason,
+                        } => PluginSub::Trust {
+                            kind,
+                            signer,
+                            insecure,
+                            reason,
+                        },
                         TargetPluginSubcmds::Uninstall { kind, yes } => {
                             PluginSub::Uninstall { kind, yes }
                         }
