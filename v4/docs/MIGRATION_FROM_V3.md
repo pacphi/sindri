@@ -166,6 +166,19 @@ For `git` sources the descriptor records the resolved **commit sha** —
 never the user-supplied ref — so the lockfile is reproducible across
 machines even if the upstream branch is force-pushed.
 
+### Lockfiles are committed to version control
+
+Per [ADR-029](ADRs/029-lockfile-commit-policy.md), per-target lockfiles
+follow `Cargo.lock` semantics: they are committed alongside
+`sindri.yaml` and consumed verbatim by CI. `sindri init` only adds
+`.sindri/` to `.gitignore`; older `init` runs (v3, or v4.0 pre-2026-04-30)
+also added a `sindri.*.lock` line. **Remove that line manually** when
+upgrading; sindri does not auto-rewrite `.gitignore`.
+
+If a lockfile produces a merge conflict, the recovery is the same as
+Cargo's: take either side, then re-run `sindri resolve` and commit the
+result.
+
 ---
 
 ## CLI verb changes

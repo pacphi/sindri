@@ -1,9 +1,14 @@
 use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
 use sindri_core::policy::PolicyPreset;
+use sindri_core::well_known::PROJECT_POLICY_FILENAME;
+use std::path::PathBuf;
 
 pub enum PolicyCmd {
     Use {
         preset: String,
+        /// When true, write to `~/.sindri/policy.yaml` instead of the
+        /// project-scoped `./sindri.policy.yaml` (F-CLI-25 escape hatch).
+        global: bool,
     },
     Show,
     AllowLicense {
@@ -14,13 +19,13 @@ pub enum PolicyCmd {
 
 pub fn run(cmd: PolicyCmd) -> i32 {
     match cmd {
-        PolicyCmd::Use { preset } => use_preset(&preset),
+        PolicyCmd::Use { preset, global } => use_preset(&preset, global),
         PolicyCmd::Show => show_policy(),
         PolicyCmd::AllowLicense { spdx, reason } => allow_license(&spdx, reason.as_deref()),
     }
 }
 
-fn use_preset(preset: &str) -> i32 {
+fn use_preset(preset: &str, global: bool) -> i32 {
     let p = match preset {
         "default" => PolicyPreset::Default,
         "strict" => PolicyPreset::Strict,
@@ -34,14 +39,32 @@ fn use_preset(preset: &str) -> i32 {
         }
     };
 
-    match sindri_policy::write_global_preset(&p) {
-        Ok(()) => {
-            println!("Policy set to '{}' in ~/.sindri/policy.yaml", preset);
-            EXIT_SUCCESS
+    if global {
+        let target = sindri_policy::loader::global_policy_path();
+        match sindri_policy::write_global_preset(&p) {
+            Ok(()) => {
+                println!("Policy set to '{}' in {}", preset, target.display());
+                EXIT_SUCCESS
+            }
+            Err(e) => {
+                eprintln!("Failed to write policy: {}", e);
+                EXIT_SCHEMA_OR_RESOLVE_ERROR
+            }
         }
-        Err(e) => {
-            eprintln!("Failed to write policy: {}", e);
-            EXIT_SCHEMA_OR_RESOLVE_ERROR
+    } else {
+        let path = PathBuf::from(PROJECT_POLICY_FILENAME);
+        match sindri_policy::write_project_preset(&p, &path) {
+            Ok(()) => {
+                println!(
+                    "Policy set to '{}' in ./{}",
+                    preset, PROJECT_POLICY_FILENAME
+                );
+                EXIT_SUCCESS
+            }
+            Err(e) => {
+                eprintln!("Failed to write policy: {}", e);
+                EXIT_SCHEMA_OR_RESOLVE_ERROR
+            }
         }
     }
 }

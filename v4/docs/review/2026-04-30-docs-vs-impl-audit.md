@@ -44,7 +44,7 @@ Status legend: ✅ fixed · 🟡 partially fixed · ⏸️ deferred · 🔍 need
 | ID | Severity | Status | Note |
 |----|----------|--------|------|
 | **F-XCUT-01** | critical | ✅ fixed | sed-replaced `architecture/adr/` → `ADRs/` across CLI/AUTHORING/POLICY/REGISTRY/TARGETS (commit 16124e91). |
-| F-XCUT-02 | minor | ❌ not started | `https://schemas.sindri.dev/v4/*` publication-status note still missing. |
+| F-XCUT-02 | minor | ✅ fixed (Phase 4) | ADR-013 status block now declares the `raw.githubusercontent.com/pacphi/sindri/v4/v4/schemas/` URL transitional; canonical `schemas.sindri.dev/v4/` host migration noted as a follow-up. New `sindri-core::well_known::bom_schema_url()` is the single source of truth (build-time `SINDRI_SCHEMA_BASE_URL` env override); `init` and `validate` consume it. |
 | **F-CLI-01** | critical | ✅ fixed | Exit-code table now lists 6 (`APPLY_IN_PROGRESS`) and 7 (`STRICT_OCI_DENIED`). |
 | F-CLI-02 | major | ✅ fixed | `resolve --strict-oci` added to synopsis + option table; cross-linked to SOURCES.md. |
 | F-CLI-03 | major | ✅ fixed | `apply --no-bom`, `--resume`, `--clear-state` added to synopsis + table. |
@@ -52,10 +52,10 @@ Status legend: ✅ fixed · 🟡 partially fixed · ⏸️ deferred · 🔍 need
 | F-CLI-05 | critical | ✅ fixed | "Deferred to Wave 3A.2" stale sentence removed; `registry verify` now describes live cosign flow. |
 | F-CLI-06 | major | ✅ revised (Phase 3) | F-REG-04 (Q4=B): `--url` is now **optional**; verify falls back to `sindri.yaml` `registry.sources:` lookup by `registry_name`. Matches Docker/Helm/kubectl/Cargo convention. CLI.md updated. |
 | F-CLI-07 | major | ✅ fixed | New full sections for `registry serve` and `registry prefetch`. |
-| F-CLI-08 | major | ⏸️ deferred | `init` interactive-prompts claim still in doc; impl/doc reconciliation deferred to next pass. |
-| F-CLI-09 | critical | ⏸️ deferred | `init --policy` writes to `~/.sindri/policy.yaml` (global) vs. doc claim of project file — design-vs-impl decision pending. |
-| F-CLI-10 | minor | ❌ not started | `.gitignore` `sindri.*.lock` line still undocumented. |
-| F-CLI-11 | minor | ❌ not started | Unknown-template silent fallback still undocumented. |
+| F-CLI-08 | major | ✅ fixed (Phase 4) | `init` now prompts for project name, template, and policy preset on a TTY (numbered-list selects, `IsTerminal`-gated). `--non-interactive` and non-TTY stdin both short-circuit silently. Hand-rolled stdin prompts — no new dependency; revisit if more interactive flows appear. |
+| F-CLI-09 | critical | ✅ fixed (Phase 4) | `init --policy <preset>` now writes the project-scoped `./sindri.policy.yaml` by default (matches the doc claim). New `--global` flag is the explicit escape hatch for `~/.sindri/policy.yaml`. New `--policy none` opts out of writing the file altogether. |
+| F-CLI-10 | minor | ✅ fixed (Phase 4) | `init` only appends `.sindri/` to `.gitignore`; the `sindri.*.lock` line is gone. New ADR-029 documents Cargo-style commit semantics; MIGRATION_FROM_V3.md tells upgraders to remove the stale line manually. |
+| F-CLI-11 | minor | ✅ fixed (Phase 4) | Unknown `--template` exits 4 with `Unknown template '<x>'. Available templates: minimal, anthropic-dev`. Unknown `--policy` symmetric. Single `TEMPLATES`/`POLICY_PRESETS` slice backs both the matcher and the error message. |
 | F-CLI-12 | minor | ✅ fixed | `completions` shell list now includes `elvish`. |
 | F-CLI-13 | major | ✅ fixed | `rollback --lockfile`, `--reason` documented. |
 | F-CLI-14 | minor | ✅ fixed | `self-upgrade --dry-run` documented. |
@@ -69,7 +69,7 @@ Status legend: ✅ fixed · 🟡 partially fixed · ⏸️ deferred · 🔍 need
 | F-CLI-22 | major | ✅ fixed (correction) | Re-verified in `commands/doctor.rs`: failures return 4 (`EXIT_SCHEMA_OR_RESOLVE_ERROR`). Doc was correct; audit speculation was wrong. Exit-code text refined to cite the constant. |
 | F-CLI-23 | minor | ✅ fixed | `backup --compression {gzip,zstd}` documented; restore auto-detect noted. |
 | F-CLI-24 | minor | 🔍 needs verification | `secrets validate` accepted source-kind list still pending re-verification of `AuthValue` parser. |
-| F-CLI-25 | minor | ❌ not started | Project-level policy preset write still undocumented. |
+| F-CLI-25 | minor | ✅ fixed (Phase 4) | `policy use <preset>` now writes `./sindri.policy.yaml` by default; new `--global` flag targets `~/.sindri/policy.yaml`. CLI.md options table + examples updated. |
 | F-AUTH-01 | major | ⏸️ deferred | `sindri.yaml` example still uses map shorthand; reconciliation pass deferred. |
 | F-AUTH-02 | minor | ❌ not started | Worked example for `discovery.env-aliases` resolver pickup not added. |
 | **F-AUTHOR-01** | critical | ⏸️ deferred | Script-backend field schema (`install_sh`/`uninstall_sh`/etc. vs. `sh`/`ps1`) — design vs. impl reconciliation pending. ADR-024 status updated to "partially implemented" as a stop-gap. |

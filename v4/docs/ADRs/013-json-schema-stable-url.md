@@ -1,8 +1,26 @@
 # ADR-013: JSON Schema Publication at Stable URL
 
-**Status:** Accepted
+**Status:** Accepted (transitional URL — see "Publication status" below)
 **Date:** 2026-04-24
 **Deciders:** sindri-dev team
+
+## Publication status (added 2026-04-30, F-XCUT-02)
+
+The canonical schema identity remains
+`https://schemas.sindri.dev/v4/<name>.json` (encoded in each schema's
+`$id`), but **fetched bytes currently resolve via**
+`https://raw.githubusercontent.com/pacphi/sindri/v4/v4/schemas/<name>.json`
+until the dedicated subdomain is stood up. `sindri init` and `sindri
+edit` emit the transitional URL on both the YAML-LSP pragma and the
+JSON-id pragma so YAML-LSP-aware editors fetch a real file.
+
+The transitional base URL is overridable at build time via
+`SINDRI_SCHEMA_BASE_URL` (consumed by `sindri-core::well_known`) so a
+production build can flip to the canonical host without a code edit.
+
+A follow-up tracking item exists for the `schemas.sindri.dev` host
+setup; this ADR will lose the "transitional" qualifier when that host
+serves the same content.
 
 ## Context
 

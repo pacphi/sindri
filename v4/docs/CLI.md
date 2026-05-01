@@ -31,32 +31,55 @@ Every verb that produces structured output supports `--json`. The exit code is a
 
 ```
 sindri init [--template <name>] [--name <project>] [--policy <preset>]
-            [--non-interactive] [--force]
+            [--global] [--non-interactive] [--force]
 ```
 
-Writes `sindri.yaml` in the current directory and appends `.sindri/` to `.gitignore`. Prompts interactively unless `--non-interactive` is set. If `sindri.yaml` already exists, returns exit code 4 unless `--force` is given.
+Writes `sindri.yaml` in the current directory and appends `.sindri/` to
+`.gitignore`. Per [ADR-029](ADRs/029-lockfile-commit-policy.md),
+lockfiles (`sindri.<target>.lock`) are committed alongside the manifest
+and are NOT added to `.gitignore`.
+
+When stdin is a TTY and `--non-interactive` is not set, `init` walks
+through three numbered-list prompts: project name (defaults to the
+current directory name), template, and policy preset. Each prompt
+accepts the printed default by pressing Enter; supply a flag value on
+the command line to skip the corresponding prompt. On non-TTY stdin,
+defaults are taken silently — no library dependency is required.
+
+If `sindri.yaml` already exists, returns exit code 4 unless `--force`
+is given. An unknown `--template` value also exits 4 with the
+available-templates list printed to stderr.
+
+The emitted `sindri.yaml` carries both a `# yaml-language-server` and a
+`# @schema` pragma. Both currently resolve via the transitional GitHub
+raw URL described in [ADR-013](ADRs/013-json-schema-stable-url.md); the
+canonical `https://schemas.sindri.dev/v4/` host is queued for stand-up.
 
 **Options**
 
 | Flag | Description |
 |------|-------------|
-| `--template <name>` | Seed the manifest with a predefined component set. Built-in templates: `minimal` (default), `anthropic-dev` |
+| `--template <name>` | Seed the manifest with a predefined component set. Built-in templates: `minimal` (default), `anthropic-dev`. Unknown values fail with exit 4. |
 | `--name <project>` | Override the project name (default: current directory name) |
-| `--policy <preset>` | Write a `sindri.policy.yaml` pre-configured to `default`, `strict`, or `offline` |
-| `--non-interactive` | Skip all prompts; use defaults |
+| `--policy <preset>` | Write a `sindri.policy.yaml` pre-configured to `default`, `strict`, `offline`, or `none` (skip the policy file). Default: project-scoped (`./sindri.policy.yaml`). |
+| `--global` | With `--policy`, write to `~/.sindri/policy.yaml` instead of the project file |
+| `--non-interactive` | Skip all prompts; use defaults (or values from other flags) |
 | `--force` | Overwrite an existing `sindri.yaml` |
 
 **Examples**
 
 ```bash
-# Minimal init — one nodejs entry
+# Minimal init — one nodejs entry, three interactive prompts
 sindri init
 
 # Anthropic dev environment scaffold
 sindri init --template anthropic-dev --name my-ai-project
 
-# CI-safe init with strict policy, no prompts
+# CI-safe init with strict project policy, no prompts
 sindri init --policy strict --non-interactive
+
+# Init that updates the user-global policy instead of writing a project file
+sindri init --policy strict --global --non-interactive
 ```
 
 ---
@@ -899,16 +922,30 @@ Downloads binary assets declared in `<path>` (a `component.yaml`) and writes SHA
 **Synopsis**
 
 ```
-sindri policy use <preset>
+sindri policy use <preset> [--global]
 ```
 
-Sets the active policy preset globally in `~/.sindri/policy.yaml`. Valid presets: `default` (permissive), `strict` (pinned-only, signed, license allowlist), `offline`.
+Writes the named policy preset to `./sindri.policy.yaml` (the
+project-scoped file) by default. Pass `--global` to target
+`~/.sindri/policy.yaml` instead. Valid presets: `default` (permissive),
+`strict` (pinned-only, signed, license allowlist), `offline`.
+
+**Options**
+
+| Flag | Description |
+|------|-------------|
+| `<preset>` | One of `default`, `strict`, `offline` |
+| `--global` | Write to `~/.sindri/policy.yaml` instead of `./sindri.policy.yaml` |
 
 **Examples**
 
 ```bash
+# Project-scoped (default): writes ./sindri.policy.yaml
 sindri policy use strict
 sindri policy use default
+
+# User-global: writes ~/.sindri/policy.yaml
+sindri policy use offline --global
 ```
 
 ---

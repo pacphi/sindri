@@ -14,3 +14,4 @@ pub mod policy;
 pub mod registry;
 pub mod source_descriptor;
 pub mod version;
+pub mod well_known;

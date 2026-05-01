@@ -56,7 +56,10 @@ pub fn run(path: &str, json_output: bool) -> i32 {
                 );
             } else {
                 eprintln!("Validation error in {}: {}", path, e);
-                eprintln!("Hint: Check https://schemas.sindri.dev/v4/bom.json for the schema");
+                eprintln!(
+                    "Hint: Check {} for the schema",
+                    sindri_core::well_known::bom_schema_url()
+                );
             }
             EXIT_SCHEMA_OR_RESOLVE_ERROR
         }

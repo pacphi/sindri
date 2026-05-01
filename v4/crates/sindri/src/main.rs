@@ -96,6 +96,10 @@ enum Commands {
         non_interactive: bool,
         #[arg(long)]
         force: bool,
+        /// Write `--policy` to `~/.sindri/policy.yaml` instead of
+        /// `./sindri.policy.yaml`. Default is project-scoped.
+        #[arg(long)]
+        global: bool,
     },
     /// Add a component to sindri.yaml
     Add {
@@ -684,7 +688,13 @@ enum SecretsS3Subcmds {
 #[derive(Subcommand)]
 enum PolicySubcmds {
     /// Set the active policy preset (default | strict | offline)
-    Use { preset: String },
+    Use {
+        preset: String,
+        /// Write to `~/.sindri/policy.yaml` instead of
+        /// `./sindri.policy.yaml`. Default is project-scoped.
+        #[arg(long)]
+        global: bool,
+    },
     /// Show the effective merged policy with source annotations
     Show,
     /// Add a license to the allow list
@@ -1009,7 +1019,7 @@ fn run() -> i32 {
         Some(Commands::Completions { shell }) => generate_completions(&shell),
         Some(Commands::Policy { cmd }) => {
             let policy_cmd = match cmd {
-                PolicySubcmds::Use { preset } => PolicyCmd::Use { preset },
+                PolicySubcmds::Use { preset, global } => PolicyCmd::Use { preset, global },
                 PolicySubcmds::Show => PolicyCmd::Show,
                 PolicySubcmds::AllowLicense { spdx, reason } => {
                     PolicyCmd::AllowLicense { spdx, reason }
@@ -1023,12 +1033,14 @@ fn run() -> i32 {
             policy,
             non_interactive,
             force,
+            global,
         }) => commands::init::run(commands::init::InitArgs {
             template,
             name,
             policy,
             non_interactive,
             force,
+            global,
         }),
         Some(Commands::Add {
             address,

@@ -78,3 +78,9 @@ Each ADR states what was decided, why, and what is explicitly rejected.
 | ------------------------------------------ | ---------------------------------------------------- | -------- |
 | [024](024-script-component-lifecycle-contract.md) | Script component lifecycle contract            | Accepted |
 | [028](028-component-source-modes.md)              | Component source modes for development and air-gap | Proposed |
+
+### Project Conventions
+
+| #                                          | Title                                                | Status   |
+| ------------------------------------------ | ---------------------------------------------------- | -------- |
+| [029](029-lockfile-commit-policy.md)       | Lockfile commit policy (Cargo.lock semantics)        | Accepted |
