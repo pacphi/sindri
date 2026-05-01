@@ -319,19 +319,68 @@ sindri init --policy strict # init with strict policy baked into the project
 
 ## Forced Overrides and Audit Trail
 
-Policy overrides are allowed but every override is appended to the StatusLedger (`~/.sindri/ledger.jsonl`) with timestamp, user, and optional reason.
+Policy overrides are allowed but every override is appended to the
+StatusLedger (`~/.sindri/ledger.jsonl`) with a timestamp, the component
+address, and the operator-supplied reason.
 
-When `policy.audit.requireJustification: true`, the `--reason` flag is mandatory for overrides:
+### `sindri resolve --allow <license>=<reason>`
+
+The `--allow` flag waives the strict-mode allow-list check for one or
+more SPDX licenses for the duration of a single `resolve` invocation
+(F-POL-04). Format is `<spdx-id>=<reason>`; the reason is mandatory.
+The flag is multi-value: pass once per license to waive.
 
 ```bash
-sindri resolve --allow-license proprietary --reason "vendor contract SA-2342"
+# Waive a single license with a justification
+sindri resolve --allow MPL-2.0="internal-policy-exception"
+
+# Waive multiple licenses in one resolve
+sindri resolve \
+  --allow MPL-2.0="internal-policy-exception" \
+  --allow BUSL-1.1="vendor contract SA-2342"
 ```
 
-Ledger entries are viewable with:
+Semantics:
+
+- The override is a **one-shot extension of the strict allow list**;
+  the in-memory `policy.licenses.allow` is extended for this resolve
+  only. The on-disk policy file is unchanged.
+- An explicit `policy.licenses.deny` entry **always wins**: `--allow
+  GPL-3.0-only=…` will NOT bypass a deny entry. Edit the policy file
+  if you really mean it.
+- Empty / missing reasons fail at flag-parse time (exit 4) with a
+  clear error — flag-line overrides without a justification have no
+  audit value.
+- For each resolved component whose license matches an override, a
+  `LicenseAllowOverride` event is appended to the StatusLedger with
+  the component address, license, and reason.
+
+Persistent (file-scoped) overrides use the existing CLI:
 
 ```bash
-sindri log --json | jq '.[] | select(.event_type == "policy_override")'
+# Add a license to the global allow list (writes ~/.sindri/policy.yaml)
+sindri policy allow-license BUSL-1.1 --reason "vendor contract SA-2342"
+
+# View effective policy
+sindri policy show
 ```
+
+### Inspecting the audit trail
+
+```bash
+# Grep for license waivers
+sindri log --json | jq '.[] | select(.event_type == "LicenseAllowOverride")'
+```
+
+Each ledger entry includes:
+
+| Field        | Description                                              |
+|--------------|----------------------------------------------------------|
+| `timestamp`  | Unix epoch seconds.                                       |
+| `event_type` | `LicenseAllowOverride`.                                  |
+| `component`  | `backend:name` of the component admitted by the waiver.  |
+| `license`    | SPDX id passed to `--allow`.                             |
+| `reason`     | Operator-supplied justification (verbatim).              |
 
 ---
 

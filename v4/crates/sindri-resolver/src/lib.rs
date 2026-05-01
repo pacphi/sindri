@@ -6,7 +6,9 @@ pub mod backend_choice;
 pub mod closure;
 pub mod error;
 pub mod ledger;
+pub mod license_override;
 pub mod lockfile_writer;
+pub mod policy_ledger;
 pub mod source_explain;
 pub mod version;
 

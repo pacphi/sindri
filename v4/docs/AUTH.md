@@ -107,6 +107,132 @@ Applied 1 component(s) successfully.
 
 Note what the ledger does **not** contain: the `sk-ant-…` value itself.
 
+## How discovery resolves env-aliases
+
+<a id="env-alias-resolution"></a>
+
+This section walks the resolver's binding-pass mechanics for the
+canonical `claude-code` + `urn:anthropic:api` example so an operator can
+predict the `auth_bindings:` block in `sindri.lock` from the inputs
+alone — without reading source.
+
+### The five inputs
+
+```yaml
+# 1. Component manifest (claude-code's component.yaml)
+auth:
+  tokens:
+    - name: anthropic_api_key
+      audience: "urn:anthropic:api"
+      scope: runtime
+      redemption: { kind: env-var, env-name: ANTHROPIC_API_KEY }
+      discovery:
+        env-aliases: [ANTHROPIC_API_KEY, CLAUDE_API_KEY]
+```
+
+```yaml
+# 2. Project BOM (sindri.yaml)
+components:
+  - address: "npm:claude-code"
+targets:
+  local: { kind: local }    # no `provides:` — default-deny
+```
+
+```text
+# 3. Ambient shell environment
+ANTHROPIC_API_KEY=sk-ant-…
+```
+
+```text
+# 4. Local target's well-known table (sindri-targets/src/local.rs)
+ANTHROPIC_API_KEY  → audience: urn:anthropic:api  (priority 100)
+OPENAI_API_KEY     → audience: urn:openai:api     (priority 100)
+GITHUB_TOKEN       → audience: urn:github:api     (priority 100)
+…
+```
+
+```text
+# 5. Active policy (default preset)
+auth.onUnresolvedRequired: deny     # Gate 5 default
+```
+
+### The flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Shell as User shell
+    participant CLI as sindri resolve
+    participant Bind as Resolver / Binder
+    participant Local as local target
+    participant Ledger as ~/.sindri/ledger.jsonl
+
+    Shell->>CLI: ANTHROPIC_API_KEY=sk-ant-… in env
+    CLI->>Bind: read claude-code requirements
+    Note over Bind: requirement<br/>name=anthropic_api_key<br/>audience=urn:anthropic:api<br/>discovery.env-aliases=[ANTHROPIC_API_KEY, CLAUDE_API_KEY]
+
+    CLI->>Local: auth_capabilities()
+    Local->>Local: scan well-known env-var table
+    Local-->>Bind: ANTHROPIC_API_KEY → urn:anthropic:api (prio 100)
+    Local-->>Bind: + alias-derived caps for any unscanned env-aliases<br/>that resolve in the ambient env
+
+    Bind->>Bind: match by audience<br/>(req.audience == cap.audience, exact)
+    Bind->>Bind: priority tiebreak<br/>(highest wins; FromSecretsStore > FromEnv > FromFile > …)
+    Bind->>Bind: write AuthBinding{status=Bound, source=FromEnv{var=ANTHROPIC_API_KEY}}
+
+    Bind->>Ledger: append AuthRequirementDeclared
+    Bind->>Ledger: append AuthCapabilityRegistered
+    Bind->>Ledger: append AuthBindingResolved
+
+    CLI->>CLI: write sindri.lock<br/>(components + auth_bindings)
+```
+
+### What `sindri.lock` contains
+
+```yaml
+auth_bindings:
+  - id: a3f9b2c1d4e5f607
+    component: "npm:claude-code"
+    requirement: "anthropic_api_key"
+    audience: "urn:anthropic:api"
+    target: "local"
+    source:
+      kind: from-env
+      var: "ANTHROPIC_API_KEY"
+    priority: 100
+    status: Bound
+```
+
+The `id` field is `sha256(component_address || requirement.name ||
+target_id)` truncated to 16 hex chars (DDD-07 invariant 4) — stable
+across hosts, so a lockfile diff reflects intent changes, not host churn.
+
+### Reading off the result
+
+| Input change | Predicted `auth_bindings:` change |
+|---|---|
+| Unset `ANTHROPIC_API_KEY` in shell | `status: Failed`, `source: null`, `reason: "no source matched (required)"` |
+| Set `CLAUDE_API_KEY` instead (alias) | `source.var: CLAUDE_API_KEY`; `status: Bound` |
+| Add `targets.local.provides: [{ id: anthropic_api_key, audience: "urn:anthropic:api", source: { kind: from-secrets-store, ... } }]` | Secrets-store source wins the tiebreak (FromSecretsStore > FromEnv); `priority` set from the entry; previous env-var binding moves to `considered:` |
+| Strict policy + missing key | Resolve fails: `policy gate 5 (auth-resolvable) denied apply` |
+
+### Default-deny vs. discovery
+
+`discovery.env-aliases` is not "auto-bind whatever env var matches the
+name." It is a **hint to the resolver about which env-var names should
+expand the target's capability list** when there is no explicit
+`provides:` block. The two-step rule is:
+
+1. **Match by audience** (the requirement's `audience` must equal a
+   capability's `audience`, exact lower-case).
+2. **The capability has to exist on the target** — either via the
+   target kind's well-known table, an explicit `provides:` entry, or
+   alias-expansion of an env var that *is* set in the ambient env.
+
+That second step is what keeps "the user happens to have
+`ANTHROPIC_API_KEY` exported but the manifest didn't ask for
+`urn:anthropic:api`" from binding silently. See ADR-027 §"Default-deny."
+
 ## Non-happy paths and remediation
 
 ### Required token missing

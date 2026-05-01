@@ -78,6 +78,13 @@ enum Commands {
         /// set. CI templates flip this on.
         #[arg(long = "strict-oci")]
         strict_oci: bool,
+        /// One-shot license waiver (F-POL-04). Format:
+        /// `--allow <spdx-id>=<reason>`. Multi-value: pass once per
+        /// override. Each match is appended to the StatusLedger as a
+        /// `LicenseAllowOverride` event. Does NOT bypass an explicit
+        /// `licenses.deny` entry — edit `sindri.policy.yaml` for that.
+        #[arg(long = "allow", value_name = "LICENSE=REASON", num_args = 0..)]
+        allow: Vec<String>,
     },
     /// Policy management (ADR-008)
     Policy {
@@ -828,6 +835,7 @@ fn run() -> i32 {
             explain,
             target,
             strict_oci,
+            allow,
         }) => commands::resolve::run(commands::resolve::ResolveArgs {
             manifest,
             offline,
@@ -837,6 +845,7 @@ fn run() -> i32 {
             target,
             json: false,
             strict_oci,
+            allow,
         }),
         Some(Commands::Bom {
             format,

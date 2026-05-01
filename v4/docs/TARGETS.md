@@ -307,6 +307,11 @@ because of its scope: **auth capabilities** — a per-target advertisement
 of which credentials the target can produce, consumed by the resolver's
 binding pass ([ADR-027](ADRs/027-target-auth-injection.md)).
 
+> **For a worked example** of how the resolver consumes these capabilities
+> (mermaid sequence diagram, `discovery.env-aliases` expansion, and the
+> resulting `auth_bindings:` block in `sindri.lock`), see
+> [`AUTH.md` — How discovery resolves env-aliases](AUTH.md#env-alias-resolution).
+
 - **Status:** Living section, paired with
   [ADR-017](ADRs/017-rename-provider-to-target.md),
   [ADR-019](ADRs/019-subprocess-json-target-plugins.md),

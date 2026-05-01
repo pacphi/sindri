@@ -2,6 +2,7 @@ use sindri_core::exit_codes::{EXIT_SCHEMA_OR_RESOLVE_ERROR, EXIT_SUCCESS};
 use sindri_core::manifest::BomManifest;
 use sindri_core::platform::Platform;
 use sindri_core::registry::ComponentEntry;
+use sindri_resolver::license_override::LicenseOverride;
 use sindri_resolver::lockfile_writer::is_oci_source;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -19,9 +20,33 @@ pub struct ResolveArgs {
     /// `false` the config-file value is consulted (which itself defaults
     /// to `false`).
     pub strict_oci: bool,
+    /// `--allow <license>=<reason>` raw values (F-POL-04). Parsed via
+    /// `LicenseOverride::from_str` here so flag-line errors surface as
+    /// `EXIT_SCHEMA_OR_RESOLVE_ERROR` with a clear message.
+    pub allow: Vec<String>,
 }
 
 pub fn run(args: ResolveArgs) -> i32 {
+    // Parse --allow overrides first (F-POL-04): a malformed value should
+    // surface immediately, before any manifest / cache / network work.
+    let overrides: Vec<LicenseOverride> = match args
+        .allow
+        .iter()
+        .map(|s| s.parse::<LicenseOverride>())
+        .collect::<Result<Vec<_>, _>>()
+    {
+        Ok(v) => v,
+        Err(e) => {
+            if args.json {
+                eprintln!(r#"{{"error":"INVALID_ALLOW","detail":"{}"}}"#, e);
+            } else {
+                eprintln!("invalid --allow value: {}", e);
+                eprintln!("Hint: format is `--allow <SPDX-id>=<reason>` (reason is mandatory)");
+            }
+            return EXIT_SCHEMA_OR_RESOLVE_ERROR;
+        }
+    };
+
     let manifest_path = PathBuf::from(&args.manifest);
     if !manifest_path.exists() {
         if args.json {
@@ -62,6 +87,19 @@ pub fn run(args: ResolveArgs) -> i32 {
     };
     // The CLI's --offline flag overrides whatever the policy file said.
     policy.network.offline = Some(args.offline);
+
+    // Apply --allow overrides as one-shot extensions of the strict
+    // allow-list (F-POL-04 / Q2). Explicit `licenses.deny` entries still
+    // win — `check_license` evaluates deny first, so an override against a
+    // denied license fails closed with a clear error pointing at the deny
+    // list. We extend even under the Default preset because doing so is a
+    // no-op there (allow list is a hint, not enforced) and keeps the
+    // subsequent "did the override fire?" audit pass simple.
+    for o in &overrides {
+        if !policy.licenses.allow.iter().any(|x| x == &o.license) {
+            policy.licenses.allow.push(o.license.clone());
+        }
+    }
 
     let platform = Platform::current();
     // Wave 3A.2: when the registry was fetched live via oci-client, its
@@ -123,6 +161,11 @@ pub fn run(args: ResolveArgs) -> i32 {
 
     match sindri_resolver::resolve_with_sources(&opts, &registry, &sources, &policy, &platform) {
         Ok(lockfile) => {
+            // F-POL-04: write a `LicenseAllowOverride` ledger event for each
+            // resolved component whose license matched a `--allow` flag.
+            // Best-effort (mirrors auth-ledger emission policy).
+            sindri_resolver::policy_ledger::emit_license_overrides(&lockfile, &overrides);
+
             // Auth-binding summary (Phase 1, ADR-027 §3 — observability-only).
             let (resolved_n, deferred_n, failed_n) = auth_binding_counts(&lockfile);
             if args.json {

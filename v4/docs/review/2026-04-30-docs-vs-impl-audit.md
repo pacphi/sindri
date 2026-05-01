@@ -71,7 +71,7 @@ Status legend: ✅ fixed · 🟡 partially fixed · ⏸️ deferred · 🔍 need
 | F-CLI-24 | minor | 🔍 needs verification | `secrets validate` accepted source-kind list still pending re-verification of `AuthValue` parser. |
 | F-CLI-25 | minor | ✅ fixed (Phase 4) | `policy use <preset>` now writes `./sindri.policy.yaml` by default; new `--global` flag targets `~/.sindri/policy.yaml`. CLI.md options table + examples updated. |
 | F-AUTH-01 | major | ⏸️ deferred | `sindri.yaml` example still uses map shorthand; reconciliation pass deferred. |
-| F-AUTH-02 | minor | ❌ not started | Worked example for `discovery.env-aliases` resolver pickup not added. |
+| F-AUTH-02 | minor | ✅ fixed (Phase 5) | New AUTH.md section "How discovery resolves env-aliases" with a 5-lane mermaid sequence diagram (Shell → CLI → Binder → local target → ledger), the five inputs (component manifest, BOM, ambient env, well-known table, policy), the resulting `auth_bindings:` block, and a "predict the output" reading-off table. TARGETS.md "Auth capabilities" cross-links the new anchor. |
 | **F-AUTHOR-01** | critical | ⏸️ deferred | Script-backend field schema (`install_sh`/`uninstall_sh`/etc. vs. `sh`/`ps1`) — design vs. impl reconciliation pending. ADR-024 status updated to "partially implemented" as a stop-gap. |
 | F-AUTHOR-02 | major | ⏸️ deferred | `install: { default, overrides }` per-platform structure — same reconciliation pass. |
 | F-AUTHOR-03 | ok | ✅ no action | Confirmed correct. |
@@ -88,7 +88,7 @@ Status legend: ✅ fixed · 🟡 partially fixed · ⏸️ deferred · 🔍 need
 | **F-POL-01** | critical | ✅ fixed (Phase 1) | `InstallPolicy` reshaped into nested sub-structs (`LicensePolicy`/`RegistryPolicy`/`SourcesPolicy`/`NetworkPolicy`/`CapabilitiesPolicy`/`AuditPolicy`); external keys camelCase; `apiVersion`/`kind` validated; `deny_unknown_fields` everywhere. New Gate 2 enforcement: `requirePinnedVersions`, `allowScriptBackend`, `allowPrivileged`, `requireChecksums`, `licenses.onUnknown`. POLICY.md doc/impl roundtrip test guards future drift. |
 | **F-POL-02** | critical | ✅ fixed (Phase 2) | Gate 5 codes renamed to `ADM_AUTH_UNRESOLVED` / `ADM_AUTH_UPSTREAM_DENIED` / `ADM_AUTH_PROMPT_IN_CI`. New `sindri-policy::admission_codes` module unifies all 14 admission constants under the `ADM_*` prefix family; all gate emitters refactored to use the typed constants. |
 | F-POL-03 | major | ✅ fixed (Phase 2) | Gate 4 is now genuinely "implemented" — same shared checker called from both publish and resolve. POLICY.md table row updated. |
-| F-POL-04 | major | ❌ not started | `--allow-license` flag claim on `sindri resolve` not yet reconciled. |
+| F-POL-04 | major | ✅ fixed (Phase 5) | New `sindri resolve --allow <SPDX-id>=<reason>` (multi-value, mandatory reason). One-shot extension of the strict allow list — does NOT bypass `licenses.deny`. New `sindri-resolver::license_override` parser + `policy_ledger::LicenseAllowOverride` event (best-effort append to `~/.sindri/ledger.jsonl`). POLICY.md "Forced overrides" section rewritten with the new flag and audit table. 13 unit/integration tests cover parser edge cases and CLI exit-code paths. |
 | F-POL-05 | minor | 🔍 needs verification | License-deduplication claim still unverified. |
 | F-POL-06 | minor | 🔍 needs verification | Forced-override audit-trail claim still unverified. |
 | F-SRC-01 | minor | ✅ no action | Phase status table corrected for the `serve` row (no more "Phase 5 deferred" mention). |

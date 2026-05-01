@@ -119,6 +119,7 @@ sindri validate custom-path/sindri.yaml --online
 ```
 sindri resolve [-m <manifest>] [--offline] [--refresh] [--strict] [--strict-oci]
                [--explain <address>] [--target <name>]
+               [--allow <SPDX-id>=<reason> ...]
 ```
 
 Reads `sindri.yaml`, fetches registry indices (unless `--offline`), applies policy gates (see [ADR-008](ADRs/008-install-policy-subsystem.md)), and writes `sindri.lock` (or `sindri.<target>.lock` for non-local targets, per [ADR-018](ADRs/018-per-target-lockfiles.md)). Returns exit code 5 if the manifest is not found, exit code 2 if policy denies any component, exit code 3 if the dependency closure is unresolvable, exit code 7 if `--strict-oci` rejects a non-production-grade source.
@@ -134,6 +135,7 @@ Reads `sindri.yaml`, fetches registry indices (unless `--offline`), applies poli
 | `--strict-oci` | false | Reject any lockfile entry whose source is not OCI / local-OCI ([ADR-028](ADRs/028-component-source-modes.md), [SOURCES.md](SOURCES.md)). Overrides `registry.policy.strict_oci` in `sindri.yaml` when both are set; exits with code 7 on rejection. |
 | `--explain <address>` | — | Print the full admission trace for a component address |
 | `--target <name>` | `local` | Write to `sindri.<name>.lock` for the named target |
+| `--allow <SPDX-id>=<reason>` | — | One-shot license waiver. Multi-value (pass once per license). Reason is mandatory. Does NOT bypass `licenses.deny`. Each match writes a `LicenseAllowOverride` event to the StatusLedger. See [POLICY.md §"Forced Overrides and Audit Trail"](POLICY.md#forced-overrides-and-audit-trail). |
 
 **Examples**
 
@@ -142,6 +144,7 @@ sindri resolve
 sindri resolve --strict
 sindri resolve --explain mise:nodejs
 sindri resolve --target e2b-sandbox
+sindri resolve --allow MPL-2.0="internal-policy-exception"
 ```
 
 ---
