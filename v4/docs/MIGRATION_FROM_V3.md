@@ -142,10 +142,15 @@ v3 wrote a single `sindri.lock` per repository. v4 writes one per
 deployment target ([ADR-018](ADRs/018-per-target-lockfiles.md)):
 
 ```
-sindri.local.lock          # for `sindri apply --target local`
+sindri.lock                # for `sindri apply` (implicit `local` target)
 sindri.docker-runner.lock  # for `sindri apply --target docker-runner`
 …
 ```
+
+The implicit `local` target keeps the unprefixed `sindri.lock`
+filename so existing v3 consumers — CI scripts, IDE integrations,
+etc. — keep working. Only non-`local` targets get the
+`sindri.<name>.lock` infix.
 
 A v4 lockfile entry now carries a `SourceDescriptor` — the bytes-on-disk
 fingerprint of the source that resolved it (DDD-08

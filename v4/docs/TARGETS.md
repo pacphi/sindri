@@ -107,7 +107,7 @@ The host machine. Always present as the implicit default ([ADR-023](ADRs/023-imp
 ```yaml
 # sindri.yaml (local is implicit; no targets: block needed)
 components:
-  mise:nodejs: "22.0.0"
+  - address: "mise:nodejs"
 ```
 
 ```bash

@@ -50,24 +50,30 @@ fn manifest(name: &str, prefix: Option<&str>) -> ComponentManifest {
 
 #[test]
 fn no_prefixes_produces_no_overlaps() {
-    let components = [(manifest("a", None), "sindri/core"),
-        (manifest("b", None), "sindri/core")];
+    let components = [
+        (manifest("a", None), "sindri/core"),
+        (manifest("b", None), "sindri/core"),
+    ];
     let refs: Vec<_> = components.iter().map(|(m, r)| (m.clone(), *r)).collect();
     assert!(detect_overlaps(&refs).is_empty());
 }
 
 #[test]
 fn disjoint_prefixes_produce_no_overlaps() {
-    let components = [(manifest("nodejs", Some("nodejs/bin")), "sindri/core"),
-        (manifest("rust", Some("rust/bin")), "sindri/core")];
+    let components = [
+        (manifest("nodejs", Some("nodejs/bin")), "sindri/core"),
+        (manifest("rust", Some("rust/bin")), "sindri/core"),
+    ];
     let refs: Vec<_> = components.iter().map(|(m, r)| (m.clone(), *r)).collect();
     assert!(detect_overlaps(&refs).is_empty());
 }
 
 #[test]
 fn equal_prefixes_detected() {
-    let components = [(manifest("a", Some("tools/bin")), "sindri/core"),
-        (manifest("b", Some("tools/bin")), "sindri/core")];
+    let components = [
+        (manifest("a", Some("tools/bin")), "sindri/core"),
+        (manifest("b", Some("tools/bin")), "sindri/core"),
+    ];
     let refs: Vec<_> = components.iter().map(|(m, r)| (m.clone(), *r)).collect();
     let overlaps = detect_overlaps(&refs);
     assert_eq!(overlaps.len(), 1);
@@ -78,8 +84,10 @@ fn equal_prefixes_detected() {
 #[test]
 fn parent_child_prefix_is_overlap() {
     // "tools" is a segment prefix of "tools/bin"
-    let components = [(manifest("base", Some("tools")), "sindri/core"),
-        (manifest("ext", Some("tools/bin")), "sindri/core")];
+    let components = [
+        (manifest("base", Some("tools")), "sindri/core"),
+        (manifest("ext", Some("tools/bin")), "sindri/core"),
+    ];
     let refs: Vec<_> = components.iter().map(|(m, r)| (m.clone(), *r)).collect();
     let overlaps = detect_overlaps(&refs);
     assert_eq!(overlaps.len(), 1, "parent/child prefix must be detected");
@@ -88,11 +96,13 @@ fn parent_child_prefix_is_overlap() {
 #[test]
 fn substring_mismatch_not_overlap() {
     // "nodejs" must NOT collide with "nodejs-other" — segment boundary matters
-    let components = [(manifest("nodejs", Some("nodejs/bin")), "sindri/core"),
+    let components = [
+        (manifest("nodejs", Some("nodejs/bin")), "sindri/core"),
         (
             manifest("nodejs-other", Some("nodejs-other/bin")),
             "sindri/core",
-        )];
+        ),
+    ];
     let refs: Vec<_> = components.iter().map(|(m, r)| (m.clone(), *r)).collect();
     assert!(
         detect_overlaps(&refs).is_empty(),
@@ -104,8 +114,10 @@ fn substring_mismatch_not_overlap() {
 fn shared_prefix_is_skipped_during_detection() {
     // Two `:shared` components must not collide with each other — the sentinel
     // is filtered out before comparison.
-    let components = [(manifest("core-a", Some(SHARED_PATH_PREFIX)), "sindri/core"),
-        (manifest("core-b", Some(SHARED_PATH_PREFIX)), "sindri/core")];
+    let components = [
+        (manifest("core-a", Some(SHARED_PATH_PREFIX)), "sindri/core"),
+        (manifest("core-b", Some(SHARED_PATH_PREFIX)), "sindri/core"),
+    ];
     let refs: Vec<_> = components.iter().map(|(m, r)| (m.clone(), *r)).collect();
     assert!(
         detect_overlaps(&refs).is_empty(),
@@ -123,8 +135,10 @@ fn single_component_never_overlaps() {
 #[test]
 fn trailing_slash_normalised_before_compare() {
     // "tools/" and "tools" should still be treated as equal (trailing slash stripped)
-    let components = [(manifest("a", Some("tools/")), "sindri/core"),
-        (manifest("b", Some("tools")), "sindri/core")];
+    let components = [
+        (manifest("a", Some("tools/")), "sindri/core"),
+        (manifest("b", Some("tools")), "sindri/core"),
+    ];
     let refs: Vec<_> = components.iter().map(|(m, r)| (m.clone(), *r)).collect();
     let overlaps = detect_overlaps(&refs);
     assert_eq!(overlaps.len(), 1, "trailing slash must be normalised");
@@ -140,9 +154,11 @@ fn shared_components_sort_before_scoped() {
     let scoped = manifest("nodejs", Some("nodejs/bin"));
     let no_prefix = manifest("rust", None);
 
-    let mut components = [(no_prefix.clone(), "sindri/core"),
+    let mut components = [
+        (no_prefix.clone(), "sindri/core"),
         (scoped.clone(), "sindri/core"),
-        (shared.clone(), "sindri/core")];
+        (shared.clone(), "sindri/core"),
+    ];
     let refs: Vec<_> = components
         .iter_mut()
         .map(|(m, r)| (m.clone(), *r))

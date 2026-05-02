@@ -70,10 +70,10 @@ Status legend: ✅ fixed · 🟡 partially fixed · ⏸️ deferred · 🔍 need
 | F-CLI-23 | minor | ✅ fixed | `backup --compression {gzip,zstd}` documented; restore auto-detect noted. |
 | F-CLI-24 | minor | 🔍 needs verification | `secrets validate` accepted source-kind list still pending re-verification of `AuthValue` parser. |
 | F-CLI-25 | minor | ✅ fixed (Phase 4) | `policy use <preset>` now writes `./sindri.policy.yaml` by default; new `--global` flag targets `~/.sindri/policy.yaml`. CLI.md options table + examples updated. |
-| F-AUTH-01 | major | ⏸️ deferred | `sindri.yaml` example still uses map shorthand; reconciliation pass deferred. |
+| F-AUTH-01 | major | ✅ fixed (Phase 8) | AUTH.md and TARGETS.md `components:` examples rewritten to list form (`- address: "<backend>:<name>"`). MIGRATION_FROM_V3.md's *v3* example intentionally retained as the old shape (it's the "before" snapshot). REGISTRY.md uses registry-index shape, not BOM shape — out of scope. |
 | F-AUTH-02 | minor | ✅ fixed (Phase 5) | New AUTH.md section "How discovery resolves env-aliases" with a 5-lane mermaid sequence diagram (Shell → CLI → Binder → local target → ledger), the five inputs (component manifest, BOM, ambient env, well-known table, policy), the resulting `auth_bindings:` block, and a "predict the output" reading-off table. TARGETS.md "Auth capabilities" cross-links the new anchor. |
 | **F-AUTHOR-01** | critical | ⏸️ deferred | Script-backend field schema (`install_sh`/`uninstall_sh`/etc. vs. `sh`/`ps1`) — design vs. impl reconciliation pending. ADR-024 status updated to "partially implemented" as a stop-gap. |
-| F-AUTHOR-02 | major | ⏸️ deferred | `install: { default, overrides }` per-platform structure — same reconciliation pass. |
+| F-AUTHOR-02 | major | ✅ fixed (Phase 8) | AUTHORING.md `install:` block declares "exactly one backend" — the v3-era `default`/`overrides` nest is removed. New "Per-platform behavior" section documents two replacement patterns: `preferences.backend_order` per-OS at the project level (Pattern A, cross-links ADR-009) and per-platform components rolled into a meta-component (Pattern B, cross-links ADR-006). Worked `gh` example updated end-to-end. |
 | F-AUTHOR-03 | ok | ✅ no action | Confirmed correct. |
 | F-AUTHOR-04 | minor | 🔍 needs verification | `options:` section presence in `Component` aggregate still unverified. |
 | F-AUTHOR-05 | minor | 🔍 needs verification | `validate.commands[*].version_flag` schema still unverified. |
@@ -92,14 +92,14 @@ Status legend: ✅ fixed · 🟡 partially fixed · ⏸️ deferred · 🔍 need
 | F-POL-05 | minor | 🔍 needs verification | License-deduplication claim still unverified. |
 | F-POL-06 | minor | 🔍 needs verification | Forced-override audit-trail claim still unverified. |
 | F-SRC-01 | minor | ✅ no action | Phase status table corrected for the `serve` row (no more "Phase 5 deferred" mention). |
-| F-SRC-02 | minor | ❌ not started | `oci-ref` link to `ci/strict-oci.yml` not re-checked. |
+| F-SRC-02 | minor | ✅ fixed (Phase 8) | Re-verified `v4/docs/ci/strict-oci.yml` exists; SOURCES.md link at line 191 resolves. No content change needed. |
 | F-TGT-01 | major | ✅ fixed (Phase 7) | New `tools/target-doc-gen` crate parses `crates/sindri-targets/src/traits.rs` via `syn` and emits two artifacts: a full reference at `docs/_generated/target-trait.md` and an inline summary table rewritten between `<!-- BEGIN/END AUTOGEN target-trait -->` markers in TARGETS.md. `--check` mode flags drift in either artifact (CI workflow update is a follow-up PR to `main`, since `.github/workflows/*` lives there). |
 | F-TGT-02 | major | ✅ fixed (Phase 7) | TARGETS.md now opens with a hand-authored "Built-in target status" table covering all 8 built-in kinds + plugins, with anchor links into the per-kind detail sections that already existed. |
 | F-TGT-03 | minor | 🔍 needs verification | Sample `targets:` config shapes not re-verified. |
 | F-TGT-04 | major | 🟡 partially fixed | CLI.md now documents the missing target verbs (`use`, `start`, `stop`, `update`, `plugin`); TARGETS.md table not yet updated. |
 | F-TGT-05 | minor | ✅ fixed (Phase 3) | `target plugin trust <kind> --insecure --reason <text>` added, mutually exclusive with `--signer`. Records to `.sindri/insecure-plugins.yaml` (committed alongside sindri.yaml); one-time stderr warn at trust + every-`apply` banner per Q2=B+C. New `sindri-core::insecure_plugins` module + 6 unit tests. Pattern modeled on Terraform `dev_overrides`. ADR-019 status updated. |
 | F-TGT-06 | minor | 🔍 needs verification | `target shell` interactive-shell claim still unverified. |
-| F-MIG-01 | minor | ❌ not started | One-spot flag in MIGRATION_FROM_V3.md not addressed. |
+| F-MIG-01 | minor | ✅ fixed (Phase 8) | MIGRATION_FROM_V3.md "Lockfile shape" section corrected: implicit `local` target writes `sindri.lock` (no infix), not `sindri.local.lock`. Matches `commands/resolve.rs:65-69` and ADR-018. Added a follow-up paragraph explaining the unprefixed-for-local convention. |
 
 ### ADR drift
 

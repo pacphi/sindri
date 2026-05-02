@@ -106,7 +106,11 @@ Note: macOS `x86_64` (Intel) is intentionally out of scope for v4.0 (Apple-depre
 
 ### `install`
 
-The install block declares how the tool is installed. Exactly one of the sub-blocks must be present in `default:`. Per-platform `overrides:` override the default on matching platforms.
+The install block declares **exactly one backend** for this
+component. Per-platform variation is expressed at the project level
+via `preferences.backend_order` or by splitting into per-platform
+components — see [Per-platform behavior](#per-platform-behavior)
+below.
 
 #### `mise` backend
 
@@ -160,21 +164,78 @@ install:
 
 Every script receives `SINDRI_COMPONENT_VERSION` from the CLI (see [ADR-024](ADRs/024-script-component-lifecycle-contract.md)). Scripts must implement version-aware idempotency.
 
-#### Per-platform overrides
+### Per-platform behavior
+
+A single component definition declares **one backend**. v4 deliberately
+removes the v3-era `install: { default, overrides }` block — the
+nesting was hard to validate and hard to lint. Two patterns now cover
+the use cases that block targeted:
+
+#### Pattern A — `prefer:` per-OS backend ordering
+
+When the same component is available through multiple backends and
+the *preferred* backend differs by OS (e.g. `brew` on macOS, `apt` on
+Linux, but the binary works everywhere as a fallback), use the BOM
+manifest's `preferences.backend_order` map at the project level. See
+[ADR-009](ADRs/009-cross-platform-backend-coverage.md).
 
 ```yaml
+# sindri.yaml
+preferences:
+  backend_order:
+    macos-aarch64: [brew, binary]
+    linux-x86_64:  [apt, binary]
+```
+
+The component manifest itself remains a single backend declaration
+(e.g. `binary:` with checksums for every platform); the project's
+`backend_order` is what shifts the resolver's pick on each platform.
+
+#### Pattern B — per-platform components + meta-component
+
+When the component genuinely *cannot* be expressed as one backend
+(e.g. a tool that ships as a `.app` bundle on macOS but a tarball on
+Linux), split into per-platform components and roll them up into a
+**meta-component** (collection, [ADR-006](ADRs/006-collections-as-meta-components.md)):
+
+```yaml
+# binary:gh-linux/component.yaml
+metadata: { name: gh-linux }
+platforms: [{ os: linux, arch: x86_64 }, { os: linux, arch: aarch64 }]
 install:
-  default:
-    binary:
-      url_template: "..."
-  overrides:
-    macos-aarch64:
-      brew:
-        package: my-tool
-    linux-x86_64:
-      apt:
-        packages:
-          - my-tool
+  binary:
+    url_template: "https://github.com/cli/cli/releases/download/v{version}/gh_{version}_linux_{arch}.tar.gz"
+    install_path: "~/.local/bin/gh"
+    checksums:
+      linux-x86_64: "sha256:..."
+      linux-aarch64: "sha256:..."
+
+# binary:gh-macos/component.yaml
+metadata: { name: gh-macos }
+platforms: [{ os: macos, arch: aarch64 }]
+install:
+  binary:
+    url_template: "https://github.com/cli/cli/releases/download/v{version}/gh_{version}_macos_{arch}.zip"
+    install_path: "~/.local/bin/gh"
+    checksums:
+      macos-aarch64: "sha256:..."
+
+# collection:gh/component.yaml — the meta-component users reference
+metadata: { name: gh }
+collection:
+  components:
+    - "binary:gh-linux"
+    - "binary:gh-macos"
+```
+
+The resolver's platform filter (Gate 1) rejects the entries whose
+`platforms:` doesn't match the target, so a Linux resolve sees only
+`binary:gh-linux` in the closure even though the meta-component
+references both. The user-facing manifest references `gh`:
+
+```yaml
+components:
+  - address: "collection:gh"
 ```
 
 ### `depends_on`
@@ -277,26 +338,28 @@ platforms:
     arch: x86_64
 
 install:
-  default:
-    binary:
-      url_template: >-
-        https://github.com/cli/cli/releases/download/v{version}/gh_{version}_{os}_{arch_alias}.tar.gz
-      install_path: "~/.local/bin/gh"
-      checksums:
-        linux-x86_64:   "sha256:aaaa..."
-        linux-aarch64:  "sha256:bbbb..."
-        macos-aarch64:  "sha256:cccc..."
-        windows-x86_64: "sha256:dddd..."
-  overrides:
-    macos-aarch64:
-      brew:
-        package: gh
-    linux-x86_64:
-      apt:
-        packages:
-          - gh
+  binary:
+    url_template: >-
+      https://github.com/cli/cli/releases/download/v{version}/gh_{version}_{os}_{arch_alias}.tar.gz
+    install_path: "~/.local/bin/gh"
+    checksums:
+      linux-x86_64:   "sha256:aaaa..."
+      linux-aarch64:  "sha256:bbbb..."
+      macos-aarch64:  "sha256:cccc..."
+      windows-x86_64: "sha256:dddd..."
 
 depends_on: []
+
+# When `apt` or `brew` is preferred over the binary on specific
+# platforms, set this in the *project's* sindri.yaml — not in the
+# component manifest:
+#
+#   preferences:
+#     backend_order:
+#       macos-aarch64: [brew, binary]
+#       linux-x86_64:  [apt, binary]
+#
+# See "Per-platform behavior" above and ADR-009.
 
 validate:
   commands:

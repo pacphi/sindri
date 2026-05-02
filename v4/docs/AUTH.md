@@ -54,7 +54,7 @@ API key.
 
 ```yaml
 components:
-  npm:claude-code: latest
+  - address: "npm:claude-code"
 
 targets:
   local:
