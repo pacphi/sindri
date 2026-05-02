@@ -6,27 +6,73 @@ The target system is defined in [ADR-017](ADRs/017-rename-provider-to-target.md)
 
 ---
 
+## Built-in target status
+
+Hand-authored snapshot of where each built-in kind is in its
+implementation cycle. The trait surface that each kind implements is
+documented (auto-generated) immediately below this section.
+
+| Kind         | Status                       | Detail                          |
+|--------------|------------------------------|---------------------------------|
+| `local`      | Fully wired                  | [↓](#local)                     |
+| `docker`     | Scaffolding; API in flight   | [↓](#docker)                    |
+| `ssh`        | Scaffolding; API in flight   | [↓](#ssh)                       |
+| `e2b`        | HTTP wiring in flight        | [↓](#e2b)                       |
+| `fly`        | HTTP wiring in flight        | [↓](#fly)                       |
+| `kubernetes` | Scaffolding                  | [↓](#kubernetes)                |
+| `runpod`     | HTTP wiring in flight        | [↓](#runpod-http-wiring-in-flight) |
+| `northflank` | HTTP wiring in flight        | [↓](#northflank-http-wiring-in-flight) |
+| (plugins)    | Subprocess JSON protocol     | [ADR-019](ADRs/019-subprocess-json-target-plugins.md) |
+
+---
+
+## `Target` trait surface
+
+The exact surface every built-in kind and every plugin must implement.
+The block below is auto-generated from
+[`crates/sindri-targets/src/traits.rs`](../crates/sindri-targets/src/traits.rs)
+by [`tools/target-doc-gen`](../tools/target-doc-gen) — do not edit it
+by hand. Run `cargo run -p target-doc-gen` to refresh; CI verifies
+freshness via `cargo run -p target-doc-gen -- --check`.
+
+For the human-readable narrative around `auth_capabilities()`,
+prerequisites, and related design notes, see ["Auth capabilities
+(ADR-027)"](#auth-capabilities-adr-027) further down.
+
+<!-- BEGIN AUTOGEN target-trait -->
+
+_Auto-generated from [`crates/sindri-targets/src/traits.rs`](../crates/sindri-targets/src/traits.rs); see [`docs/_generated/target-trait.md`](_generated/target-trait.md) for per-method detail._
+
+| Method | Default impl? | Returns |
+|--------|---------------|---------|
+| `name` | **required** | `&str` |
+| `kind` | **required** | `&str` |
+| `profile` | **required** | `Result<TargetProfile, TargetError>` |
+| `auth_capabilities` | yes | `Vec<AuthCapability>` |
+| `exec` | **required** | `Result<(String, String), TargetError>` |
+| `upload` | **required** | `Result<(), TargetError>` |
+| `download` | **required** | `Result<(), TargetError>` |
+| `create` | yes | `Result<(), TargetError>` |
+| `destroy` | yes | `Result<(), TargetError>` |
+| `start` | yes | `Result<(), TargetError>` |
+| `stop` | yes | `Result<(), TargetError>` |
+| `check_prerequisites` | **required** | `Vec<PrereqCheck>` |
+| `prompt_for_credential` | yes | `Result<String, TargetError>` |
+
+
+<!-- END AUTOGEN target-trait -->
+
+---
+
 ## What Is a Target?
 
 A target represents an execution environment where components are installed. Every Sindri operation that touches installed state — `apply`, `diff`, `doctor`, `status`, `shell` — addresses a named target.
 
 In v3, "where to install" was an implicit mode (local host) or a provider-specific concept. v4 makes targets explicit and first-class so that the same `sindri.yaml` and workflow applies identically regardless of where components end up.
 
-The `Target` trait (in `sindri-targets`) defines the runtime contract:
-
-```rust
-pub trait Target: Send + Sync {
-    fn name(&self) -> &str;
-    fn kind(&self) -> &str;
-    fn profile(&self) -> Result<TargetProfile, TargetError>;
-    fn exec(&self, cmd: &str, env: &[(&str, &str)]) -> Result<(String, String), TargetError>;
-    fn upload(&self, local: &Path, remote: &str) -> Result<(), TargetError>;
-    fn download(&self, remote: &str, local: &Path) -> Result<(), TargetError>;
-    fn create(&self) -> Result<(), TargetError>;
-    fn destroy(&self) -> Result<(), TargetError>;
-    fn check_prerequisites(&self) -> Vec<PrereqCheck>;
-}
-```
+The `Target` trait (in `sindri-targets`) defines the runtime contract;
+the full method-by-method surface is rendered above in the
+auto-generated [_Target trait surface_](#target-trait-surface) section.
 
 `TargetProfile` carries the OS, architecture, and capabilities (system package manager, Docker availability, sudo, shell path) that the resolver uses to intersect with each component's `platforms:` list and to drive backend selection. Different targets from the same `sindri.yaml` produce different lockfiles ([ADR-018](ADRs/018-per-target-lockfiles.md)).
 

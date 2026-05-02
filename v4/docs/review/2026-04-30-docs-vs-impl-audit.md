@@ -93,8 +93,8 @@ Status legend: ✅ fixed · 🟡 partially fixed · ⏸️ deferred · 🔍 need
 | F-POL-06 | minor | 🔍 needs verification | Forced-override audit-trail claim still unverified. |
 | F-SRC-01 | minor | ✅ no action | Phase status table corrected for the `serve` row (no more "Phase 5 deferred" mention). |
 | F-SRC-02 | minor | ❌ not started | `oci-ref` link to `ci/strict-oci.yml` not re-checked. |
-| F-TGT-01 | major | ❌ not started | `Target` trait surface table not yet aligned with code. |
-| F-TGT-02 | major | ❌ not started | Target-kind list still omits 8 supported kinds. |
+| F-TGT-01 | major | ✅ fixed (Phase 7) | New `tools/target-doc-gen` crate parses `crates/sindri-targets/src/traits.rs` via `syn` and emits two artifacts: a full reference at `docs/_generated/target-trait.md` and an inline summary table rewritten between `<!-- BEGIN/END AUTOGEN target-trait -->` markers in TARGETS.md. `--check` mode flags drift in either artifact (CI workflow update is a follow-up PR to `main`, since `.github/workflows/*` lives there). |
+| F-TGT-02 | major | ✅ fixed (Phase 7) | TARGETS.md now opens with a hand-authored "Built-in target status" table covering all 8 built-in kinds + plugins, with anchor links into the per-kind detail sections that already existed. |
 | F-TGT-03 | minor | 🔍 needs verification | Sample `targets:` config shapes not re-verified. |
 | F-TGT-04 | major | 🟡 partially fixed | CLI.md now documents the missing target verbs (`use`, `start`, `stop`, `update`, `plugin`); TARGETS.md table not yet updated. |
 | F-TGT-05 | minor | ✅ fixed (Phase 3) | `target plugin trust <kind> --insecure --reason <text>` added, mutually exclusive with `--signer`. Records to `.sindri/insecure-plugins.yaml` (committed alongside sindri.yaml); one-time stderr warn at trust + every-`apply` banner per Q2=B+C. New `sindri-core::insecure_plugins` module + 6 unit tests. Pattern modeled on Terraform `dev_overrides`. ADR-019 status updated. |

@@ -1,0 +1,15 @@
+[package]
+name = "target-doc-gen"
+version = "0.1.0"
+edition = "2021"
+description = "Parses the Target trait surface and emits v4/docs/_generated/target-trait.md."
+
+[[bin]]
+name = "target-doc-gen"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+syn = { version = "2", features = ["full", "extra-traits"] }
+proc-macro2 = "1"

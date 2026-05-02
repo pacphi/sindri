@@ -13,6 +13,7 @@ members = [
     "crates/sindri-extensions",
     "tests/integration",
     "tools/schema-gen",
+    "tools/target-doc-gen",
 ]
 
 [workspace.dependencies]
