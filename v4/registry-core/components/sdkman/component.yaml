@@ -1,26 +1,30 @@
 metadata:
   name: sdkman
-  version: "5.19"
-  description: "SDKMAN! — the software development kit manager"
+  version: '5.19'
+  description: SDKMAN! — the software development kit manager
   license: Apache-2.0
-  homepage: "https://sdkman.io"
+  homepage: https://sdkman.io
   tags:
-    - tools
-    - sdk-manager
-
+  - tools
+  - sdk-manager
 platforms:
-  - os: linux
-    arch: x86_64
-  - os: linux
-    arch: aarch64
-  - os: macos
-    arch: x86_64
-  - os: macos
-    arch: aarch64
-
-install:
-  script:
-    install: "install.sh"
-    timeout: "600"
-
+- os: linux
+  arch: x86_64
+- os: linux
+  arch: aarch64
+- os: macos
+  arch: x86_64
+- os: macos
+  arch: aarch64
+install: {}
 depends_on: []
+capabilities:
+  hooks:
+    install:
+      sh: scripts/install.sh
+    validate:
+      sh: scripts/validate.sh
+    upgrade:
+      sh: scripts/upgrade.sh
+    uninstall:
+      sh: scripts/uninstall.sh

@@ -1,26 +1,30 @@
 metadata:
   name: dotnet
-  version: "9.0"
-  description: ".NET SDK via Microsoft install script"
+  version: '9.0'
+  description: .NET SDK via Microsoft install script
   license: MIT
-  homepage: "https://dot.net"
+  homepage: https://dot.net
   tags:
-    - language
-    - dotnet
-
+  - language
+  - dotnet
 platforms:
-  - os: linux
-    arch: x86_64
-  - os: linux
-    arch: aarch64
-  - os: macos
-    arch: x86_64
-  - os: macos
-    arch: aarch64
-
-install:
-  script:
-    install: "install.sh"
-    timeout: "600"
-
+- os: linux
+  arch: x86_64
+- os: linux
+  arch: aarch64
+- os: macos
+  arch: x86_64
+- os: macos
+  arch: aarch64
+install: {}
 depends_on: []
+capabilities:
+  hooks:
+    install:
+      sh: scripts/install.sh
+    validate:
+      sh: scripts/validate.sh
+    upgrade:
+      sh: scripts/upgrade.sh
+    uninstall:
+      sh: scripts/uninstall.sh

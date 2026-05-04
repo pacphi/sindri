@@ -1,59 +1,57 @@
 metadata:
   name: pal-mcp-server
-  version: "1.0.0"
-  description: "PAL MCP server"
+  version: 1.0.0
+  description: PAL MCP server
   license: MIT
-  homepage: "https://github.com/BeehiveInnovations/pal-mcp-server"
+  homepage: https://github.com/BeehiveInnovations/pal-mcp-server
   tags:
-    - mcp
-    - pal
-
+  - mcp
+  - pal
 platforms:
-  - os: linux
-    arch: x86_64
-  - os: linux
-    arch: aarch64
-  - os: macos
-    arch: x86_64
-  - os: macos
-    arch: aarch64
-
-install:
-  script:
-    install: "install.sh"
-    timeout: "600"
-
+- os: linux
+  arch: x86_64
+- os: linux
+  arch: aarch64
+- os: macos
+  arch: x86_64
+- os: macos
+  arch: aarch64
+install: {}
 depends_on:
-  - "mise:python"
-
-# ADR-026: auth-aware components (Phase 3 P1).
-# PAL delegates to upstream LLM providers; per the upstream README at least
-# one provider key (Gemini, OpenAI, or OpenRouter) must be present in `.env`.
-# Gemini is the default headline provider in the README (1M-token context),
-# so it is declared required; the others are optional alternates.
+- mise:python
 auth:
   tokens:
-    - name: gemini-api-key
-      description: "Google AI Studio API key used by PAL's Gemini provider."
-      audience: "https://generativelanguage.googleapis.com"
-      scope: runtime
-      optional: false
-      redemption:
-        kind: env-var
-        env-name: GEMINI_API_KEY
-    - name: openai-api-key
-      description: "OpenAI API key used by PAL's OpenAI provider (alternate)."
-      audience: "https://api.openai.com"
-      scope: runtime
-      optional: true
-      redemption:
-        kind: env-var
-        env-name: OPENAI_API_KEY
-    - name: openrouter-api-key
-      description: "OpenRouter API key used by PAL's OpenRouter provider (alternate)."
-      audience: "https://openrouter.ai/api"
-      scope: runtime
-      optional: true
-      redemption:
-        kind: env-var
-        env-name: OPENROUTER_API_KEY
+  - name: gemini-api-key
+    description: Google AI Studio API key used by PAL's Gemini provider.
+    audience: https://generativelanguage.googleapis.com
+    scope: runtime
+    optional: false
+    redemption:
+      kind: env-var
+      env-name: GEMINI_API_KEY
+  - name: openai-api-key
+    description: OpenAI API key used by PAL's OpenAI provider (alternate).
+    audience: https://api.openai.com
+    scope: runtime
+    optional: true
+    redemption:
+      kind: env-var
+      env-name: OPENAI_API_KEY
+  - name: openrouter-api-key
+    description: OpenRouter API key used by PAL's OpenRouter provider (alternate).
+    audience: https://openrouter.ai/api
+    scope: runtime
+    optional: true
+    redemption:
+      kind: env-var
+      env-name: OPENROUTER_API_KEY
+capabilities:
+  hooks:
+    install:
+      sh: scripts/install.sh
+    validate:
+      sh: scripts/validate.sh
+    upgrade:
+      sh: scripts/upgrade.sh
+    uninstall:
+      sh: scripts/uninstall.sh

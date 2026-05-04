@@ -1,37 +1,40 @@
 metadata:
   name: goose
-  version: "1.0.0"
-  description: "Block's Goose agent"
+  version: 1.0.0
+  description: Block's Goose agent
   license: Apache-2.0
-  homepage: "https://block.github.io/goose"
+  homepage: https://block.github.io/goose
   tags:
-    - ai
-    - agents
-
+  - ai
+  - agents
 platforms:
-  - os: linux
-    arch: x86_64
-  - os: linux
-    arch: aarch64
-  - os: macos
-    arch: x86_64
-  - os: macos
-    arch: aarch64
-
-install:
-  script:
-    install: "install.sh"
-    timeout: "600"
-
+- os: linux
+  arch: x86_64
+- os: linux
+  arch: aarch64
+- os: macos
+  arch: x86_64
+- os: macos
+  arch: aarch64
+install: {}
 depends_on: []
-
 auth:
   tokens:
-    - name: openai_api_key
-      description: "Provider API key used by the Goose agent (OpenAI by default)."
-      scope: runtime
-      optional: false
-      audience: "urn:openai:api"
-      redemption:
-        kind: env-var
-        env-name: OPENAI_API_KEY
+  - name: openai_api_key
+    description: Provider API key used by the Goose agent (OpenAI by default).
+    scope: runtime
+    optional: false
+    audience: urn:openai:api
+    redemption:
+      kind: env-var
+      env-name: OPENAI_API_KEY
+capabilities:
+  hooks:
+    install:
+      sh: scripts/install.sh
+    validate:
+      sh: scripts/validate.sh
+    upgrade:
+      sh: scripts/upgrade.sh
+    uninstall:
+      sh: scripts/uninstall.sh

@@ -1,26 +1,30 @@
 metadata:
   name: context7-mcp
-  version: "1.0.0"
-  description: "Context7 MCP server registration"
+  version: 1.0.0
+  description: Context7 MCP server registration
   license: MIT
-  homepage: "https://context7.com"
+  homepage: https://context7.com
   tags:
-    - mcp
-
+  - mcp
 platforms:
-  - os: linux
-    arch: x86_64
-  - os: linux
-    arch: aarch64
-  - os: macos
-    arch: x86_64
-  - os: macos
-    arch: aarch64
-
-install:
-  script:
-    install: "install.sh"
-    timeout: "600"
-
+- os: linux
+  arch: x86_64
+- os: linux
+  arch: aarch64
+- os: macos
+  arch: x86_64
+- os: macos
+  arch: aarch64
+install: {}
 depends_on:
-  - "npm:claude-code"
+- npm:claude-code
+capabilities:
+  hooks:
+    install:
+      sh: scripts/install.sh
+    validate:
+      sh: scripts/validate.sh
+    upgrade:
+      sh: scripts/upgrade.sh
+    uninstall:
+      sh: scripts/uninstall.sh

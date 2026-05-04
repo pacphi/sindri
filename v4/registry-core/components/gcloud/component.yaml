@@ -1,41 +1,41 @@
 metadata:
   name: gcloud
-  version: "565.0.0"
-  description: "Google Cloud SDK"
+  version: 565.0.0
+  description: Google Cloud SDK
   license: Apache-2.0
-  homepage: "https://cloud.google.com/sdk"
+  homepage: https://cloud.google.com/sdk
   tags:
-    - cloud
-    - gcp
-
+  - cloud
+  - gcp
 platforms:
-  - os: linux
-    arch: x86_64
-  - os: linux
-    arch: aarch64
-  - os: macos
-    arch: x86_64
-  - os: macos
-    arch: aarch64
-
-install:
-  script:
-    install: "install.sh"
-    timeout: "600"
-
+- os: linux
+  arch: x86_64
+- os: linux
+  arch: aarch64
+- os: macos
+  arch: x86_64
+- os: macos
+  arch: aarch64
+install: {}
 depends_on: []
-
-# ADR-026: auth-aware components (Phase 3 P1).
-# `gcloud auth login` is the canonical interactive path; service-account JSON
-# via GOOGLE_APPLICATION_CREDENTIALS is therefore optional.
 auth:
   tokens:
-    - name: google-application-credentials
-      description: "Path to a Google Cloud service-account JSON key file."
-      audience: "https://www.googleapis.com/auth/cloud-platform"
-      scope: runtime
-      optional: true
-      redemption:
-        kind: env-file
-        env-name: GOOGLE_APPLICATION_CREDENTIALS
-        path: "~/.config/sindri/gcp-credentials.json"
+  - name: google-application-credentials
+    description: Path to a Google Cloud service-account JSON key file.
+    audience: https://www.googleapis.com/auth/cloud-platform
+    scope: runtime
+    optional: true
+    redemption:
+      kind: env-file
+      env-name: GOOGLE_APPLICATION_CREDENTIALS
+      path: ~/.config/sindri/gcp-credentials.json
+capabilities:
+  hooks:
+    install:
+      sh: scripts/install.sh
+    validate:
+      sh: scripts/validate.sh
+    upgrade:
+      sh: scripts/upgrade.sh
+    uninstall:
+      sh: scripts/uninstall.sh

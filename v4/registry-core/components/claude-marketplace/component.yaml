@@ -1,40 +1,46 @@
 metadata:
   name: claude-marketplace
-  version: "1.0.0"
-  description: "Claude Marketplace skill/plugin resolver"
+  version: 1.0.0
+  description: Claude Marketplace skill/plugin resolver
   license: MIT
-  homepage: "https://github.com/sindri-dev/claude-marketplace"
+  homepage: https://github.com/sindri-dev/claude-marketplace
   tags:
-    - ai
-    - marketplace
-
+  - ai
+  - marketplace
 platforms:
-  - os: linux
-    arch: x86_64
-  - os: linux
-    arch: aarch64
-  - os: macos
-    arch: x86_64
-  - os: macos
-    arch: aarch64
-
-install:
-  script:
-    install: "install.sh"
-    timeout: "600"
-
+- os: linux
+  arch: x86_64
+- os: linux
+  arch: aarch64
+- os: macos
+  arch: x86_64
+- os: macos
+  arch: aarch64
+install: {}
 depends_on:
-  - "npm:claude-code"
-
+- npm:claude-code
 auth:
   tokens:
-    - name: anthropic_api_key
-      description: "Anthropic API key used by claude-marketplace (internal Anthropic-team tooling)."
-      scope: runtime
-      optional: true
-      audience: "urn:anthropic:api"
-      redemption:
-        kind: env-var
-        env-name: ANTHROPIC_API_KEY
-      discovery:
-        env-aliases: [ANTHROPIC_API_KEY, CLAUDE_API_KEY]
+  - name: anthropic_api_key
+    description: Anthropic API key used by claude-marketplace (internal Anthropic-team
+      tooling).
+    scope: runtime
+    optional: true
+    audience: urn:anthropic:api
+    redemption:
+      kind: env-var
+      env-name: ANTHROPIC_API_KEY
+    discovery:
+      env-aliases:
+      - ANTHROPIC_API_KEY
+      - CLAUDE_API_KEY
+capabilities:
+  hooks:
+    install:
+      sh: scripts/install.sh
+    validate:
+      sh: scripts/validate.sh
+    upgrade:
+      sh: scripts/upgrade.sh
+    uninstall:
+      sh: scripts/uninstall.sh

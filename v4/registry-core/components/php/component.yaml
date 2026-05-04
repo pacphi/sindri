@@ -1,26 +1,30 @@
 metadata:
   name: php
-  version: "8.3"
-  description: "PHP language and Composer"
+  version: '8.3'
+  description: PHP language and Composer
   license: PHP-3.01
-  homepage: "https://php.net"
+  homepage: https://php.net
   tags:
-    - language
-    - php
-
+  - language
+  - php
 platforms:
-  - os: linux
-    arch: x86_64
-  - os: linux
-    arch: aarch64
-  - os: macos
-    arch: x86_64
-  - os: macos
-    arch: aarch64
-
-install:
-  script:
-    install: "install.sh"
-    timeout: "600"
-
+- os: linux
+  arch: x86_64
+- os: linux
+  arch: aarch64
+- os: macos
+  arch: x86_64
+- os: macos
+  arch: aarch64
+install: {}
 depends_on: []
+capabilities:
+  hooks:
+    install:
+      sh: scripts/install.sh
+    validate:
+      sh: scripts/validate.sh
+    upgrade:
+      sh: scripts/upgrade.sh
+    uninstall:
+      sh: scripts/uninstall.sh

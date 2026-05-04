@@ -1,26 +1,30 @@
 metadata:
   name: ollama
-  version: "0.5.0"
-  description: "Ollama local LLM runtime"
+  version: 0.5.0
+  description: Ollama local LLM runtime
   license: MIT
-  homepage: "https://ollama.com"
+  homepage: https://ollama.com
   tags:
-    - ai
-    - llm
-
+  - ai
+  - llm
 platforms:
-  - os: linux
-    arch: x86_64
-  - os: linux
-    arch: aarch64
-  - os: macos
-    arch: x86_64
-  - os: macos
-    arch: aarch64
-
-install:
-  script:
-    install: "install.sh"
-    timeout: "600"
-
+- os: linux
+  arch: x86_64
+- os: linux
+  arch: aarch64
+- os: macos
+  arch: x86_64
+- os: macos
+  arch: aarch64
+install: {}
 depends_on: []
+capabilities:
+  hooks:
+    install:
+      sh: scripts/install.sh
+    validate:
+      sh: scripts/validate.sh
+    upgrade:
+      sh: scripts/upgrade.sh
+    uninstall:
+      sh: scripts/uninstall.sh

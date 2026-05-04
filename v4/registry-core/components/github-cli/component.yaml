@@ -1,26 +1,30 @@
 metadata:
   name: github-cli
-  version: "2.45.0"
-  description: "GitHub CLI install via distro script (alias of binary:gh)"
+  version: 2.45.0
+  description: GitHub CLI install via distro script (alias of binary:gh)
   license: MIT
-  homepage: "https://cli.github.com"
+  homepage: https://cli.github.com
   tags:
-    - github
-
+  - github
 platforms:
-  - os: linux
-    arch: x86_64
-  - os: linux
-    arch: aarch64
-  - os: macos
-    arch: x86_64
-  - os: macos
-    arch: aarch64
-
-install:
-  script:
-    install: "install.sh"
-    timeout: "600"
-
+- os: linux
+  arch: x86_64
+- os: linux
+  arch: aarch64
+- os: macos
+  arch: x86_64
+- os: macos
+  arch: aarch64
+install: {}
 depends_on:
-  - "binary:gh"
+- binary:gh
+capabilities:
+  hooks:
+    install:
+      sh: scripts/install.sh
+    validate:
+      sh: scripts/validate.sh
+    upgrade:
+      sh: scripts/upgrade.sh
+    uninstall:
+      sh: scripts/uninstall.sh

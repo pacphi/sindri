@@ -1,26 +1,30 @@
 metadata:
   name: tmux-workspace
-  version: "1.0.0"
-  description: "tmux workspace layouts + key bindings"
+  version: 1.0.0
+  description: tmux workspace layouts + key bindings
   license: MIT
-  homepage: "https://github.com/sindri-dev/tmux-workspace"
+  homepage: https://github.com/sindri-dev/tmux-workspace
   tags:
-    - terminal
-    - tmux
-
+  - terminal
+  - tmux
 platforms:
-  - os: linux
-    arch: x86_64
-  - os: linux
-    arch: aarch64
-  - os: macos
-    arch: x86_64
-  - os: macos
-    arch: aarch64
-
-install:
-  script:
-    install: "install.sh"
-    timeout: "600"
-
+- os: linux
+  arch: x86_64
+- os: linux
+  arch: aarch64
+- os: macos
+  arch: x86_64
+- os: macos
+  arch: aarch64
+install: {}
 depends_on: []
+capabilities:
+  hooks:
+    install:
+      sh: scripts/install.sh
+    validate:
+      sh: scripts/validate.sh
+    upgrade:
+      sh: scripts/upgrade.sh
+    uninstall:
+      sh: scripts/uninstall.sh

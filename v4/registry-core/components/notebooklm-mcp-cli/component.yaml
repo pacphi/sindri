@@ -1,51 +1,50 @@
 metadata:
   name: notebooklm-mcp-cli
-  version: "1.0.0"
-  description: "NotebookLM MCP bridge"
+  version: 1.0.0
+  description: NotebookLM MCP bridge
   license: MIT
-  homepage: "https://notebooklm.google.com"
+  homepage: https://notebooklm.google.com
   tags:
-    - mcp
-    - notebooklm
-
+  - mcp
+  - notebooklm
 platforms:
-  - os: linux
-    arch: x86_64
-  - os: linux
-    arch: aarch64
-  - os: macos
-    arch: x86_64
-  - os: macos
-    arch: aarch64
-
-install:
-  script:
-    install: "install.sh"
-    timeout: "600"
-
+- os: linux
+  arch: x86_64
+- os: linux
+  arch: aarch64
+- os: macos
+  arch: x86_64
+- os: macos
+  arch: aarch64
+install: {}
 depends_on:
-  - "mise:python"
-
-# ADR-026: auth-aware components (Phase 3 P1).
-# NotebookLM bridges accept either a Google API key or a service-account
-# JSON. Both are optional because some users authenticate through the local
-# `gcloud` ADC chain.
+- mise:python
 auth:
   tokens:
-    - name: google-api-key
-      description: "Google API key for the NotebookLM MCP bridge."
-      audience: "https://generativelanguage.googleapis.com"
-      scope: runtime
-      optional: true
-      redemption:
-        kind: env-var
-        env-name: GOOGLE_API_KEY
-    - name: google-application-credentials
-      description: "Service-account JSON for NotebookLM (alternate to GOOGLE_API_KEY)."
-      audience: "https://www.googleapis.com/auth/cloud-platform"
-      scope: runtime
-      optional: true
-      redemption:
-        kind: env-file
-        env-name: GOOGLE_APPLICATION_CREDENTIALS
-        path: "~/.config/sindri/notebooklm-credentials.json"
+  - name: google-api-key
+    description: Google API key for the NotebookLM MCP bridge.
+    audience: https://generativelanguage.googleapis.com
+    scope: runtime
+    optional: true
+    redemption:
+      kind: env-var
+      env-name: GOOGLE_API_KEY
+  - name: google-application-credentials
+    description: Service-account JSON for NotebookLM (alternate to GOOGLE_API_KEY).
+    audience: https://www.googleapis.com/auth/cloud-platform
+    scope: runtime
+    optional: true
+    redemption:
+      kind: env-file
+      env-name: GOOGLE_APPLICATION_CREDENTIALS
+      path: ~/.config/sindri/notebooklm-credentials.json
+capabilities:
+  hooks:
+    install:
+      sh: scripts/install.sh
+    validate:
+      sh: scripts/validate.sh
+    upgrade:
+      sh: scripts/upgrade.sh
+    uninstall:
+      sh: scripts/uninstall.sh

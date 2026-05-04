@@ -1,39 +1,42 @@
 metadata:
   name: claude-codepro
-  version: "1.0.0"
-  description: "Claude CodePro workflow bundle"
+  version: 1.0.0
+  description: Claude CodePro workflow bundle
   license: MIT
-  homepage: "https://github.com/sindri-dev/claude-codepro"
+  homepage: https://github.com/sindri-dev/claude-codepro
   tags:
-    - ai
-
+  - ai
 platforms:
-  - os: linux
-    arch: x86_64
-  - os: linux
-    arch: aarch64
-  - os: macos
-    arch: x86_64
-  - os: macos
-    arch: aarch64
-
-install:
-  script:
-    install: "install.sh"
-    timeout: "600"
-
+- os: linux
+  arch: x86_64
+- os: linux
+  arch: aarch64
+- os: macos
+  arch: x86_64
+- os: macos
+  arch: aarch64
+install: {}
 depends_on:
-  - "mise:nodejs"
-  - "mise:python"
-  - "binary:gh"
-
+- mise:nodejs
+- mise:python
+- binary:gh
 auth:
   tokens:
-    - name: anthropic_api_key
-      description: "Anthropic API key used by the Claude CodePro workflow bundle."
-      scope: runtime
-      optional: false
-      audience: "urn:anthropic:api"
-      redemption:
-        kind: env-var
-        env-name: ANTHROPIC_API_KEY
+  - name: anthropic_api_key
+    description: Anthropic API key used by the Claude CodePro workflow bundle.
+    scope: runtime
+    optional: false
+    audience: urn:anthropic:api
+    redemption:
+      kind: env-var
+      env-name: ANTHROPIC_API_KEY
+capabilities:
+  hooks:
+    install:
+      sh: scripts/install.sh
+    validate:
+      sh: scripts/validate.sh
+    upgrade:
+      sh: scripts/upgrade.sh
+    uninstall:
+      sh: scripts/uninstall.sh

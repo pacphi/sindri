@@ -1,27 +1,31 @@
 metadata:
   name: spec-kit
-  version: "1.0.0"
-  description: "GitHub Spec Kit — spec-driven development"
+  version: 1.0.0
+  description: GitHub Spec Kit — spec-driven development
   license: MIT
-  homepage: "https://github.com/sindri-dev/spec-kit"
+  homepage: https://github.com/sindri-dev/spec-kit
   tags:
-    - spec
-    - tools
-
+  - spec
+  - tools
 platforms:
-  - os: linux
-    arch: x86_64
-  - os: linux
-    arch: aarch64
-  - os: macos
-    arch: x86_64
-  - os: macos
-    arch: aarch64
-
-install:
-  script:
-    install: "install.sh"
-    timeout: "600"
-
+- os: linux
+  arch: x86_64
+- os: linux
+  arch: aarch64
+- os: macos
+  arch: x86_64
+- os: macos
+  arch: aarch64
+install: {}
 depends_on:
-  - "mise:python"
+- mise:python
+capabilities:
+  hooks:
+    install:
+      sh: scripts/install.sh
+    validate:
+      sh: scripts/validate.sh
+    upgrade:
+      sh: scripts/upgrade.sh
+    uninstall:
+      sh: scripts/uninstall.sh

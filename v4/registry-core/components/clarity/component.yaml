@@ -1,26 +1,30 @@
 metadata:
   name: clarity
-  version: "1.0.0"
-  description: "Clarity spec generator CLI"
+  version: 1.0.0
+  description: Clarity spec generator CLI
   license: MIT
-  homepage: "https://github.com/sindri-dev/clarity"
+  homepage: https://github.com/sindri-dev/clarity
   tags:
-    - spec
-
+  - spec
 platforms:
-  - os: linux
-    arch: x86_64
-  - os: linux
-    arch: aarch64
-  - os: macos
-    arch: x86_64
-  - os: macos
-    arch: aarch64
-
-install:
-  script:
-    install: "install.sh"
-    timeout: "600"
-
+- os: linux
+  arch: x86_64
+- os: linux
+  arch: aarch64
+- os: macos
+  arch: x86_64
+- os: macos
+  arch: aarch64
+install: {}
 depends_on:
-  - "mise:python"
+- mise:python
+capabilities:
+  hooks:
+    install:
+      sh: scripts/install.sh
+    validate:
+      sh: scripts/validate.sh
+    upgrade:
+      sh: scripts/upgrade.sh
+    uninstall:
+      sh: scripts/uninstall.sh

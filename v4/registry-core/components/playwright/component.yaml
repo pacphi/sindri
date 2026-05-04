@@ -1,27 +1,31 @@
 metadata:
   name: playwright
-  version: "1.48.0"
-  description: "Playwright browsers + system deps"
+  version: 1.48.0
+  description: Playwright browsers + system deps
   license: Apache-2.0
-  homepage: "https://playwright.dev"
+  homepage: https://playwright.dev
   tags:
-    - browser
-    - testing
-
+  - browser
+  - testing
 platforms:
-  - os: linux
-    arch: x86_64
-  - os: linux
-    arch: aarch64
-  - os: macos
-    arch: x86_64
-  - os: macos
-    arch: aarch64
-
-install:
-  script:
-    install: "install.sh"
-    timeout: "600"
-
+- os: linux
+  arch: x86_64
+- os: linux
+  arch: aarch64
+- os: macos
+  arch: x86_64
+- os: macos
+  arch: aarch64
+install: {}
 depends_on:
-  - "mise:nodejs"
+- mise:nodejs
+capabilities:
+  hooks:
+    install:
+      sh: scripts/install.sh
+    validate:
+      sh: scripts/validate.sh
+    upgrade:
+      sh: scripts/upgrade.sh
+    uninstall:
+      sh: scripts/uninstall.sh

@@ -1,50 +1,49 @@
 metadata:
   name: jira-mcp
-  version: "1.0.0"
-  description: "Atlassian Jira MCP server"
+  version: 1.0.0
+  description: Atlassian Jira MCP server
   license: MIT
-  homepage: "https://www.atlassian.com/software/jira"
+  homepage: https://www.atlassian.com/software/jira
   tags:
-    - mcp
-    - jira
-
+  - mcp
+  - jira
 platforms:
-  - os: linux
-    arch: x86_64
-  - os: linux
-    arch: aarch64
-  - os: macos
-    arch: x86_64
-  - os: macos
-    arch: aarch64
-
-install:
-  script:
-    install: "install.sh"
-    timeout: "600"
-
+- os: linux
+  arch: x86_64
+- os: linux
+  arch: aarch64
+- os: macos
+  arch: x86_64
+- os: macos
+  arch: aarch64
+install: {}
 depends_on:
-  - "npm:claude-code"
-
-# ADR-026: auth-aware components (Phase 3 P1).
-# Jira MCP needs an Atlassian API token plus the tenant base URL. Audience is
-# the canonical Atlassian API host; per-tenant URLs (e.g.
-# `https://<tenant>.atlassian.net`) are bound through the JIRA_BASE_URL token.
+- npm:claude-code
 auth:
   tokens:
-    - name: jira-api-token
-      description: "Atlassian API token for the Jira MCP server."
-      audience: "https://api.atlassian.com"
-      scope: runtime
-      optional: false
-      redemption:
-        kind: env-var
-        env-name: JIRA_API_TOKEN
-    - name: jira-base-url
-      description: "Per-tenant Jira base URL, e.g. https://<tenant>.atlassian.net."
-      audience: "https://api.atlassian.com"
-      scope: runtime
-      optional: false
-      redemption:
-        kind: env-var
-        env-name: JIRA_BASE_URL
+  - name: jira-api-token
+    description: Atlassian API token for the Jira MCP server.
+    audience: https://api.atlassian.com
+    scope: runtime
+    optional: false
+    redemption:
+      kind: env-var
+      env-name: JIRA_API_TOKEN
+  - name: jira-base-url
+    description: Per-tenant Jira base URL, e.g. https://<tenant>.atlassian.net.
+    audience: https://api.atlassian.com
+    scope: runtime
+    optional: false
+    redemption:
+      kind: env-var
+      env-name: JIRA_BASE_URL
+capabilities:
+  hooks:
+    install:
+      sh: scripts/install.sh
+    validate:
+      sh: scripts/validate.sh
+    upgrade:
+      sh: scripts/upgrade.sh
+    uninstall:
+      sh: scripts/uninstall.sh

@@ -1,39 +1,46 @@
 metadata:
   name: docker
-  version: "27.3.0"
-  description: "Docker Engine (apt/dnf + post-install config)"
+  version: 27.3.0
+  description: Docker Engine (apt/dnf + post-install config)
   license: Apache-2.0
-  homepage: "https://docker.com"
+  homepage: https://docker.com
   tags:
-    - container
-    - docker
-
+  - container
+  - docker
 platforms:
-  - os: linux
-    arch: x86_64
-  - os: linux
-    arch: aarch64
-  - os: macos
-    arch: x86_64
-  - os: macos
-    arch: aarch64
-
-install:
-  script:
-    install: "install.sh"
-    timeout: "600"
-
+- os: linux
+  arch: x86_64
+- os: linux
+  arch: aarch64
+- os: macos
+  arch: x86_64
+- os: macos
+  arch: aarch64
+install: {}
 depends_on: []
-
 auth:
   tokens:
-    - name: dockerhub_token
-      description: "Docker Hub access token used by `docker login` for authenticated pulls/pushes."
-      scope: runtime
-      optional: true
-      audience: "https://hub.docker.com"
-      redemption:
-        kind: env-var
-        env-name: DOCKERHUB_TOKEN
-      discovery:
-        env-aliases: [DOCKERHUB_TOKEN, DOCKER_AUTH, DOCKER_PASSWORD]
+  - name: dockerhub_token
+    description: Docker Hub access token used by `docker login` for authenticated
+      pulls/pushes.
+    scope: runtime
+    optional: true
+    audience: https://hub.docker.com
+    redemption:
+      kind: env-var
+      env-name: DOCKERHUB_TOKEN
+    discovery:
+      env-aliases:
+      - DOCKERHUB_TOKEN
+      - DOCKER_AUTH
+      - DOCKER_PASSWORD
+capabilities:
+  hooks:
+    install:
+      sh: scripts/install.sh
+    validate:
+      sh: scripts/validate.sh
+    upgrade:
+      sh: scripts/upgrade.sh
+    uninstall:
+      sh: scripts/uninstall.sh

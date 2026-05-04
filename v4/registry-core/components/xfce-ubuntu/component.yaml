@@ -1,21 +1,25 @@
 metadata:
   name: xfce-ubuntu
-  version: "1.0.0"
-  description: "XFCE desktop for Ubuntu containers"
+  version: 1.0.0
+  description: XFCE desktop for Ubuntu containers
   license: GPL-2.0
-  homepage: "https://www.xfce.org"
+  homepage: https://www.xfce.org
   tags:
-    - desktop
-
+  - desktop
 platforms:
-  - os: linux
-    arch: x86_64
-  - os: linux
-    arch: aarch64
-
-install:
-  script:
-    install: "install.sh"
-    timeout: "600"
-
+- os: linux
+  arch: x86_64
+- os: linux
+  arch: aarch64
+install: {}
 depends_on: []
+capabilities:
+  hooks:
+    install:
+      sh: scripts/install.sh
+    validate:
+      sh: scripts/validate.sh
+    upgrade:
+      sh: scripts/upgrade.sh
+    uninstall:
+      sh: scripts/uninstall.sh
