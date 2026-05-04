@@ -285,7 +285,7 @@ jobs:
 
       - name: Attest build provenance
         if: steps.build.outputs.digest != ''
-        uses: actions/attest-build-provenance@v4
+        uses: actions/attest-build-provenance@v4.1.0
         with:
           subject-name: ghcr.io/${{ github.repository }}
           subject-digest: ${{ steps.build.outputs.digest }}
