@@ -59,6 +59,15 @@ jobs:
       - name: Clippy (no warnings)
         working-directory: v4
         run: cargo clippy --workspace -- -D warnings
+      - name: Generated docs are fresh (target-trait + schemas)
+        # Runs only on Linux — these checks parse Rust source and write
+        # markdown / JSON, both of which are platform-independent. Matrix
+        # symmetry is preserved by gating on os only here.
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: v4
+        run: |
+          cargo run -p target-doc-gen -- --check
+          cargo run -p schema-gen -- --check
       - name: Smoke install test (local registry)
         working-directory: v4
         shell: bash
