@@ -108,7 +108,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Upload image artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: sindri-test-image
           path: /tmp/sindri-image.tar

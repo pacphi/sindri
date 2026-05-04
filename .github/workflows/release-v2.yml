@@ -147,7 +147,7 @@ jobs:
           echo "changelog_file=changelog.md" >> "$GITHUB_OUTPUT"
 
       - name: Upload changelog artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: changelog-v2
           path: changelog.md
@@ -495,7 +495,7 @@ jobs:
           echo "  cosign download sbom ghcr.io/${REPO}:v${{ needs.validate-tag.outputs.version }}"
 
       - name: Upload SBOM artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: sbom-v${{ needs.validate-tag.outputs.version }}
           path: sbom.spdx.json
