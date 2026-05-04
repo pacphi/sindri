@@ -139,4 +139,72 @@ install:
             Some("npm install -g typescript@5.4.0")
         );
     }
+
+    #[tokio::test]
+    async fn install_manifest_global_false_omits_flag() {
+        let yaml = r#"
+metadata:
+  name: typescript
+  version: 5.4.0
+  description: x
+  license: Apache-2.0
+  tags: []
+platforms:
+  - { os: linux, arch: x86_64 }
+install:
+  npm:
+    package: typescript
+    global: false
+"#;
+        let m: ComponentManifest = serde_yaml::from_str(yaml).unwrap();
+        let mock = MockTarget::new();
+        let c = comp();
+        let ctx = InstallContext::new(&c, Some(&m), &mock);
+        NpmBackend.install(&ctx).await.unwrap();
+        let call = mock.last_call().expect("exec was called");
+        assert!(call.contains("npm install"), "must call npm install");
+        assert!(!call.contains("-g"), "global=false must omit -g flag");
+        assert!(
+            call.contains("typescript@5.4.0"),
+            "must include package@version"
+        );
+    }
+
+    #[tokio::test]
+    async fn install_manifest_without_npm_block_falls_back_to_global() {
+        // Manifest is present but has no `install.npm` section → same as no manifest.
+        let yaml = r#"
+metadata:
+  name: typescript
+  version: 5.4.0
+  description: x
+  license: Apache-2.0
+  tags: []
+platforms:
+  - { os: linux, arch: x86_64 }
+install: {}
+"#;
+        let m: ComponentManifest = serde_yaml::from_str(yaml).unwrap();
+        let mock = MockTarget::new();
+        let c = comp();
+        let ctx = InstallContext::new(&c, Some(&m), &mock);
+        NpmBackend.install(&ctx).await.unwrap();
+        assert_eq!(
+            mock.last_call().as_deref(),
+            Some("npm install -g typescript@5.4.0"),
+            "absent npm block must fall back to global install"
+        );
+    }
+
+    #[tokio::test]
+    async fn remove_dispatches_global_uninstall() {
+        let mock = MockTarget::new();
+        let c = comp();
+        let ctx = InstallContext::new(&c, None, &mock);
+        NpmBackend.remove(&ctx).await.unwrap();
+        assert_eq!(
+            mock.last_call().as_deref(),
+            Some("npm uninstall -g typescript")
+        );
+    }
 }

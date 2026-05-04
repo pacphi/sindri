@@ -81,4 +81,16 @@ mod tests {
             Some("mise install node@20.0.0")
         );
     }
+
+    #[tokio::test]
+    async fn remove_dispatches_uninstall_command() {
+        let mock = MockTarget::new();
+        let c = comp();
+        let ctx = InstallContext::new(&c, None, &mock);
+        MiseBackend.remove(&ctx).await.unwrap();
+        assert_eq!(
+            mock.last_call().as_deref(),
+            Some("mise uninstall node@20.0.0")
+        );
+    }
 }

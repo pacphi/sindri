@@ -125,16 +125,14 @@ mod tests {
     use sindri_core::version::Version;
     use std::collections::HashMap;
 
-    #[tokio::test]
-    async fn install_without_checksums_returns_ok_and_does_not_exec() {
-        let mock = MockTarget::new();
-        let c = ResolvedComponent {
+    fn binary_comp(name: &str) -> ResolvedComponent {
+        ResolvedComponent {
             id: ComponentId {
                 backend: Backend::Binary,
-                name: "ripgrep".into(),
+                name: name.into(),
                 qualifier: None,
             },
-            version: Version::new("14.1.0"),
+            version: Version::new("1.0.0"),
             backend: Backend::Binary,
             oci_digest: None,
             checksums: HashMap::new(),
@@ -144,11 +142,190 @@ mod tests {
             component_digest: None,
             platforms: None,
             source: None,
-        };
+        }
+    }
+
+    fn binary_comp_with_checksum(
+        name: &str,
+        platform_key: &str,
+        checksum: &str,
+    ) -> ResolvedComponent {
+        let mut c = binary_comp(name);
+        c.checksums.insert(platform_key.into(), checksum.into());
+        c
+    }
+
+    #[test]
+    fn name_returns_binary() {
+        assert_eq!(BinaryBackend.name(), Backend::Binary);
+    }
+
+    #[test]
+    fn supports_returns_true_for_any_platform() {
+        let platform = Platform::current();
+        assert!(BinaryBackend.supports(&platform));
+    }
+
+    #[tokio::test]
+    async fn install_without_checksums_returns_ok_and_does_not_exec() {
+        let mock = MockTarget::new();
+        let c = binary_comp("ripgrep");
         let ctx = InstallContext::new(&c, None, &mock);
         // Empty-checksum path: backend logs a warn and returns Ok without
         // invoking `target.exec` (download is Wave 3 work).
         BinaryBackend.install(&ctx).await.unwrap();
         assert!(mock.last_call().is_none());
+    }
+
+    #[tokio::test]
+    async fn install_with_matching_platform_checksum_returns_ok() {
+        let mock = MockTarget::new();
+        let platform = Platform::current();
+        let key = format!(
+            "{}-{}",
+            platform_os_str(&platform),
+            platform_arch_str(&platform)
+        );
+        let c = binary_comp_with_checksum("ripgrep", &key, "abc123deadbeef");
+        let ctx = InstallContext::new(&c, None, &mock);
+        // Sprint 4 stub: checksum present, logs verify step, no actual exec.
+        BinaryBackend.install(&ctx).await.unwrap();
+        assert!(
+            mock.last_call().is_none(),
+            "Wave 3 download stub must not exec"
+        );
+    }
+
+    #[tokio::test]
+    async fn install_with_wrong_platform_key_returns_err() {
+        let mock = MockTarget::new();
+        // Insert a checksum for a platform that will never match the host.
+        let c = binary_comp_with_checksum("ripgrep", "no-such-os-no-such-arch", "abc123");
+        let ctx = InstallContext::new(&c, None, &mock);
+        let err = BinaryBackend.install(&ctx).await.unwrap_err();
+        let msg = err.to_string();
+        assert!(msg.contains("no checksum for platform"), "got: {msg}");
+    }
+
+    #[tokio::test]
+    async fn remove_on_non_local_target_returns_err() {
+        // MockTarget::kind() returns "mock", which is not "local".
+        let mock = MockTarget::new();
+        let c = binary_comp("ripgrep");
+        let ctx = InstallContext::new(&c, None, &mock);
+        let err = BinaryBackend.remove(&ctx).await.unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("Wave 3") || msg.contains("remote"),
+            "got: {msg}"
+        );
+    }
+
+    #[tokio::test]
+    async fn remove_file_absent_returns_ok() {
+        use sindri_core::platform::{Arch, Capabilities, Os, TargetProfile};
+        use sindri_targets::error::TargetError;
+        use sindri_targets::traits::PrereqCheck;
+        use std::path::Path;
+
+        // A local-kind target with no actual filesystem entry for the component.
+        struct LocalTarget;
+        impl sindri_targets::Target for LocalTarget {
+            fn name(&self) -> &str {
+                "local-test"
+            }
+            fn kind(&self) -> &str {
+                "local"
+            }
+            fn profile(&self) -> Result<TargetProfile, TargetError> {
+                Ok(TargetProfile {
+                    platform: Platform {
+                        os: Os::Linux,
+                        arch: Arch::X86_64,
+                    },
+                    capabilities: Capabilities {
+                        system_package_manager: None,
+                        has_docker: false,
+                        has_sudo: false,
+                        shell: None,
+                    },
+                })
+            }
+            fn exec(&self, cmd: &str, _: &[(&str, &str)]) -> Result<(String, String), TargetError> {
+                panic!("unexpected exec: {cmd}");
+            }
+            fn upload(&self, _: &Path, _: &str) -> Result<(), TargetError> {
+                Ok(())
+            }
+            fn download(&self, _: &str, _: &Path) -> Result<(), TargetError> {
+                Ok(())
+            }
+            fn check_prerequisites(&self) -> Vec<PrereqCheck> {
+                vec![]
+            }
+        }
+
+        // Use a name that will never exist on disk.
+        let c = binary_comp("__sindri_test_nonexistent_binary_xyz987__");
+        let ctx = InstallContext::new(&c, None, &LocalTarget);
+        // Path does not exist → remove is a no-op and must succeed.
+        BinaryBackend.remove(&ctx).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn is_installed_non_local_target_returns_false() {
+        // MockTarget::kind() == "mock" triggers the conservative early-return.
+        let mock = MockTarget::new();
+        let c = binary_comp("ripgrep");
+        let ctx = InstallContext::new(&c, None, &mock);
+        assert!(!BinaryBackend.is_installed(&ctx).await);
+    }
+
+    #[tokio::test]
+    async fn is_installed_file_absent_returns_false() {
+        use sindri_core::platform::{Arch, Capabilities, Os, TargetProfile};
+        use sindri_targets::error::TargetError;
+        use sindri_targets::traits::PrereqCheck;
+        use std::path::Path;
+
+        struct LocalTarget;
+        impl sindri_targets::Target for LocalTarget {
+            fn name(&self) -> &str {
+                "local-test"
+            }
+            fn kind(&self) -> &str {
+                "local"
+            }
+            fn profile(&self) -> Result<TargetProfile, TargetError> {
+                Ok(TargetProfile {
+                    platform: Platform {
+                        os: Os::Linux,
+                        arch: Arch::X86_64,
+                    },
+                    capabilities: Capabilities {
+                        system_package_manager: None,
+                        has_docker: false,
+                        has_sudo: false,
+                        shell: None,
+                    },
+                })
+            }
+            fn exec(&self, cmd: &str, _: &[(&str, &str)]) -> Result<(String, String), TargetError> {
+                panic!("unexpected exec: {cmd}");
+            }
+            fn upload(&self, _: &Path, _: &str) -> Result<(), TargetError> {
+                Ok(())
+            }
+            fn download(&self, _: &str, _: &Path) -> Result<(), TargetError> {
+                Ok(())
+            }
+            fn check_prerequisites(&self) -> Vec<PrereqCheck> {
+                vec![]
+            }
+        }
+
+        let c = binary_comp("__sindri_test_nonexistent_binary_xyz987__");
+        let ctx = InstallContext::new(&c, None, &LocalTarget);
+        assert!(!BinaryBackend.is_installed(&ctx).await);
     }
 }
