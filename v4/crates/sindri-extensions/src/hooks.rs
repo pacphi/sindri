@@ -38,6 +38,13 @@ use sindri_core::platform::{Os, Platform};
 use sindri_targets::Target;
 use std::path::{Path, PathBuf};
 
+/// Helpers source-of-truth, embedded into the binary at build time so
+/// the dispatcher can write them to a cache dir on first use and
+/// inject an absolute path via `SINDRI_HELPERS_SH` / `SINDRI_HELPERS_PSM1`.
+/// Scripts source via `. "$SINDRI_HELPERS_SH"` — zero relative paths.
+const EMBEDDED_HELPERS_SH: &str = include_str!("../../../support/scripts/sindri-helpers.sh");
+const EMBEDDED_HELPERS_PSM1: &str = include_str!("../../../support/scripts/sindri-helpers.psm1");
+
 /// Context passed to every hook invocation.
 ///
 /// The lifetime parameter ties the borrowed [`Target`] reference to the
@@ -160,6 +167,12 @@ impl HooksExecutor {
         let events_path = ctx.log_dir.join(format!("{}.events.jsonl", phase.as_str()));
         let _ = std::fs::File::create(&events_path);
 
+        // Materialize the helper library into the on-disk cache so the
+        // script can source it via the contracted env var. One-time
+        // write per binary release; subsequent invocations no-op when
+        // the embedded content matches the cached file.
+        let (helpers_sh, helpers_psm1) = ensure_helpers_on_disk();
+
         // Build env: contracted + caller-supplied. Caller-supplied wins
         // on collision (auth tokens may legitimately use the same name
         // as a contracted var, though this is rare).
@@ -175,6 +188,11 @@ impl HooksExecutor {
             ("SINDRI_LOG_DIR".into(), log_dir_str),
             ("SINDRI_EVENTS".into(), events_str.clone()),
             ("SINDRI_DRY_RUN".into(), dry.into()),
+            ("SINDRI_HELPERS_SH".into(), helpers_sh.display().to_string()),
+            (
+                "SINDRI_HELPERS_PSM1".into(),
+                helpers_psm1.display().to_string(),
+            ),
         ];
         for (k, v) in ctx.env {
             env.push(((*k).to_string(), (*v).to_string()));
@@ -339,6 +357,46 @@ fn parse_events_file(path: &Path) -> PhaseOutcome {
         }
     }
     outcome
+}
+
+/// Materialize the embedded helper libraries into
+/// `~/.sindri/cache/helpers/sindri-helpers.{sh,psm1}` and return
+/// the resolved absolute paths. Subsequent invocations no-op when
+/// the on-disk content matches the embedded bytes.
+///
+/// Returns `(sh_path, psm1_path)` even when the host is the wrong
+/// family for one of them — the dispatcher only sets the env var,
+/// it doesn't sniff which one will actually be sourced.
+fn ensure_helpers_on_disk() -> (PathBuf, PathBuf) {
+    let cache = sindri_core::paths::home_dir()
+        .unwrap_or_default()
+        .join(".sindri")
+        .join("cache")
+        .join("helpers");
+    std::fs::create_dir_all(&cache).ok();
+
+    let sh = cache.join("sindri-helpers.sh");
+    write_if_changed(&sh, EMBEDDED_HELPERS_SH);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(&sh, std::fs::Permissions::from_mode(0o644));
+    }
+
+    let psm1 = cache.join("sindri-helpers.psm1");
+    write_if_changed(&psm1, EMBEDDED_HELPERS_PSM1);
+
+    (sh, psm1)
+}
+
+fn write_if_changed(path: &Path, content: &str) {
+    let needs_write = match std::fs::read_to_string(path) {
+        Ok(existing) => existing != content,
+        Err(_) => true,
+    };
+    if needs_write {
+        let _ = std::fs::write(path, content);
+    }
 }
 
 /// Compute a default per-component log dir under

@@ -120,6 +120,8 @@ parameters without sourcing env first.
 | `SINDRI_LOG_DIR`           | yes         | Absolute path to per-phase log directory. Created by dispatcher. |
 | `SINDRI_EVENTS`            | yes         | Absolute path to a JSON-Lines events file. Created (empty) by dispatcher. |
 | `SINDRI_DRY_RUN`           | yes         | `1` when invoked under `sindri apply --dry-run`; otherwise `0`.  |
+| `SINDRI_HELPERS_SH`        | yes         | Absolute path to `sindri-helpers.sh`. Source via `. "$SINDRI_HELPERS_SH"`. |
+| `SINDRI_HELPERS_PSM1`      | yes         | Absolute path to `sindri-helpers.psm1`. Import via `Import-Module $env:SINDRI_HELPERS_PSM1 -Force`. |
 | `SINDRI_AUTH_<id>`         | per binding | Auth values redeemed by the resolver (ADR-027).                  |
 
 The script must not assume any other env. In particular `PATH` is
@@ -183,30 +185,55 @@ The repo ships
 [`support/scripts/sindri-helpers.sh`](../support/scripts/sindri-helpers.sh)
 and
 [`support/scripts/sindri-helpers.psm1`](../support/scripts/sindri-helpers.psm1).
-They are sourced relative to the component package root:
+They are embedded into the sindri binary at build time, materialized
+to `~/.sindri/cache/helpers/sindri-helpers.{sh,psm1}` on first
+dispatch, and surfaced to scripts via the contracted env vars
+`$SINDRI_HELPERS_SH` and `$SINDRI_HELPERS_PSM1`. Sourcing has zero
+relative-path traversal:
 
 ```bash
 #!/usr/bin/env bash
 set -Eeuo pipefail
-. "$(dirname "$0")/../../../support/scripts/sindri-helpers.sh"
+. "$SINDRI_HELPERS_SH"
 sindri::init
 ```
 
 ```powershell
 $ErrorActionPreference = 'Stop'
-Import-Module (Join-Path $PSScriptRoot '..\..\..\support\scripts\sindri-helpers.psm1') -Force
+Import-Module $env:SINDRI_HELPERS_PSM1 -Force
 Sindri-Init
 ```
 
-### POSIX shell helpers
+### POSIX shell helpers (`sindri::*` namespace)
 
 | Function                                | Purpose                                                          |
 |-----------------------------------------|------------------------------------------------------------------|
 | `sindri::init`                          | Validates the contracted env, truncates the events file, opens the log. **Call once at the top of every script.** |
 | `sindri::log <level> <msg…>`            | Structured stderr line; level is `debug` / `info` / `warn` / `error`. |
-| `sindri::emit <event> [json-detail]`    | Append one JSON-Lines record to `$SINDRI_EVENTS`. The optional second arg is a JSON object body whose keys are spliced into the record. |
+| `sindri::emit <event> [json-fragment]`  | Append one JSON-Lines record to `$SINDRI_EVENTS`. The optional second arg is the *inner* fragment (KV pairs spliced into the record). |
 | `sindri::require_env VAR ...`           | Fail fast (exit 64) if any named env var is unset/empty.         |
 | `sindri::tool_installed <bin>`          | `command -v` shorthand. Returns 0 (true) if on PATH.             |
+| `sindri::version_of <bin>`              | Best-effort semver extraction from `<bin> --version`. Empty string on failure. |
+| `sindri::at_version <bin>`              | Idempotency check. On match: emits `skip` + `phase-complete change:false`, returns 0 (caller should `exit 0`). On miss: returns 1; caller proceeds with real install. |
+
+### Convenience layer (un-prefixed shorthand)
+
+The helper library also defines six terse aliases so component bodies
+read like prose. Both spellings are first-class — pick whichever feels
+clearer.
+
+| Shorthand          | Equivalent                              |
+|--------------------|-----------------------------------------|
+| `info "msg"`       | `sindri::log info "msg"`                |
+| `warn "msg"`       | `sindri::log warn "msg"`                |
+| `error "msg"`      | `sindri::log error "msg"`               |
+| `die "msg"`        | `sindri::log error "msg"; exit 1`       |
+| `has <bin>`        | `sindri::tool_installed <bin>`          |
+| `require <bin>`    | `sindri::tool_installed <bin> || die "Required: <bin>"` |
+
+`at_version <bin>` and `version_of <bin>` are intentionally *not*
+re-aliased — they're already short, and the namespaced form makes the
+idempotency intent explicit at the call site.
 
 ### PowerShell helpers
 
@@ -217,6 +244,8 @@ Sindri-Init
 | `Sindri-Emit`      | `-Name <string> -Detail <hashtable>`.            |
 | `Sindri-RequireEnv`| `-Names <string[]>`.                             |
 | `Sindri-ToolInstalled` | `-Name <string>`.                            |
+| `Sindri-VersionOf` | `-Name <string>` → semver string or empty.       |
+| `Sindri-AtVersion` | `-Name <string>` → `$true` on match (also emits skip + phase-complete). |
 
 ---
 
@@ -227,7 +256,7 @@ Sindri-Init
 ```bash
 #!/usr/bin/env bash
 set -Eeuo pipefail
-. "$(dirname "$0")/../../../support/scripts/sindri-helpers.sh"
+. "$SINDRI_HELPERS_SH"
 sindri::init
 
 if sindri::tool_installed mytool && \
@@ -255,7 +284,7 @@ sindri::emit phase-complete '"change":true'
 ```bash
 #!/usr/bin/env bash
 set -Eeuo pipefail
-. "$(dirname "$0")/../../../support/scripts/sindri-helpers.sh"
+. "$SINDRI_HELPERS_SH"
 sindri::init
 
 if ! sindri::tool_installed mytool; then
@@ -288,7 +317,7 @@ exec "$(dirname "$0")/install.sh" "$@"
 ```bash
 #!/usr/bin/env bash
 set -Eeuo pipefail
-. "$(dirname "$0")/../../../support/scripts/sindri-helpers.sh"
+. "$SINDRI_HELPERS_SH"
 sindri::init
 
 if [ -x "$HOME/.local/bin/mytool" ]; then

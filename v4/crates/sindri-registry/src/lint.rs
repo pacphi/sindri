@@ -181,16 +181,15 @@ fn lint_hook_sh(pkg_root: &Path, phase: &str, rel_sh: &Path, warnings: &mut Vec<
         }
     }
 
-    if !content.contains("sindri-helpers.sh") {
+    if !content.contains("$SINDRI_HELPERS_SH") && !content.contains("${SINDRI_HELPERS_SH") {
         warnings.push(LintDiagnostic {
             code: "LINT_HOOK_MISSING_HELPERS_SOURCE".into(),
             message: format!(
-                "{} hook `{}` doesn't source `sindri-helpers.sh`",
+                "{} hook `{}` doesn't source the helper library via $SINDRI_HELPERS_SH",
                 phase, display
             ),
             fix: Some(
-                "Add `. \"$(dirname \"$0\")/../../../support/scripts/sindri-helpers.sh\"; sindri::init`"
-                    .into(),
+                "Add `. \"$SINDRI_HELPERS_SH\"; sindri::init` near the top of the script".into(),
             ),
         });
     }

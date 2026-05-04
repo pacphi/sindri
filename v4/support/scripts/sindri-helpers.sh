@@ -2,33 +2,29 @@
 # sindri-helpers.sh — POSIX shell helper library for Sindri lifecycle
 # scripts (ADR-030, v4/docs/script-contract.md).
 #
-# Usage in a phase script:
+# Sourced by every phase script via the dispatcher-injected env var:
 #
 #   #!/usr/bin/env bash
 #   set -Eeuo pipefail
-#   . "$(dirname "$0")/../../../support/scripts/sindri-helpers.sh"
+#   . "$SINDRI_HELPERS_SH"
 #   sindri::init
 #
-#   if sindri::tool_installed mytool && [ "$(mytool --version)" = "$SINDRI_COMPONENT_VERSION" ]; then
-#       sindri::emit phase-complete '{"change":false}'
-#       exit 0
-#   fi
+# `$SINDRI_HELPERS_SH` is set by the dispatcher to an absolute path —
+# no relative `..` traversal needed and the same script body works on
+# any target the dispatcher reaches.
 #
-#   # …do the install…
-#   sindri::log info "installed mytool $SINDRI_COMPONENT_VERSION"
-#   sindri::emit phase-complete '{"change":true}'
-#
-# All public helpers are exposed under the `sindri::` namespace
-# (Bash treats `::` as part of the function name; no shell-shell
-# portability concerns since this file requires bash explicitly).
+# All public helpers are exposed under the `sindri::` namespace plus a
+# small set of un-prefixed shorthand aliases (`info`, `warn`, `error`,
+# `die`, `has`, `require`) documented in `script-contract.md` as the
+# "convenience layer." Both spellings are first-class.
 
-# Idempotency guard so a script that sources us twice doesn't run init twice.
+# Idempotency guard — sourcing twice in one process is a no-op.
 if [ "${__SINDRI_HELPERS_LOADED:-0}" = "1" ]; then
     return 0
 fi
 __SINDRI_HELPERS_LOADED=1
 
-# --- public ----------------------------------------------------------
+# --- public, namespaced ----------------------------------------------
 
 # sindri::init — validates the contracted env, sets traps, opens
 # the per-phase log file. Call this once at the top of every script.
@@ -48,11 +44,10 @@ sindri::init() {
     mkdir -p "$SINDRI_LOG_DIR" || true
     : > "$SINDRI_EVENTS" || true
 
-    # Print where we are so the per-phase stdout log is self-describing.
     sindri::log info "phase=$SINDRI_PHASE component=$SINDRI_COMPONENT_ADDRESS version=$SINDRI_COMPONENT_VERSION prior=${SINDRI_PRIOR_VERSION:-<none>} dry_run=$SINDRI_DRY_RUN"
 }
 
-# sindri::log <level> <msg…> — structured stderr line.
+# sindri::log <level> <msg…> — structured stderr.
 # Levels: debug | info | warn | error.
 sindri::log() {
     local level="$1"
@@ -60,30 +55,28 @@ sindri::log() {
     printf '[sindri %s] %s: %s\n' "${SINDRI_PHASE:-?}" "$level" "$*" >&2
 }
 
-# sindri::emit <event-name> [json-detail-object]
-#
-# Append one JSON-Lines record to $SINDRI_EVENTS. The first arg is
-# the event name (the dispatcher recognizes "phase-complete"); the
-# optional second arg is a JSON object whose top-level keys are
-# merged into the event record.
-#
-# Examples:
-#   sindri::emit info '{"detail":"started"}'
-#   sindri::emit phase-complete '{"change":true}'
-#   sindri::emit skip '{"reason":"already at version"}'
+# sindri::emit <event-name> [json-detail-fragment]
+# Append one JSON-Lines record to $SINDRI_EVENTS. The optional second
+# arg is the *inner* fragment of a JSON object — keys are spliced into
+# the parent record. Examples:
+#   sindri::emit info '"detail":"started"'
+#   sindri::emit phase-complete '"change":true'
+#   sindri::emit skip '"reason":"already-installed"'
 sindri::emit() {
     local name="$1"
-    local detail="${2:-{\}}"
+    local frag="${2:-}"
     if [ -z "${SINDRI_EVENTS:-}" ]; then
         return 0
     fi
-    # shellcheck disable=SC2059
-    printf '{"event":"%s",%s}\n' "$name" "$(__sindri_object_inner "$detail")" >> "$SINDRI_EVENTS"
+    if [ -n "$frag" ]; then
+        printf '{"event":"%s",%s}\n' "$name" "$frag" >> "$SINDRI_EVENTS"
+    else
+        printf '{"event":"%s"}\n' "$name" >> "$SINDRI_EVENTS"
+    fi
 }
 
 # sindri::require_env VAR [VAR ...] — fail fast if any named env
-# var is unset or empty (allow-listed exceptions: SINDRI_PRIOR_VERSION
-# and SINDRI_DRY_RUN may be empty / unset).
+# var is unset or empty.
 sindri::require_env() {
     local missing=()
     local v
@@ -98,27 +91,57 @@ sindri::require_env() {
     fi
 }
 
-# sindri::tool_installed <bin> — `command -v` shorthand. Returns
-# 0 (true) if the binary is on PATH; 1 otherwise.
+# sindri::tool_installed <bin> — `command -v` shorthand. Returns 0
+# (true) if the binary is on PATH.
 sindri::tool_installed() {
     command -v -- "$1" > /dev/null 2>&1
 }
 
-# --- internal --------------------------------------------------------
-
-# Strip the leading and trailing braces of a JSON object literal so
-# we can splice it into a parent object. Empty input -> empty output.
-__sindri_object_inner() {
-    local raw="$1"
-    raw="${raw#"${raw%%[![:space:]]*}"}"  # ltrim
-    raw="${raw%"${raw##*[![:space:]]}"}"  # rtrim
-    raw="${raw#\{}"
-    raw="${raw%\}}"
-    raw="${raw#"${raw%%[![:space:]]*}"}"
-    raw="${raw%"${raw##*[![:space:]]}"}"
-    if [ -z "$raw" ]; then
-        printf '"detail":null'
-    else
-        printf '%s' "$raw"
-    fi
+# sindri::version_of <bin> — best-effort version extraction from a
+# binary's --version / version output. Prints the first semver-shaped
+# token; empty string on failure.
+sindri::version_of() {
+    local bin="$1"
+    "$bin" --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1 \
+        || "$bin" version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1 \
+        || echo ""
 }
+
+# sindri::at_version <bin> [bin ...] — idempotency check.
+#
+# Returns 0 (true) if the first binary's version (per
+# `sindri::version_of`) starts-with-or-contains $SINDRI_COMPONENT_VERSION
+# *and* emits a `skip` + `phase-complete change:false` event so the
+# dispatcher records the no-op cleanly. Returns 1 (false) when work
+# is needed; the caller proceeds with the real install.
+#
+# Typical use:
+#   sindri::at_version gcloud && exit 0
+#   # …actual install…
+#   sindri::emit phase-complete '"change":true'
+sindri::at_version() {
+    local bin="$1" have want="$SINDRI_COMPONENT_VERSION"
+    have=$(sindri::version_of "$bin")
+    if [ -n "$want" ] && { [ "${have#"$want"}" != "$have" ] || [ "${have%"$want"}" != "$have" ] || [ "${have#*"$want"}" != "$have" ]; }; then
+        sindri::log info "$bin already at $want; skipping"
+        sindri::emit skip '"reason":"already-installed"'
+        sindri::emit phase-complete '"change":false'
+        return 0
+    fi
+    if [ -n "$have" ]; then
+        sindri::log info "$bin: $have → $want"
+    fi
+    return 1
+}
+
+# --- shorthand aliases (convenience layer) ----------------------------
+#
+# Documented as first-class in script-contract.md. Use whichever style
+# reads better in your script — both surfaces are stable.
+
+info()    { sindri::log info  "$*"; }
+warn()    { sindri::log warn  "$*"; }
+error()   { sindri::log error "$*"; }
+die()     { sindri::log error "$*"; exit 1; }
+has()     { sindri::tool_installed "$1"; }
+require() { sindri::tool_installed "$1" || die "Required: $1 — install it before running this script."; }
