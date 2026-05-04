@@ -76,7 +76,7 @@ jobs:
           echo "changelog_file=changelog.md" >> "$GITHUB_OUTPUT"
 
       - name: Upload changelog artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: changelog-v3
           path: changelog.md
@@ -121,7 +121,7 @@ jobs:
           cargo install cross --git https://github.com/cross-rs/cross
 
       - name: Cache Cargo dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@v5.0.5
         with:
           path: |
             ~/.cargo/bin/
@@ -167,7 +167,7 @@ jobs:
         shell: pwsh
 
       - name: Upload binary artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: binary-${{ matrix.platform }}
           path: |
@@ -501,7 +501,7 @@ jobs:
           echo "Image digest for ${{ matrix.distro }}: $DIGEST_HASH"
 
       - name: Attest build provenance
-        uses: actions/attest-build-provenance@v4
+        uses: actions/attest-build-provenance@v4.1.0
         with:
           subject-name: ghcr.io/${{ github.repository }}
           subject-digest: ${{ steps.digest.outputs.digest }}
@@ -558,7 +558,7 @@ jobs:
           echo "  cosign download sbom ghcr.io/${REPO}:${{ needs.validate-tag.outputs.version }}"
 
       - name: Upload SBOM artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: sbom-v${{ needs.validate-tag.outputs.version }}
           path: sbom.spdx.json

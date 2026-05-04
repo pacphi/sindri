@@ -143,7 +143,7 @@ jobs:
           cargo build --release --workspace $target_arg $features_arg
       - name: Upload release binary
         if: ${{ inputs.target == 'x86_64-unknown-linux-musl' }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: sindri-${{ inputs.workspace_dir }}-binaries-${{ github.sha }}
           path: ${{ inputs.workspace_dir }}/target/${{ inputs.target }}/release/sindri

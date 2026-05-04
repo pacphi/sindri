@@ -54,7 +54,7 @@ jobs:
         run: cargo install cross --git https://github.com/cross-rs/cross
 
       - name: Cache cargo registry + target
-        uses: actions/cache@v5
+        uses: actions/cache@v5.0.5
         with:
           path: |
             ~/.cargo/bin/
@@ -93,7 +93,7 @@ jobs:
           }
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: binary-${{ matrix.platform }}
           path: |

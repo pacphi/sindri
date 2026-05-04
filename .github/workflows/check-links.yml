@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Restore lychee cache
-        uses: actions/cache@v5
+        uses: actions/cache@v5.0.5
         with:
           path: .lycheecache
           key: cache-lychee-${{ github.sha }}
@@ -55,7 +55,7 @@ jobs:
 
       - name: Upload internal link report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: lychee-internal-report
           path: lychee-internal.md
@@ -71,7 +71,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Restore lychee cache
-        uses: actions/cache@v5
+        uses: actions/cache@v5.0.5
         with:
           path: .lycheecache
           key: cache-lychee-external-${{ github.sha }}
@@ -105,7 +105,7 @@ jobs:
 
       - name: Upload external link report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: lychee-external-report
           path: lychee-external.md

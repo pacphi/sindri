@@ -472,7 +472,7 @@ jobs:
           cat test-result.json
 
       - name: Upload Test Result
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         if: always()
         with:
           name: ${{ inputs.artifact-prefix }}packer-result-${{ matrix.extension }}

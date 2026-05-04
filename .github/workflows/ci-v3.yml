@@ -67,7 +67,7 @@ jobs:
         with:
           workspaces: v3 -> target
       - name: Install cargo-binstall
-        uses: cargo-bins/cargo-binstall@v1.18.1
+        uses: cargo-bins/cargo-binstall@v1.19.0
       - name: Install cargo-machete
         run: cargo binstall cargo-machete --no-confirm
       - name: Scan for unused dependencies
@@ -110,7 +110,7 @@ jobs:
           workspaces: v3 -> target
 
       - name: Install cargo-binstall
-        uses: cargo-bins/cargo-binstall@v1.18.1
+        uses: cargo-bins/cargo-binstall@v1.19.0
 
       - name: Install cargo-llvm-cov
         run: cargo binstall cargo-llvm-cov --no-confirm --force
@@ -184,7 +184,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: coverage-lcov-${{ github.sha }}
           path: |
@@ -285,7 +285,7 @@ jobs:
 
       - name: Attest build provenance
         if: steps.build.outputs.digest != ''
-        uses: actions/attest-build-provenance@v4
+        uses: actions/attest-build-provenance@v4.1.0
         with:
           subject-name: ghcr.io/${{ github.repository }}
           subject-digest: ${{ steps.build.outputs.digest }}
@@ -405,7 +405,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install cargo-binstall
-        uses: cargo-bins/cargo-binstall@v1.18.1
+        uses: cargo-bins/cargo-binstall@v1.19.0
 
       - name: Install cargo-audit
         run: cargo binstall cargo-audit --no-confirm
@@ -726,7 +726,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: provider-test-results-${{ matrix.provider }}-${{ github.sha }}
           path: v3/provider-test-results.txt
