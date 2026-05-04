@@ -29,9 +29,18 @@ During `sindri resolve`, every component passes through four admission gates:
 
 Declare every platform your component supports. Resolution fails loudly for undeclared platforms rather than falling back silently. Prefer typed backends (`mise`, `brew`, `winget`) over `script` wherever possible.
 
-### Script lifecycle contract ([ADR-024](ADRs/024-script-component-lifecycle-contract.md))
+### Lifecycle hook contract ([ADR-030](ADRs/030-lifecycle-hooks-contract.md))
 
-If your component uses the `script` backend, the CLI injects `SINDRI_COMPONENT_VERSION` before every lifecycle script. Your `install.sh` must implement version-aware idempotency using the `at_version` helper.
+Every lifecycle script honors a single contract — env vars, argv,
+JSON-Lines events on `$SINDRI_EVENTS`, binary exit codes — defined
+in **[`docs/script-contract.md`](script-contract.md)**. Each phase
+(`install`, `validate`, `upgrade`, `uninstall`, `configure`,
+`pre-install`, `post-install`, `project-init`) is its own script
+file declared under `capabilities.hooks.<phase>` as a sibling
+`sh` + `ps1` pair. Use the helper library at
+[`support/scripts/sindri-helpers.{sh,psm1}`](../support/scripts/)
+to honor the contract with minimal boilerplate. ADR-024 records
+the historical context; ADR-030 is the current spec.
 
 ---
 
@@ -153,16 +162,53 @@ install:
 
 #### `script` backend
 
+The `script` backend has **no** typed `install:` block. Instead,
+declare each lifecycle phase under `capabilities.hooks` as a
+sibling `sh` + `ps1` pair. The dispatcher selects the host-native
+variant and invokes it with the contracted env + argv documented
+in [`docs/script-contract.md`](script-contract.md):
+
 ```yaml
-install:
-  script:
-    install_sh: "install.sh"
-    uninstall_sh: "uninstall.sh"
-    validate_sh: "validate.sh"
-    upgrade_sh: "upgrade.sh"
+install: {}      # no typed backend; the install phase lives in hooks below
+
+capabilities:
+  hooks:
+    install:
+      sh:  scripts/install.sh
+      ps1: scripts/install.ps1
+    validate:
+      sh:  scripts/validate.sh
+    upgrade:
+      sh:  scripts/upgrade.sh    # default: `exec install.sh`
+    uninstall:
+      sh:  scripts/uninstall.sh
 ```
 
-Every script receives `SINDRI_COMPONENT_VERSION` from the CLI (see [ADR-024](ADRs/024-script-component-lifecycle-contract.md)). Scripts must implement version-aware idempotency.
+Every script honors the contract: argv `[<phase>, <version>,
+<prior_version>]`, env `SINDRI_PHASE`, `SINDRI_COMPONENT_VERSION`,
+`SINDRI_PRIOR_VERSION`, `SINDRI_LOG_DIR`, `SINDRI_EVENTS`, etc.
+Use the helper library at
+[`support/scripts/sindri-helpers.sh`](../support/scripts/sindri-helpers.sh):
+
+```bash
+#!/usr/bin/env bash
+set -Eeuo pipefail
+. "$(dirname "$0")/../../../support/scripts/sindri-helpers.sh"
+sindri::init
+
+if sindri::tool_installed mytool && \
+   [ "$(mytool --version)" = "mytool $SINDRI_COMPONENT_VERSION" ]; then
+    sindri::emit phase-complete '"change":false'
+    exit 0
+fi
+
+# …install logic…
+
+sindri::emit phase-complete '"change":true'
+```
+
+See [`docs/script-contract.md`](script-contract.md) for the full
+spec including PowerShell, the event protocol, and the lint rules.
 
 ### Per-platform behavior
 
@@ -269,14 +315,13 @@ Optional capabilities block for post-install integration.
 ```yaml
 capabilities:
   hooks:
-    pre_install:
-      - command: "echo 'about to install'"
-    post_install:
-      - command: "node --version"
-    pre_project_init:
-      - command: "corepack enable"
-    post_project_init:
-      - command: "npm install"
+    pre-install:
+      sh:  scripts/pre-install.sh
+    post-install:
+      sh:  scripts/post-install.sh
+      ps1: scripts/post-install.ps1
+    project-init:
+      sh:  scripts/project-init.sh
 
   project_init:
     - name: "Install dependencies"
@@ -369,8 +414,8 @@ validate:
 
 capabilities:
   hooks:
-    post_install:
-      - command: "gh --version"
+    post-install:
+      sh:  scripts/post-install.sh
 ```
 
 ---

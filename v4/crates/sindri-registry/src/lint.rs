@@ -107,12 +107,93 @@ fn lint_file(path: &Path) -> Result<LintResult, RegistryError> {
         });
     }
 
+    // Lifecycle hooks (ADR-030) — three publish-time warnings. The
+    // dispatcher's runtime contract gate is the actual enforcement
+    // boundary; these surface issues early so authors notice before
+    // a `sindri apply` user does.
+    let pkg_root = path.parent().unwrap_or(Path::new("."));
+    if let Some(hooks) = manifest.capabilities.hooks.as_ref() {
+        let phases = [
+            ("pre-install", hooks.pre_install.as_ref()),
+            ("install", hooks.install.as_ref()),
+            ("post-install", hooks.post_install.as_ref()),
+            ("configure", hooks.configure.as_ref()),
+            ("validate", hooks.validate.as_ref()),
+            ("upgrade", hooks.upgrade.as_ref()),
+            ("uninstall", hooks.uninstall.as_ref()),
+            ("project-init", hooks.project_init.as_ref()),
+        ];
+        for (phase, sref) in phases {
+            let Some(sref) = sref else { continue };
+            if let Some(rel_sh) = sref.sh.as_ref() {
+                lint_hook_sh(pkg_root, phase, rel_sh, &mut warnings);
+            }
+        }
+    }
+
     let passed = errors.is_empty();
     Ok(LintResult {
         passed,
         errors,
         warnings,
     })
+}
+
+/// Three lifecycle-hook warnings per ADR-030 §"Lint rules":
+///   * LINT_HOOK_MISSING_SHEBANG       — script doesn't start with `#!/usr/bin/env bash` (or `#!/bin/bash`).
+///   * LINT_HOOK_NON_EXECUTABLE        — script lacks any +x bit on POSIX.
+///   * LINT_HOOK_MISSING_HELPERS_SOURCE — script doesn't source `sindri-helpers.sh`.
+fn lint_hook_sh(pkg_root: &Path, phase: &str, rel_sh: &Path, warnings: &mut Vec<LintDiagnostic>) {
+    let abs = pkg_root.join(rel_sh);
+    let display = rel_sh.display().to_string();
+    let Ok(content) = fs::read_to_string(&abs) else {
+        // Missing file is the dispatcher's job to surface at runtime;
+        // the lint focuses on present-but-malformed scripts.
+        return;
+    };
+    let first_line = content.lines().next().unwrap_or("");
+    if !first_line.starts_with("#!/usr/bin/env bash")
+        && !first_line.starts_with("#!/bin/bash")
+        && !first_line.starts_with("#!/usr/bin/bash")
+    {
+        warnings.push(LintDiagnostic {
+            code: "LINT_HOOK_MISSING_SHEBANG".into(),
+            message: format!(
+                "{} hook `{}` should start with `#!/usr/bin/env bash`",
+                phase, display
+            ),
+            fix: Some("Add `#!/usr/bin/env bash` as the first line".into()),
+        });
+    }
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Ok(meta) = fs::metadata(&abs) {
+            let mode = meta.permissions().mode();
+            if mode & 0o111 == 0 {
+                warnings.push(LintDiagnostic {
+                    code: "LINT_HOOK_NON_EXECUTABLE".into(),
+                    message: format!("{} hook `{}` is not executable", phase, display),
+                    fix: Some(format!("Run `chmod +x {}`", display)),
+                });
+            }
+        }
+    }
+
+    if !content.contains("sindri-helpers.sh") {
+        warnings.push(LintDiagnostic {
+            code: "LINT_HOOK_MISSING_HELPERS_SOURCE".into(),
+            message: format!(
+                "{} hook `{}` doesn't source `sindri-helpers.sh`",
+                phase, display
+            ),
+            fix: Some(
+                "Add `. \"$(dirname \"$0\")/../../../support/scripts/sindri-helpers.sh\"; sindri::init`"
+                    .into(),
+            ),
+        });
+    }
 }
 
 fn lint_directory(dir: &Path) -> Result<LintResult, RegistryError> {

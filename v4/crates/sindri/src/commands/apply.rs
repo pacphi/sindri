@@ -532,18 +532,29 @@ async fn run_project_init_pass(
 ) -> Result<(), ApplyError> {
     let hooks_executor = HooksExecutor::new();
 
-    // 6. pre-project-init hooks (per component, in apply order).
+    // 6. project-init hooks (per component, in apply order).
+    use sindri_core::component::Phase;
+    use sindri_extensions::hooks::default_log_dir;
+    let run_id = run_id_for_pass();
     for comp in applied {
         if let Some(m) = comp.manifest.as_ref() {
             if let Some(h) = m.capabilities.hooks.as_ref() {
+                let address = comp.id.to_address();
+                let pkg = component_package_root_for(address.as_str());
+                let log = default_log_dir(&comp.id.name, &run_id);
                 let ctx = HookContext {
                     component: &comp.id.name,
                     version: &comp.version.0,
+                    prior_version: "",
                     target,
                     env: &[],
-                    workdir: ".",
+                    package_root: pkg.as_path(),
+                    log_dir: log.as_path(),
+                    dry_run: false,
                 };
-                hooks_executor.run_pre_project_init(h, &ctx).await?;
+                hooks_executor
+                    .run_phase(Phase::ProjectInit, h, &ctx)
+                    .await?;
             }
         }
     }
@@ -573,23 +584,26 @@ async fn run_project_init_pass(
         ProjectInitExecutor::new().run(&steps, &pi_ctx).await?;
     }
 
-    // 8. post-project-init hooks (per component, in apply order).
-    for comp in applied {
-        if let Some(m) = comp.manifest.as_ref() {
-            if let Some(h) = m.capabilities.hooks.as_ref() {
-                let ctx = HookContext {
-                    component: &comp.id.name,
-                    version: &comp.version.0,
-                    target,
-                    env: &[],
-                    workdir: ".",
-                };
-                hooks_executor.run_post_project_init(h, &ctx).await?;
-            }
-        }
-    }
-
     Ok(())
+}
+
+fn run_id_for_pass() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let n = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    format!("run-{n}")
+}
+
+fn component_package_root_for(address: &str) -> PathBuf {
+    let safe = address.replace([':', '/'], "_");
+    sindri_core::paths::home_dir()
+        .unwrap_or_default()
+        .join(".sindri")
+        .join("cache")
+        .join("components")
+        .join(safe)
 }
 
 fn render_apply_err(e: &ApplyError) -> String {

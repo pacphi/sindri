@@ -397,35 +397,95 @@
       "type": "object"
     },
     "HooksConfig": {
-      "description": "Lifecycle hook commands declared by a component.\n\nEach field is an optional shell command string executed via the active\n[`sindri_targets::Target`] at the corresponding lifecycle stage.\n\nPer ADR-024 (script-component lifecycle contract), hooks are declarative:\nthey run on the same target as the install, observe the same environment,\nand a non-zero exit code aborts the lifecycle phase.",
+      "description": "Lifecycle hook script set declared by a component.\n\nEach phase carries an optional [`ScriptRef`] (sibling sh + ps1\npair). The dispatcher in `sindri-extensions::hooks` runs the\nplatform-appropriate variant via the active target, with the\ncontracted env + argv documented in `v4/docs/script-contract.md`.\n\nAll exit-code semantics are binary (0 = success, non-zero =\nfailure). Skip / continue intentions are conveyed via the\nJSON-Lines event stream the dispatcher writes for the script.",
       "properties": {
-        "post-install": {
-          "description": "Runs immediately after a successful install.",
-          "type": [
-            "string",
-            "null"
-          ]
+        "configure": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScriptRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Idempotent post-install configuration step (e.g. wire shell rc)."
         },
-        "post-project-init": {
-          "description": "Runs after the final [`ProjectInitStep`] for this component succeeds.",
-          "type": [
-            "string",
-            "null"
-          ]
+        "install": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScriptRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The install phase itself. When the resolver picks the `script`\nbackend, this is *the* install entry point."
+        },
+        "post-install": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScriptRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Runs immediately after a successful install."
         },
         "pre-install": {
-          "description": "Runs immediately before the install backend executes.",
-          "type": [
-            "string",
-            "null"
-          ]
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScriptRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Runs immediately before the install backend executes."
         },
-        "pre-project-init": {
-          "description": "Runs before any [`ProjectInitStep`] executes for this component.",
-          "type": [
-            "string",
-            "null"
-          ]
+        "project-init": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScriptRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Per-component project scaffolding (runs once per project init)."
+        },
+        "uninstall": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScriptRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Remove the installed component."
+        },
+        "upgrade": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScriptRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Bring an installed component to a newer version. Default impl is\n\"re-run install\" — components with native self-update can override."
+        },
+        "validate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScriptRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Asserts the installed component is functional at the target version."
         }
       },
       "type": "object"
@@ -1061,6 +1121,26 @@
           ]
         },
         "sh": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "ScriptRef": {
+      "description": "One lifecycle phase script — a sibling pair of POSIX shell and\nPowerShell scripts. Exactly one of the two is selected at run time\nbased on the active target's OS.\n\nPaths are relative to the component's package root (the directory\ncontaining `component.yaml`). The dispatcher resolves them to\nabsolute paths after the component's OCI artifact has been\nextracted to the cache.",
+      "properties": {
+        "ps1": {
+          "description": "PowerShell script (executed on Windows targets).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sh": {
+          "description": "POSIX shell script (executed on Linux / macOS targets).",
           "type": [
             "string",
             "null"

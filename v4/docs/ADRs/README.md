@@ -76,8 +76,9 @@ Each ADR states what was decided, why, and what is explicitly rejected.
 
 | #                                          | Title                                                | Status   |
 | ------------------------------------------ | ---------------------------------------------------- | -------- |
-| [024](024-script-component-lifecycle-contract.md) | Script component lifecycle contract            | Accepted |
+| [024](024-script-component-lifecycle-contract.md) | Script component lifecycle contract            | Superseded by ADR-030 |
 | [028](028-component-source-modes.md)              | Component source modes for development and air-gap | Proposed |
+| [030](030-lifecycle-hooks-contract.md)            | Lifecycle hooks: per-phase scripts + shared contract | Accepted |
 
 ### Project Conventions
 

@@ -10,6 +10,7 @@ use crate::version::VersionSpec;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::str::FromStr;
 
 /// ADR-002: The atomic unit of v4.
@@ -370,25 +371,120 @@ pub struct CollisionHandlingConfig {
     pub path_prefix: String,
 }
 
-/// Lifecycle hook commands declared by a component.
+/// One lifecycle phase script — a sibling pair of POSIX shell and
+/// PowerShell scripts. Exactly one of the two is selected at run time
+/// based on the active target's OS.
 ///
-/// Each field is an optional shell command string executed via the active
-/// [`sindri_targets::Target`] at the corresponding lifecycle stage.
+/// Paths are relative to the component's package root (the directory
+/// containing `component.yaml`). The dispatcher resolves them to
+/// absolute paths after the component's OCI artifact has been
+/// extracted to the cache.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub struct ScriptRef {
+    /// POSIX shell script (executed on Linux / macOS targets).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sh: Option<PathBuf>,
+    /// PowerShell script (executed on Windows targets).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ps1: Option<PathBuf>,
+}
+
+impl ScriptRef {
+    /// True when neither variant is set.
+    pub fn is_empty(&self) -> bool {
+        self.sh.is_none() && self.ps1.is_none()
+    }
+}
+
+/// One named lifecycle phase. Stable, in execution order for the
+/// install path; uninstall reverses where appropriate.
 ///
-/// Per ADR-024 (script-component lifecycle contract), hooks are declarative:
-/// they run on the same target as the install, observe the same environment,
-/// and a non-zero exit code aborts the lifecycle phase.
+/// See `v4/docs/script-contract.md` for the full per-phase contract.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+pub enum Phase {
+    PreInstall,
+    Install,
+    PostInstall,
+    Configure,
+    Validate,
+    Upgrade,
+    Uninstall,
+    ProjectInit,
+}
+
+impl Phase {
+    /// Stable string token used as `argv[1]`, `SINDRI_PHASE`, log dir
+    /// names, and event-stream identifiers. Kebab-case.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Phase::PreInstall => "pre-install",
+            Phase::Install => "install",
+            Phase::PostInstall => "post-install",
+            Phase::Configure => "configure",
+            Phase::Validate => "validate",
+            Phase::Upgrade => "upgrade",
+            Phase::Uninstall => "uninstall",
+            Phase::ProjectInit => "project-init",
+        }
+    }
+}
+
+/// Lifecycle hook script set declared by a component.
+///
+/// Each phase carries an optional [`ScriptRef`] (sibling sh + ps1
+/// pair). The dispatcher in `sindri-extensions::hooks` runs the
+/// platform-appropriate variant via the active target, with the
+/// contracted env + argv documented in `v4/docs/script-contract.md`.
+///
+/// All exit-code semantics are binary (0 = success, non-zero =
+/// failure). Skip / continue intentions are conveyed via the
+/// JSON-Lines event stream the dispatcher writes for the script.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub struct HooksConfig {
     /// Runs immediately before the install backend executes.
-    pub pre_install: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pre_install: Option<ScriptRef>,
+    /// The install phase itself. When the resolver picks the `script`
+    /// backend, this is *the* install entry point.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub install: Option<ScriptRef>,
     /// Runs immediately after a successful install.
-    pub post_install: Option<String>,
-    /// Runs before any [`ProjectInitStep`] executes for this component.
-    pub pre_project_init: Option<String>,
-    /// Runs after the final [`ProjectInitStep`] for this component succeeds.
-    pub post_project_init: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub post_install: Option<ScriptRef>,
+    /// Idempotent post-install configuration step (e.g. wire shell rc).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub configure: Option<ScriptRef>,
+    /// Asserts the installed component is functional at the target version.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub validate: Option<ScriptRef>,
+    /// Bring an installed component to a newer version. Default impl is
+    /// "re-run install" — components with native self-update can override.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub upgrade: Option<ScriptRef>,
+    /// Remove the installed component.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uninstall: Option<ScriptRef>,
+    /// Per-component project scaffolding (runs once per project init).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub project_init: Option<ScriptRef>,
+}
+
+impl HooksConfig {
+    /// Look up the [`ScriptRef`] for a given phase, if declared.
+    pub fn for_phase(&self, phase: Phase) -> Option<&ScriptRef> {
+        match phase {
+            Phase::PreInstall => self.pre_install.as_ref(),
+            Phase::Install => self.install.as_ref(),
+            Phase::PostInstall => self.post_install.as_ref(),
+            Phase::Configure => self.configure.as_ref(),
+            Phase::Validate => self.validate.as_ref(),
+            Phase::Upgrade => self.upgrade.as_ref(),
+            Phase::Uninstall => self.uninstall.as_ref(),
+            Phase::ProjectInit => self.project_init.as_ref(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
