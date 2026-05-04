@@ -121,7 +121,7 @@ jobs:
           cargo install cross --git https://github.com/cross-rs/cross
 
       - name: Cache Cargo dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@v5.0.5
         with:
           path: |
             ~/.cargo/bin/
