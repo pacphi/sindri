@@ -175,7 +175,7 @@ jobs:
           fi
       - name: Upload lint report
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: registry-lint-report
           path: v4/lint-report.json
@@ -395,7 +395,7 @@ jobs:
 
       - name: Upload ScanCode report
         if: ${{ always() || github.event.inputs.debug_scancode == 'true' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: scancode-license-report
           path: |
@@ -465,7 +465,7 @@ jobs:
           test -s "$out" || { echo "::error::index.yaml is empty"; exit 1; }
           echo "index-path=v4/$out" >> "$GITHUB_OUTPUT"
       - name: Upload generated index
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: registry-core-index
           path: v4/registry-core/index.yaml
@@ -653,7 +653,7 @@ jobs:
           show-summary: true
 
       - name: Upload attestation bundle
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: slsa-provenance-bundle
           path: ${{ steps.attest.outputs.bundle-path }}
@@ -757,7 +757,7 @@ jobs:
 
       - name: Upload verification result
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: attestation-verify-result
           path: attestation-verify-result.json
