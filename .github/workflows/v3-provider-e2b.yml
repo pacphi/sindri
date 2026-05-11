@@ -386,7 +386,7 @@ jobs:
 
     steps:
       - name: Download All Results
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.1
         with:
           path: results
           pattern: ${{ inputs.artifact-prefix }}e2b-result-*
