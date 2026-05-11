@@ -36,7 +36,7 @@ jobs:
           - { os: windows-latest,   target: x86_64-pc-windows-msvc,    tier: 1 }
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -81,7 +81,7 @@ jobs:
     name: Build Windows ARM64 (Tier 2)
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
         with: { targets: aarch64-pc-windows-msvc }
       - name: Cross-compile (build only)
@@ -95,7 +95,7 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - name: Install cargo-audit
         run: cargo install cargo-audit --locked
 
