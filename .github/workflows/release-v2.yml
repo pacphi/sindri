@@ -57,7 +57,7 @@ jobs:
       ci_image: ${{ steps.verify.outputs.ci_image }}
       image_digest: ${{ steps.verify.outputs.image_digest }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
 
@@ -124,7 +124,7 @@ jobs:
       changelog: ${{ steps.changelog.outputs.changelog }}
       changelog_file: ${{ steps.changelog.outputs.changelog_file }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
 
@@ -159,7 +159,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
         with:
           ref: main
           fetch-depth: 0
@@ -510,7 +510,7 @@ jobs:
     outputs:
       release_url: ${{ steps.release.outputs.url }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
 
       - name: Download changelog artifact
         uses: actions/download-artifact@v8
@@ -646,7 +646,7 @@ jobs:
       contents: read
       issues: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
 
       - name: Notify success
         if: needs.create-release.result == 'success'

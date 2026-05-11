@@ -96,7 +96,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
 
       # Workflows live on main but the runner checks out the v2 branch (where
       # this workflow's caller lives). v2 doesn't have .github/actions/ or
@@ -104,7 +104,7 @@ jobs:
       # main's .github/ into _ci-shared/ so the local-action and helper-script
       # references below can resolve.
       - name: Side-checkout main's .github/ for shared actions/scripts
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
         with:
           ref: main
           sparse-checkout: |
