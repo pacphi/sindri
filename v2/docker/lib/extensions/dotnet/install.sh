@@ -29,7 +29,7 @@ if command_exists dotnet; then
   exit 0
 fi
 
-# Add .NET backports PPA if requested (for .NET 9 or older versions on Ubuntu 24.04)
+# Add .NET backports PPA if requested (for .NET 9 or older versions on Ubuntu 24.04/26.04)
 if [[ "${EXT_USE_DOTNET_BACKPORTS:-false}" == "true" ]]; then
   print_status "Adding Ubuntu .NET backports PPA..."
   $SUDO add-apt-repository -y ppa:dotnet/backports 2>/dev/null || print_warning "Backports PPA failed"
