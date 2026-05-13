@@ -194,7 +194,7 @@ jobs:
       matrix:
         include:
           - { os: ubuntu-latest,    runner: linux,       sample-component: "mise:nodejs" }
-          - { os: ubuntu-24.04-arm, runner: linux-arm,   sample-component: "mise:nodejs" }
+          - { os: ubuntu-26.04-arm, runner: linux-arm,   sample-component: "mise:nodejs" }
           - { os: macos-14,         runner: macos,       sample-component: "brew:gh" }
           - { os: windows-latest,   runner: windows,     sample-component: "winget:GitHub.cli" }
     runs-on: ${{ matrix.os }}

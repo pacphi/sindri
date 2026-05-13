@@ -95,12 +95,12 @@ Step-by-step practical instructions:
 
 These live alongside the code on each version branch — not on `main`.
 
-| Version | Source tree | Top-level docs |
-| --- | --- | --- |
-| v1 | [`pacphi/sindri-legacy`](https://github.com/pacphi/sindri-legacy) (separate repo) | [Legacy releases](https://github.com/pacphi/sindri-legacy/releases) |
-| v2 | [`v2` branch](https://github.com/pacphi/sindri/tree/v2/v2) | [v2 docs](https://github.com/pacphi/sindri/tree/v2/v2/docs) |
-| v3 | [`v3` branch](https://github.com/pacphi/sindri/tree/v3/v3) | [v3 docs](https://github.com/pacphi/sindri/tree/v3/v3/docs) |
-| v4 | [`v4` branch](https://github.com/pacphi/sindri/tree/v4/v4) | [v4 ADRs / DDDs](https://github.com/pacphi/sindri/tree/v4/v4/docs) |
+| Version | Source tree                                                                       | Top-level docs                                                      |
+| ------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| v1      | [`pacphi/sindri-legacy`](https://github.com/pacphi/sindri-legacy) (separate repo) | [Legacy releases](https://github.com/pacphi/sindri-legacy/releases) |
+| v2      | [`v2` branch](https://github.com/pacphi/sindri/tree/v2/v2)                        | [v2 docs](https://github.com/pacphi/sindri/tree/v2/v2/docs)         |
+| v3      | [`v3` branch](https://github.com/pacphi/sindri/tree/v3/v3)                        | [v3 docs](https://github.com/pacphi/sindri/tree/v3/v3/docs)         |
+| v4      | [`v4` branch](https://github.com/pacphi/sindri/tree/v4/v4)                        | [v4 ADRs / DDDs](https://github.com/pacphi/sindri/tree/v4/v4/docs)  |
 
 ### Getting help
 
@@ -112,12 +112,12 @@ These live alongside the code on each version branch — not on `main`.
 
 ## Version support timeline
 
-| Version | Status | Recommendation |
-| --- | --- | --- |
-| **v1** | Archived in [pacphi/sindri-legacy](https://github.com/pacphi/sindri-legacy) | Plan an upgrade |
-| **v2** | Maintenance | Bug/security fixes; no new features |
-| **v3** | Active development | Recommended for new projects |
-| **v4** | Pre-release | New architecture (ADRs/DDDs published); not yet GA |
+| Version | Status                                                                      | Recommendation                                     |
+| ------- | --------------------------------------------------------------------------- | -------------------------------------------------- |
+| **v1**  | Archived in [pacphi/sindri-legacy](https://github.com/pacphi/sindri-legacy) | Plan an upgrade                                    |
+| **v2**  | Maintenance                                                                 | Bug/security fixes; no new features                |
+| **v3**  | Active development                                                          | Recommended for new projects                       |
+| **v4**  | Pre-release                                                                 | New architecture (ADRs/DDDs published); not yet GA |
 
 A v3 → v4 migration guide will land here when v4 reaches a stable surface.
 

@@ -6,12 +6,12 @@ Pick the version you're using, or read the [Migration Hub](migration/) if you're
 
 ## Versions at a glance
 
-| Branch | Status | Stack | Start here |
-| --- | --- | --- | --- |
-| [`v1`](https://github.com/pacphi/sindri-legacy) | Archived — see [pacphi/sindri-legacy](https://github.com/pacphi/sindri-legacy) | Legacy bash | [Legacy releases](https://github.com/pacphi/sindri-legacy/releases) |
-| [`v2`](https://github.com/pacphi/sindri/tree/v2) | Maintenance | Bash + Docker | [v2 Quickstart](https://github.com/pacphi/sindri/blob/v2/v2/docs/QUICKSTART.md) |
-| [`v3`](https://github.com/pacphi/sindri/tree/v3) | **Active** — recommended for new projects | Rust workspace + npm wrapper | [v3 Getting Started](https://github.com/pacphi/sindri/blob/v3/v3/docs/GETTING_STARTED.md) |
-| [`v4`](https://github.com/pacphi/sindri/tree/v4) | Pre-release | Rust, redesigned | [v4 ADRs](https://github.com/pacphi/sindri/tree/v4/v4/docs/ADRs) |
+| Branch                                           | Status                                                                         | Stack                        | Start here                                                                                |
+| ------------------------------------------------ | ------------------------------------------------------------------------------ | ---------------------------- | ----------------------------------------------------------------------------------------- |
+| [`v1`](https://github.com/pacphi/sindri-legacy)  | Archived — see [pacphi/sindri-legacy](https://github.com/pacphi/sindri-legacy) | Legacy bash                  | [Legacy releases](https://github.com/pacphi/sindri-legacy/releases)                       |
+| [`v2`](https://github.com/pacphi/sindri/tree/v2) | Maintenance                                                                    | Bash + Docker                | [v2 Quickstart](https://github.com/pacphi/sindri/blob/v2/v2/docs/QUICKSTART.md)           |
+| [`v3`](https://github.com/pacphi/sindri/tree/v3) | **Active** — recommended for new projects                                      | Rust workspace + npm wrapper | [v3 Getting Started](https://github.com/pacphi/sindri/blob/v3/v3/docs/GETTING_STARTED.md) |
+| [`v4`](https://github.com/pacphi/sindri/tree/v4) | Pre-release                                                                    | Rust, redesigned             | [v4 ADRs](https://github.com/pacphi/sindri/tree/v4/v4/docs/ADRs)                          |
 
 ## Per-version documentation
 

@@ -23,9 +23,9 @@ on:
         required: false
         default: '1.95'
       ubuntu_version:
-        description: 'Ubuntu version (e.g., 24.04)'
+        description: 'Ubuntu version (e.g., 26.04)'
         required: false
-        default: '24.04'
+        default: '26.04'
       gh_version:
         description: 'GitHub CLI version (e.g., 2.90.0)'
         required: false
@@ -54,7 +54,7 @@ on:
       ubuntu_version:
         description: 'Ubuntu version'
         required: false
-        default: '24.04'
+        default: '26.04'
         type: string
 
 env:
@@ -78,7 +78,7 @@ jobs:
         id: args
         run: |
           RUST_VERSION="${{ github.event.inputs.rust_version || '1.95' }}"
-          UBUNTU_VERSION="${{ github.event.inputs.ubuntu_version || '24.04' }}"
+          UBUNTU_VERSION="${{ github.event.inputs.ubuntu_version || '26.04' }}"
           GH_VERSION="${{ github.event.inputs.gh_version || '2.90.0' }}"
 
           echo "rust_version=$RUST_VERSION" >> $GITHUB_OUTPUT
