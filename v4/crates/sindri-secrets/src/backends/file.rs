@@ -37,7 +37,6 @@ use chacha20poly1305::{
     ChaCha20Poly1305, Nonce,
 };
 use hkdf::Hkdf;
-use rand::RngCore;
 use sha2::Sha256;
 use std::{
     collections::HashMap,
@@ -119,8 +118,7 @@ impl FileBackend {
         }
         let plaintext = serde_json::to_vec(map)
             .map_err(|e| SecretsError::Serde(format!("cannot serialise secrets store: {}", e)))?;
-        let mut nonce_bytes = [0u8; 12];
-        rand::rng().fill_bytes(&mut nonce_bytes);
+        let nonce_bytes: [u8; 12] = rand::random();
         let nonce = Nonce::from_slice(&nonce_bytes);
         let ciphertext = self
             .cipher
