@@ -130,7 +130,7 @@ A Docker container provisioned from a specified base image. Useful for isolated,
 targets:
   ci-container:
     kind: docker
-    image: ubuntu:24.04
+    image: ubuntu:26.04
 ```
 
 ```bash

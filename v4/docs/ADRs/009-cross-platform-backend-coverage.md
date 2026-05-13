@@ -143,7 +143,7 @@ Windows PowerShell 7+). Open question Q24 resolved: PowerShell 7+ only.
 
 ### CI proof
 
-Four GHA runner types (ubuntu-latest, ubuntu-24.04-arm, macos-14, windows-latest) run:
+Four GHA runner types (ubuntu-latest, ubuntu-26.04-arm, macos-14, windows-latest) run:
 
 - `cargo build --release`
 - `cargo test`
