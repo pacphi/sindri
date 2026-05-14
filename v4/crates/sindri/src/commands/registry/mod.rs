@@ -592,8 +592,10 @@ fn detect_source_kind(url: &str) -> Result<(&'static str, String), String> {
         return Ok(("git", "from git+ scheme or .git suffix".into()));
     }
     // Path detection — accept absolute or `./` paths.
-    if url.starts_with('/') || url.starts_with("./") || url.starts_with("../") {
-        let path = std::path::Path::new(url);
+    // Use Path::is_absolute() so Windows drive-letter paths (C:\...) are
+    // recognised in addition to POSIX /... paths.
+    let path = std::path::Path::new(url);
+    if path.is_absolute() || url.starts_with("./") || url.starts_with("../") {
         if path.join("oci-layout").exists() {
             return Ok(("local-oci", "directory contains an oci-layout file".into()));
         }
