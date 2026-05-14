@@ -100,6 +100,7 @@ mod tests {
 
     #[test]
     fn sindri_subpath_empty_rest_is_dot_sindri() {
+        let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         unsafe { std::env::set_var(SINDRI_HOME_ENV, "/tmp/h") };
         let p = sindri_subpath(&[]);
         unsafe { std::env::remove_var(SINDRI_HOME_ENV) };
@@ -108,6 +109,7 @@ mod tests {
 
     #[test]
     fn sindri_subpath_single_segment() {
+        let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         unsafe { std::env::set_var(SINDRI_HOME_ENV, "/tmp/h") };
         let p = sindri_subpath(&["cache"]);
         unsafe { std::env::remove_var(SINDRI_HOME_ENV) };
@@ -116,6 +118,7 @@ mod tests {
 
     #[test]
     fn sindri_subpath_multiple_segments() {
+        let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         unsafe { std::env::set_var(SINDRI_HOME_ENV, "/tmp/h") };
         let p = sindri_subpath(&["trust", "keys", "registry.pub"]);
         unsafe { std::env::remove_var(SINDRI_HOME_ENV) };
