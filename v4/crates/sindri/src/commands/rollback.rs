@@ -273,6 +273,9 @@ mod tests {
 
     #[test]
     fn pops_most_recent_entry_and_writes_lock() {
+        let _g = crate::commands::ENV_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         let tmp = TempDir::new().unwrap();
 
         let lock = Lockfile {

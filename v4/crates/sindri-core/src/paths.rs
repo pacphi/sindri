@@ -48,6 +48,17 @@ pub fn sindri_subpath(rest: &[&str]) -> Option<PathBuf> {
     Some(p)
 }
 
+/// Test-only mutex to serialise any test in the `sindri-core` test binary
+/// that mutates the process environment. `std::env::set_var` is not thread-safe
+/// (it mutates the global environ table and can race with concurrent
+/// `env::var` reads anywhere in the process). Any test that calls
+/// `env::set_var` or `env::remove_var` MUST hold this lock first.
+///
+/// Shared across paths.rs and platform.rs tests (both run in the same
+/// sindri-core test binary).
+#[cfg(test)]
+pub(crate) static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -58,6 +69,7 @@ mod tests {
 
     #[test]
     fn home_dir_honours_sindri_home_env() {
+        let _g = ENV_LOCK.lock().unwrap();
         unsafe { std::env::set_var(SINDRI_HOME_ENV, "/tmp/fake-home") };
         let h = home_dir();
         unsafe { std::env::remove_var(SINDRI_HOME_ENV) };
@@ -66,6 +78,7 @@ mod tests {
 
     #[test]
     fn home_dir_empty_sindri_home_falls_back_to_dirs_next() {
+        let _g = ENV_LOCK.lock().unwrap();
         unsafe { std::env::set_var(SINDRI_HOME_ENV, "") };
         let h = home_dir();
         unsafe { std::env::remove_var(SINDRI_HOME_ENV) };
@@ -76,6 +89,7 @@ mod tests {
 
     #[test]
     fn home_dir_without_env_does_not_panic() {
+        let _g = ENV_LOCK.lock().unwrap();
         unsafe { std::env::remove_var(SINDRI_HOME_ENV) };
         let _ = home_dir(); // must not panic
     }
@@ -86,6 +100,7 @@ mod tests {
 
     #[test]
     fn sindri_subpath_empty_rest_is_dot_sindri() {
+        let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         unsafe { std::env::set_var(SINDRI_HOME_ENV, "/tmp/h") };
         let p = sindri_subpath(&[]);
         unsafe { std::env::remove_var(SINDRI_HOME_ENV) };
@@ -94,6 +109,7 @@ mod tests {
 
     #[test]
     fn sindri_subpath_single_segment() {
+        let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         unsafe { std::env::set_var(SINDRI_HOME_ENV, "/tmp/h") };
         let p = sindri_subpath(&["cache"]);
         unsafe { std::env::remove_var(SINDRI_HOME_ENV) };
@@ -102,6 +118,7 @@ mod tests {
 
     #[test]
     fn sindri_subpath_multiple_segments() {
+        let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         unsafe { std::env::set_var(SINDRI_HOME_ENV, "/tmp/h") };
         let p = sindri_subpath(&["trust", "keys", "registry.pub"]);
         unsafe { std::env::remove_var(SINDRI_HOME_ENV) };

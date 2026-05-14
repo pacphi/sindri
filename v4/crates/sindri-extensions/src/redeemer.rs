@@ -614,8 +614,8 @@ mod tests {
 
     #[test]
     fn resolve_from_env_reads_process_env() {
-        // SAFETY: tests are single-threaded by default in `cargo test` only
-        // when --test-threads=1; we use a unique key to avoid collisions.
+        let _g = crate::ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        // SAFETY: ENV_LOCK serialises env mutations across the test binary.
         std::env::set_var("SINDRI_TEST_REDEEM_ENV", "the-secret-value");
         let v = resolve_source(&AuthSource::FromEnv {
             var: "SINDRI_TEST_REDEEM_ENV".into(),
@@ -644,6 +644,7 @@ mod tests {
 
     #[test]
     fn redeem_install_scope_envvar_round_trips() {
+        let _g = crate::ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         std::env::set_var("SINDRI_TEST_INSTALL_KEY", "k1");
         let auth = AuthRequirements {
             tokens: vec![token_req(
@@ -713,6 +714,7 @@ mod tests {
 
     #[test]
     fn file_redemption_writes_with_mode() {
+        let _g = crate::ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let dir = tempfile::tempdir().unwrap();
         let target_path = dir.path().join("creds.json");
         std::env::set_var("SINDRI_TEST_FILE_VAL", "{ \"k\": \"v\" }");
@@ -757,6 +759,7 @@ mod tests {
 
     #[test]
     fn cleanup_persist_keeps_file() {
+        let _g = crate::ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let dir = tempfile::tempdir().unwrap();
         let target_path = dir.path().join("keep.json");
         std::env::set_var("SINDRI_TEST_PERSIST_VAL", "abc");
@@ -798,6 +801,7 @@ mod tests {
 
     #[test]
     fn env_file_redemption_sets_var_to_path() {
+        let _g = crate::ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let dir = tempfile::tempdir().unwrap();
         let target_path = dir.path().join("gcp.json");
         std::env::set_var("SINDRI_TEST_ENVFILE_VAL", "json-payload");

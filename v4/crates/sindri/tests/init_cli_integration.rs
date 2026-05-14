@@ -29,6 +29,7 @@ fn cmd_in(cwd: &Path, fake_home: &Path) -> Command {
     let mut cmd = Command::new(sindri_bin());
     cmd.current_dir(cwd)
         .env("HOME", fake_home)
+        .env("SINDRI_HOME", fake_home) // Windows ignores HOME; SINDRI_HOME is the portable override
         .env_remove("SINDRI_BIN_PATH");
     cmd
 }

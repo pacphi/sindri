@@ -89,7 +89,9 @@ mod tests {
     }
 
     #[tokio::test]
+    #[allow(clippy::await_holding_lock)] // intentional: serialises env-mutating tests across one tokio runtime
     async fn read_present_env_var() {
+        let _g = crate::ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let backend = EnvBackend::new();
         let var = "SINDRI_SECRET_ENV_BACKEND_READ_TEST";
         std::env::set_var(var, "hunter2");
@@ -101,7 +103,9 @@ mod tests {
     }
 
     #[tokio::test]
+    #[allow(clippy::await_holding_lock)] // intentional: serialises env-mutating tests across one tokio runtime
     async fn read_missing_env_var_returns_error() {
+        let _g = crate::ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let backend = EnvBackend::new();
         let var = "SINDRI_SECRET_ENV_BACKEND_MISSING_XYZ";
         std::env::remove_var(var);

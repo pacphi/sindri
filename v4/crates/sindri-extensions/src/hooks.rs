@@ -268,23 +268,33 @@ fn validate_script_file(path: &Path, os: &Os) -> Result<(), String> {
 /// interpreter rather than directly so we don't depend on the +x bit
 /// being preserved through OCI extraction (which often strips modes
 /// outside ustar's set).
-fn build_command(script: &Path, phase: Phase, version: &str, prior: &str, os: &Os) -> String {
+///
+/// The interpreter is chosen by script extension, not by OS: `.ps1` files
+/// always use `pwsh`, `.sh` files always use `bash`. This matters on Windows
+/// when only a `.sh` variant exists — `pick_variant` falls back to it and
+/// the script must still be executed by bash (available via Git for Windows
+/// on all GitHub-hosted Windows runners).
+fn build_command(script: &Path, phase: Phase, version: &str, prior: &str, _os: &Os) -> String {
     let s = script.display();
-    match os {
-        Os::Windows => format!(
+    let is_ps1 = script
+        .extension()
+        .is_some_and(|e| e.eq_ignore_ascii_case("ps1"));
+    if is_ps1 {
+        format!(
             "pwsh -NonInteractive -File {} {} {} {}",
             shquote(&s.to_string()),
             phase.as_str(),
             shquote(version),
             shquote(prior),
-        ),
-        _ => format!(
+        )
+    } else {
+        format!(
             "bash {} {} {} {}",
             shquote(&s.to_string()),
             phase.as_str(),
             shquote(version),
             shquote(prior),
-        ),
+        )
     }
 }
 

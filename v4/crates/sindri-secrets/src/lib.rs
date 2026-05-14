@@ -25,6 +25,13 @@ pub use backends::{EnvBackend, FileBackend, VaultBackend};
 pub use error::SecretsError;
 pub use value::SecretValue;
 
+/// Test-only mutex serialising every test in the `sindri-secrets` test
+/// binary that mutates the process environment. `std::env::set_var` is not
+/// thread-safe; any test calling `env::set_var` or `env::remove_var` must
+/// hold this lock first.
+#[cfg(test)]
+pub(crate) static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 use async_trait::async_trait;
 
 /// Core trait every secret backend must implement.

@@ -502,7 +502,7 @@ fn parse_and_validate_fulcio_cert(
 
     // 2. Parse the DER as an x509 certificate using sigstore's vendored
     //    `x509-cert` types (re-exported from sigstore::cosign).
-    use pkcs8::der::Decode;
+    use x509_cert::der::Decode;
     use x509_cert::Certificate;
     let cert = Certificate::from_der(&leaf_der).map_err(|e| RegistryError::FulcioChainInvalid {
         registry: registry_name.to_string(),
@@ -581,7 +581,7 @@ fn pem_to_der(pem: &[u8]) -> Result<Vec<u8>, String> {
 /// to check whether the leaf's issuer DN is one we trust.
 #[cfg(feature = "keyless")]
 fn collect_pem_subject_dns(pem_bundle: &[u8]) -> Result<Vec<String>, RegistryError> {
-    use pkcs8::der::Decode;
+    use x509_cert::der::Decode;
     use x509_cert::Certificate;
 
     let s = std::str::from_utf8(pem_bundle).map_err(|e| RegistryError::FulcioChainInvalid {
@@ -633,7 +633,7 @@ fn collect_pem_subject_dns(pem_bundle: &[u8]) -> Result<Vec<String>, RegistryErr
 /// public-good Fulcio still emits as of April 2026.
 #[cfg(feature = "keyless")]
 fn extract_san_and_issuer(cert: &x509_cert::Certificate) -> Result<(String, String), String> {
-    use pkcs8::der::Encode;
+    use x509_cert::der::Encode;
     let extensions = cert
         .tbs_certificate
         .extensions
