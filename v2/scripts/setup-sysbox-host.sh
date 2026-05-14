@@ -16,7 +16,7 @@
 #   ./scripts/setup-sysbox-host.sh --version v0.6.7  # Install specific version
 #
 # Requirements:
-#   - Ubuntu 18.04-24.04 or Debian 10-11
+#   - Ubuntu 18.04-26.04 or Debian 10-11
 #   - Docker installed (not via snap)
 #   - Linux kernel 5.12+ recommended (5.19+ optimal)
 #   - Root/sudo access

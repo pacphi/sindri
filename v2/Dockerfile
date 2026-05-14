@@ -5,7 +5,7 @@
 # =============================================================================
 # Stage 1: Builder - Download and prepare external tools
 # =============================================================================
-FROM ubuntu:24.04 AS builder
+FROM ubuntu:26.04 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -27,7 +27,7 @@ RUN ARCH=$(dpkg --print-architecture) && \
 # =============================================================================
 # Stage 2: Final - Production image
 # =============================================================================
-FROM ubuntu:24.04
+FROM ubuntu:26.04
 
 LABEL org.opencontainers.image.title="Sindri Development Environment"
 LABEL org.opencontainers.image.description="Provider-agnostic cloud dev environment with extensible tooling and pre-configured runtimes"
