@@ -26,10 +26,6 @@ env:
 jobs:
   build-test:
     name: Build & Test (${{ matrix.os }})
-    # `enabled: false` on a matrix row fully skips the job (it never queues
-    # for a runner). Default = enabled when the field is absent. Use this
-    # to keep a placeholder for runners GitHub hasn't provisioned yet.
-    if: matrix.enabled != false
     strategy:
       fail-fast: false
       matrix:
@@ -38,11 +34,13 @@ jobs:
           - { os: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu, tier: 1 }
           - { os: macos-14,         target: aarch64-apple-darwin,      tier: 1 }
           - { os: windows-latest,   target: x86_64-pc-windows-msvc,    tier: 1 }
-          # ubuntu-26.04-arm: placeholder. Flip `enabled: true` (or drop the
-          # field) when GitHub provisions this hosted runner. The monitor
-          # workflow `.github/workflows/monitor-ubuntu-2604-arm.yml` will
-          # auto-PR that change once availability is detected.
-          - { os: ubuntu-26.04-arm, target: aarch64-unknown-linux-gnu, tier: 1, enabled: false }
+          # Placeholder: when GitHub provisions the `ubuntu-26.04-arm`
+          # hosted runner, add it here as:
+          #   - { os: ubuntu-26.04-arm, target: aarch64-unknown-linux-gnu, tier: 1 }
+          # The monitor workflow `.github/workflows/monitor-ubuntu-2604-arm.yml`
+          # probes for availability weekly and auto-PRs that change.
+          # (GHA matrix can't conditionally include rows, and job-level `if`
+          # can't see `matrix` context — so we keep the slot as a comment.)
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6.0.2

@@ -51,41 +51,56 @@ jobs:
           ref: main
           fetch-depth: 1
 
-      - name: Check if ubuntu-26.04-arm is still disabled
+      - name: Check if ubuntu-26.04-arm row is still missing
         id: check
         run: |
-          if grep -q 'ubuntu-26.04-arm.*enabled: false' .github/workflows/ci-v4.yml; then
-            echo "needed=true" >> "$GITHUB_OUTPUT"
-          else
+          # The row is present once it appears outside a YAML comment.
+          if grep -E '^[[:space:]]*-[[:space:]]*\{[[:space:]]*os:[[:space:]]*ubuntu-26\.04-arm' \
+              .github/workflows/ci-v4.yml >/dev/null; then
             echo "needed=false" >> "$GITHUB_OUTPUT"
-            echo "ubuntu-26.04-arm already enabled — nothing to do."
+            echo "ubuntu-26.04-arm already in the matrix — nothing to do."
+          else
+            echo "needed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Enable ubuntu-26.04-arm in both workflows
+      - name: Add ubuntu-26.04-arm row to both workflow matrices
         if: steps.check.outputs.needed == 'true'
         run: |
           python3 - <<'PYEOF'
-          def enable_runner(path):
-              with open(path) as f:
-                  src = f.read()
-              # Flip the placeholder from disabled → enabled by dropping the
-              # trailing `, enabled: false` on the ubuntu-26.04-arm row.
-              # Leaves the rest of the row (and the placeholder comment)
-              # intact for human review of the resulting PR.
-              new = src.replace(', enabled: false }', ' }') \
-                       .replace(', enabled: false}', '}')
-              if new != src:
-                  with open(path, 'w') as f:
-                      f.write(new)
-                  print(f"Updated {path}")
-              else:
-                  print(f"No `enabled: false` to remove in {path}")
+          """
+          Insert the ubuntu-26.04-arm matrix row just before macos-14 in each
+          workflow. The row format mirrors the existing ubuntu-24.04-arm row
+          in that file so the edit is mechanical and review-friendly.
+          """
 
-          for wf in [
+          def add_row(path, new_row, insert_before_pattern):
+              with open(path) as f:
+                  lines = f.readlines()
+              out = []
+              inserted = False
+              for line in lines:
+                  if not inserted and insert_before_pattern in line:
+                      out.append(new_row)
+                      inserted = True
+                  out.append(line)
+              if not inserted:
+                  raise RuntimeError(
+                      f"could not find anchor '{insert_before_pattern}' in {path}"
+                  )
+              with open(path, 'w') as f:
+                  f.writelines(out)
+              print(f"Inserted ubuntu-26.04-arm row in {path}")
+
+          add_row(
               '.github/workflows/ci-v4.yml',
+              '          - { os: ubuntu-26.04-arm, target: aarch64-unknown-linux-gnu, tier: 1 }\n',
+              'os: macos-14,',
+          )
+          add_row(
               '.github/workflows/registry-core-publish.yml',
-          ]:
-              enable_runner(wf)
+              '          - { os: ubuntu-26.04-arm, runner: linux-arm,   sample-component: "mise:nodejs" }\n',
+              'os: macos-14,',
+          )
           PYEOF
 
       - name: Create PR

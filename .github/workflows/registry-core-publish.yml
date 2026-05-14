@@ -189,19 +189,17 @@ jobs:
   smoke-install:
     name: Smoke install (${{ matrix.runner }} / ${{ matrix.sample-component }})
     needs: [resolve-tag]
-    # `enabled: false` on a matrix row fully skips the job (no runner
-    # queue). Default = enabled when the field is absent. See ci-v4.yml
-    # for the same pattern.
-    if: matrix.enabled != false
     strategy:
       fail-fast: false
       matrix:
         include:
           - { os: ubuntu-latest,    runner: linux,       sample-component: "mise:nodejs" }
           - { os: ubuntu-24.04-arm, runner: linux-arm,   sample-component: "mise:nodejs" }
-          # ubuntu-26.04-arm: placeholder. Flip `enabled: true` (or drop the
-          # field) once GitHub provisions this hosted runner.
-          - { os: ubuntu-26.04-arm, runner: linux-arm,   sample-component: "mise:nodejs", enabled: false }
+          # Placeholder: when GitHub provisions the `ubuntu-26.04-arm` hosted
+          # runner, add it here as:
+          #   - { os: ubuntu-26.04-arm, runner: linux-arm, sample-component: "mise:nodejs" }
+          # See ci-v4.yml for the same pattern and the monitor workflow that
+          # auto-PRs the change.
           - { os: macos-14,         runner: macos,       sample-component: "brew:gh" }
           - { os: windows-latest,   runner: windows,     sample-component: "winget:GitHub.cli" }
     runs-on: ${{ matrix.os }}
