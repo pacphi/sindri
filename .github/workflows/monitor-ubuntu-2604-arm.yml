@@ -51,59 +51,35 @@ jobs:
           ref: main
           fetch-depth: 1
 
-      - name: Check if experimental markers still present
+      - name: Check if ubuntu-26.04-arm is still disabled
         id: check
         run: |
-          if grep -q 'experimental: true' .github/workflows/ci-v4.yml; then
+          if grep -q 'ubuntu-26.04-arm.*enabled: false' .github/workflows/ci-v4.yml; then
             echo "needed=true" >> "$GITHUB_OUTPUT"
           else
             echo "needed=false" >> "$GITHUB_OUTPUT"
-            echo "Experimental markers already removed — nothing to do."
+            echo "ubuntu-26.04-arm already enabled — nothing to do."
           fi
 
-      - name: Remove experimental markers from both workflows
+      - name: Enable ubuntu-26.04-arm in both workflows
         if: steps.check.outputs.needed == 'true'
         run: |
           python3 - <<'PYEOF'
-          import sys
-
           def enable_runner(path):
               with open(path) as f:
-                  lines = f.readlines()
-
-              out = []
-              i = 0
-              while i < len(lines):
-                  line = lines[i]
-
-                  # Skip 3-line placeholder comment block before ubuntu-26.04-arm entry
-                  if '# ubuntu-26.04-arm: placeholder' in line:
-                      i += 3
-                      continue
-
-                  # Remove ", experimental: true" from the matrix entry
-                  if 'ubuntu-26.04-arm' in line and 'experimental: true' in line:
-                      line = line.replace(', experimental: true', '')
-                      out.append(line)
-                      i += 1
-                      continue
-
-                  # Skip 3-line comment block before continue-on-error
-                  if '# experimental: true marks slots' in line:
-                      i += 3
-                      continue
-
-                  # Remove the continue-on-error line
-                  if 'continue-on-error: ${{ matrix.experimental == true }}' in line:
-                      i += 1
-                      continue
-
-                  out.append(line)
-                  i += 1
-
-              with open(path, 'w') as f:
-                  f.writelines(out)
-              print(f"Updated {path}")
+                  src = f.read()
+              # Flip the placeholder from disabled → enabled by dropping the
+              # trailing `, enabled: false` on the ubuntu-26.04-arm row.
+              # Leaves the rest of the row (and the placeholder comment)
+              # intact for human review of the resulting PR.
+              new = src.replace(', enabled: false }', ' }') \
+                       .replace(', enabled: false}', '}')
+              if new != src:
+                  with open(path, 'w') as f:
+                      f.write(new)
+                  print(f"Updated {path}")
+              else:
+                  print(f"No `enabled: false` to remove in {path}")
 
           for wf in [
               '.github/workflows/ci-v4.yml',
