@@ -344,7 +344,7 @@ The base image (`sindri:base-X.Y.Z`) contains:
 
 - Rust 1.95 toolchain (246MB)
 - cargo-chef (for dependency caching)
-- System packages (Ubuntu 24.04)
+- System packages (Ubuntu 26.04)
 - GitHub CLI v2.90.0
 - Developer user setup
 
@@ -421,11 +421,11 @@ Rebuild the base image when:
   make v3-docker-build-base
   ```
 
-- **Ubuntu version changes** (e.g., 24.04 → 24.10)
+- **Ubuntu version changes** (e.g., 26.04 → next LTS)
 
   ```bash
   # Edit v3/Dockerfile.base
-  # Change: ARG UBUNTU_VERSION=24.04
+  # Change: ARG UBUNTU_VERSION=26.04
   make v3-docker-build-base
   ```
 
@@ -710,7 +710,7 @@ docker build -f v3/Dockerfile.dev -t sindri:latest .
 head -n 50 v3/Dockerfile.dev | grep FROM
 
 # Should see: FROM sindri:base-latest
-# If you see: FROM ubuntu:24.04 or FROM rust:1.95
+# If you see: FROM ubuntu:26.04 or FROM rust:1.95
 # Then you're not using base!
 ```
 
