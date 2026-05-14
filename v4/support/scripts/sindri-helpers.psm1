@@ -1,20 +1,15 @@
 # sindri-helpers.psm1 — PowerShell helper module for Sindri lifecycle
 # scripts (ADR-030, v4/docs/script-contract.md).
 #
-# Usage in a phase script:
+# Imported by every PowerShell phase script via the dispatcher-injected
+# env var:
 #
 #   $ErrorActionPreference = 'Stop'
-#   Import-Module (Join-Path $PSScriptRoot '../../../support/scripts/sindri-helpers.psm1') -Force
+#   Import-Module $env:SINDRI_HELPERS_PSM1 -Force
 #   Sindri-Init
 #
-#   if (Sindri-ToolInstalled 'mytool') {
-#       Sindri-Emit phase-complete @{ change = $false }
-#       exit 0
-#   }
-#
-#   # …do the install…
-#   Sindri-Log info "installed mytool $env:SINDRI_COMPONENT_VERSION"
-#   Sindri-Emit phase-complete @{ change = $true }
+# `$env:SINDRI_HELPERS_PSM1` is set by the dispatcher to an absolute
+# path. No relative `..` traversal needed.
 
 function Sindri-RequireEnv {
     param([string[]]$Names)
@@ -44,7 +39,6 @@ function Sindri-Init {
     if (-not (Test-Path -LiteralPath $env:SINDRI_LOG_DIR)) {
         New-Item -ItemType Directory -Path $env:SINDRI_LOG_DIR -Force | Out-Null
     }
-    # Truncate events file.
     Set-Content -LiteralPath $env:SINDRI_EVENTS -Value '' -NoNewline -ErrorAction SilentlyContinue
 
     $prior = if ([string]::IsNullOrEmpty($env:SINDRI_PRIOR_VERSION)) { '<none>' } else { $env:SINDRI_PRIOR_VERSION }
@@ -81,4 +75,32 @@ function Sindri-ToolInstalled {
     return [bool](Get-Command -Name $Name -ErrorAction SilentlyContinue)
 }
 
-Export-ModuleMember -Function Sindri-Init, Sindri-Log, Sindri-Emit, Sindri-RequireEnv, Sindri-ToolInstalled
+function Sindri-VersionOf {
+    param([string]$Name)
+    if (-not (Sindri-ToolInstalled $Name)) { return '' }
+    $raw = & $Name --version 2>$null
+    if (-not $raw) { $raw = & $Name version 2>$null }
+    $m = [regex]::Match([string]$raw, '\d+\.\d+(\.\d+)?')
+    if ($m.Success) { return $m.Value }
+    return ''
+}
+
+function Sindri-AtVersion {
+    param([string]$Name)
+    $want = $env:SINDRI_COMPONENT_VERSION
+    $have = Sindri-VersionOf -Name $Name
+    if ($want -and $have -and ($have.StartsWith($want) -or $have.Contains($want))) {
+        Sindri-Log -Level 'info' -Message "$Name already at $want; skipping"
+        Sindri-Emit -Name 'skip' -Detail @{ reason = 'already-installed' }
+        Sindri-Emit -Name 'phase-complete' -Detail @{ change = $false }
+        return $true
+    }
+    if ($have) {
+        Sindri-Log -Level 'info' -Message ("{0}: {1} -> {2}" -f $Name, $have, $want)
+    }
+    return $false
+}
+
+Export-ModuleMember -Function `
+    Sindri-Init, Sindri-Log, Sindri-Emit, Sindri-RequireEnv, `
+    Sindri-ToolInstalled, Sindri-VersionOf, Sindri-AtVersion

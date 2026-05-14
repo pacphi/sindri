@@ -193,7 +193,7 @@ Use the helper library at
 ```bash
 #!/usr/bin/env bash
 set -Eeuo pipefail
-. "$(dirname "$0")/../../../support/scripts/sindri-helpers.sh"
+. "$SINDRI_HELPERS_SH"
 sindri::init
 
 if sindri::tool_installed mytool && \

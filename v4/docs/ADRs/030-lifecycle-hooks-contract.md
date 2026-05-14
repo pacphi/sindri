@@ -97,6 +97,15 @@ Every phase script receives:
   - `SINDRI_EVENTS` — absolute path to a writable JSON-Lines file
     the script appends structured events to.
   - `SINDRI_DRY_RUN` — `1` when `apply --dry-run`; otherwise `0`.
+  - `SINDRI_HELPERS_SH` — absolute path to `sindri-helpers.sh`.
+    Scripts source via `. "$SINDRI_HELPERS_SH"` (zero relative
+    traversal). The dispatcher embeds the helpers in the binary
+    via `include_str!` and writes them to
+    `~/.sindri/cache/helpers/sindri-helpers.sh` on first use so
+    they travel with sindri.
+  - `SINDRI_HELPERS_PSM1` — absolute path to `sindri-helpers.psm1`
+    (PowerShell module). Imported via
+    `Import-Module $env:SINDRI_HELPERS_PSM1 -Force`.
   - any auth-injected `SINDRI_AUTH_<id>` values redeemed by the
     caller before invoking the dispatcher.
 
