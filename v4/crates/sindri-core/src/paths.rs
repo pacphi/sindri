@@ -51,6 +51,11 @@ pub fn sindri_subpath(rest: &[&str]) -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    // Serialise all tests that mutate SINDRI_HOME to prevent concurrent
+    // env-var interference (env::set_var is not thread-safe).
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     // ---------------------------------------------------------------------------
     // home_dir — SINDRI_HOME override
@@ -58,6 +63,7 @@ mod tests {
 
     #[test]
     fn home_dir_honours_sindri_home_env() {
+        let _g = ENV_LOCK.lock().unwrap();
         unsafe { std::env::set_var(SINDRI_HOME_ENV, "/tmp/fake-home") };
         let h = home_dir();
         unsafe { std::env::remove_var(SINDRI_HOME_ENV) };
@@ -66,6 +72,7 @@ mod tests {
 
     #[test]
     fn home_dir_empty_sindri_home_falls_back_to_dirs_next() {
+        let _g = ENV_LOCK.lock().unwrap();
         unsafe { std::env::set_var(SINDRI_HOME_ENV, "") };
         let h = home_dir();
         unsafe { std::env::remove_var(SINDRI_HOME_ENV) };
@@ -76,6 +83,7 @@ mod tests {
 
     #[test]
     fn home_dir_without_env_does_not_panic() {
+        let _g = ENV_LOCK.lock().unwrap();
         unsafe { std::env::remove_var(SINDRI_HOME_ENV) };
         let _ = home_dir(); // must not panic
     }
