@@ -48,14 +48,20 @@ pub fn sindri_subpath(rest: &[&str]) -> Option<PathBuf> {
     Some(p)
 }
 
+/// Test-only mutex to serialise any test in the `sindri-core` test binary
+/// that mutates the process environment. `std::env::set_var` is not thread-safe
+/// (it mutates the global environ table and can race with concurrent
+/// `env::var` reads anywhere in the process). Any test that calls
+/// `env::set_var` or `env::remove_var` MUST hold this lock first.
+///
+/// Shared across paths.rs and platform.rs tests (both run in the same
+/// sindri-core test binary).
+#[cfg(test)]
+pub(crate) static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
-
-    // Serialise all tests that mutate SINDRI_HOME to prevent concurrent
-    // env-var interference (env::set_var is not thread-safe).
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     // ---------------------------------------------------------------------------
     // home_dir — SINDRI_HOME override

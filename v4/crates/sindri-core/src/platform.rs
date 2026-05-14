@@ -103,6 +103,9 @@ pub struct Capabilities {
 #[cfg(test)]
 mod tests {
     use super::*;
+    // Shared sindri-core test mutex — serialises every test in this binary
+    // that mutates the process env. See `crate::paths::ENV_LOCK` docs.
+    use crate::paths::ENV_LOCK;
 
     // ---------------------------------------------------------------------------
     // Platform::triple — all 6 combinations
@@ -223,8 +226,8 @@ mod tests {
 
     #[test]
     fn current_env_override_linux_x86_64() {
-        // Serial: env mutation — use std::env carefully in unit tests.
-        // SAFETY: this test must not run concurrently with other env-mutating tests.
+        let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        // SAFETY: ENV_LOCK serialises env mutations across the test binary.
         unsafe { std::env::set_var("SINDRI_TEST_PLATFORM_OVERRIDE", "linux-x86_64") };
         let p = Platform::current();
         unsafe { std::env::remove_var("SINDRI_TEST_PLATFORM_OVERRIDE") };
@@ -234,6 +237,7 @@ mod tests {
 
     #[test]
     fn current_env_override_macos_aarch64() {
+        let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         unsafe { std::env::set_var("SINDRI_TEST_PLATFORM_OVERRIDE", "macos-aarch64") };
         let p = Platform::current();
         unsafe { std::env::remove_var("SINDRI_TEST_PLATFORM_OVERRIDE") };
@@ -243,6 +247,7 @@ mod tests {
 
     #[test]
     fn current_without_override_does_not_panic() {
+        let _g = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         // Remove the var if a previous test left it set.
         unsafe { std::env::remove_var("SINDRI_TEST_PLATFORM_OVERRIDE") };
         let _p = Platform::current(); // must not panic

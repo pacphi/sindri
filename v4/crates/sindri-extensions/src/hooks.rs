@@ -294,7 +294,9 @@ fn validate_script_file(path: &Path, os: &Os) -> Result<(), String> {
 /// on all GitHub-hosted Windows runners).
 fn build_command(script: &Path, phase: Phase, version: &str, prior: &str, _os: &Os) -> String {
     let s = script.display();
-    let is_ps1 = script.extension().is_some_and(|e| e.eq_ignore_ascii_case("ps1"));
+    let is_ps1 = script
+        .extension()
+        .is_some_and(|e| e.eq_ignore_ascii_case("ps1"));
     if is_ps1 {
         format!(
             "pwsh -NonInteractive -File {} {} {} {}",
