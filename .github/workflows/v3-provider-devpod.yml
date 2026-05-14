@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
       - name: Check credentials
         uses: ./.github/actions/shared/check-credentials
         with:
@@ -85,7 +85,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
 
       - name: Install DevPod
         run: |
@@ -273,7 +273,7 @@ jobs:
 
     steps:
       - name: Download All Results
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.1
         with:
           path: results
           pattern: ${{ inputs.artifact-prefix }}devpod-result-*

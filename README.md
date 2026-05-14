@@ -33,12 +33,12 @@ Azure, and other cloud providers using YAML-defined extensions.
 
 ## Pick your version
 
-| Branch                                               | Stack                        | Status                                    | What's there                                                         |
-| ---------------------------------------------------- | ---------------------------- | ----------------------------------------- | -------------------------------------------------------------------- |
+| Branch                                               | Stack                        | Status                                                                             | What's there                                                         |
+| ---------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
 | **[`v1`](https://github.com/pacphi/sindri-legacy)**  | legacy bash                  | **Archived** — see [pacphi/sindri-legacy](https://github.com/pacphi/sindri-legacy) | Source + 8 release tags live in the legacy repo                      |
-| **[`v2`](https://github.com/pacphi/sindri/tree/v2)** | Bash + Docker                | **Maintenance**                           | CLI, Docker compose, deploy scripts, extensions                      |
-| **[`v3`](https://github.com/pacphi/sindri/tree/v3)** | Rust workspace + npm wrapper | **Active**                                | Cargo workspace, `@pacphi/sindri-cli` packages, full provider matrix |
-| **[`v4`](https://github.com/pacphi/sindri/tree/v4)** | Rust, redesigned             | **Pre-release**                           | New architecture: registry-core, renovate-plugin, tools              |
+| **[`v2`](https://github.com/pacphi/sindri/tree/v2)** | Bash + Docker                | **Maintenance**                                                                    | CLI, Docker compose, deploy scripts, extensions                      |
+| **[`v3`](https://github.com/pacphi/sindri/tree/v3)** | Rust workspace + npm wrapper | **Active**                                                                         | Cargo workspace, `@pacphi/sindri-cli` packages, full provider matrix |
+| **[`v4`](https://github.com/pacphi/sindri/tree/v4)** | Rust, redesigned             | **Pre-release**                                                                    | New architecture: registry-core, renovate-plugin, tools              |
 
 Not sure which to use? Read the [Migration Hub](docs/migration/README.md).
 

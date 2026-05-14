@@ -12,11 +12,11 @@ This guide explains how to create and publish new releases for Sindri.
 
 Sindri uses **automated releases** triggered by Git tags. After the April 2026 reorg, all release workflows live on `main` and are dispatched by tag pattern.
 
-| Tag pattern | Workflow on `main`                       | Source branch | Artifact type                              |
-| ----------- | ---------------------------------------- | ------------- | ------------------------------------------ |
-| `v2.*.*`    | `.github/workflows/release-v2.yml`       | `v2`          | Multi-distro Docker images + GHCR + cosign |
-| `v3.*.*`    | `.github/workflows/release-v3.yml`       | `v3`          | Rust binaries (cargo-dist) + Docker        |
-| `v4.*.*`    | `.github/workflows/release-v4.yml` (uses `_release-cargo-dist.yml`) | `v4` | Rust binaries (cargo-dist) |
+| Tag pattern | Workflow on `main`                                                  | Source branch | Artifact type                              |
+| ----------- | ------------------------------------------------------------------- | ------------- | ------------------------------------------ |
+| `v2.*.*`    | `.github/workflows/release-v2.yml`                                  | `v2`          | Multi-distro Docker images + GHCR + cosign |
+| `v3.*.*`    | `.github/workflows/release-v3.yml`                                  | `v3`          | Rust binaries (cargo-dist) + Docker        |
+| `v4.*.*`    | `.github/workflows/release-v4.yml` (uses `_release-cargo-dist.yml`) | `v4`          | Rust binaries (cargo-dist)                 |
 
 When you push a version tag, GitHub Actions automatically:
 
@@ -98,11 +98,11 @@ gh run watch
 
 Expected jobs (v4 example):
 
-| Job              | Purpose                                                              |
-| ---------------- | -------------------------------------------------------------------- |
-| `validate-tag`   | Confirms tag matches `^v4\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$`         |
-| `build`          | Calls `_release-cargo-dist.yml` to build cross-platform binaries     |
-| `publish`        | Creates the GitHub Release with `v4/RELEASE_NOTES.md` as body        |
+| Job            | Purpose                                                          |
+| -------------- | ---------------------------------------------------------------- |
+| `validate-tag` | Confirms tag matches `^v4\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$`    |
+| `build`        | Calls `_release-cargo-dist.yml` to build cross-platform binaries |
+| `publish`      | Creates the GitHub Release with `v4/RELEASE_NOTES.md` as body    |
 
 For v2 / v3, additional jobs run (changelog generation, Docker image build + GHCR push, cosign signing, SBOM, doc updates for stable releases).
 

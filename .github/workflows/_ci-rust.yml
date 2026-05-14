@@ -45,7 +45,7 @@ jobs:
     name: Workspace guard
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - name: Verify Cargo.toml exists at workspace_dir
         run: test -f "${{ inputs.workspace_dir }}/Cargo.toml" || { echo "::error::No Cargo.toml at ${{ inputs.workspace_dir }}"; exit 1; }
 
@@ -54,7 +54,7 @@ jobs:
     name: cargo fmt
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ inputs.toolchain }}
@@ -67,7 +67,7 @@ jobs:
     name: cargo clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ inputs.toolchain }}
@@ -91,7 +91,7 @@ jobs:
     name: cargo test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ inputs.toolchain }}
@@ -114,7 +114,7 @@ jobs:
     name: cargo build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - name: Install musl tools (if requested)
         if: ${{ inputs.install_musl_tools }}
         run: sudo apt-get update && sudo apt-get install -y musl-tools

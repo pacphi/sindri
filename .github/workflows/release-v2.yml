@@ -57,7 +57,7 @@ jobs:
       ci_image: ${{ steps.verify.outputs.ci_image }}
       image_digest: ${{ steps.verify.outputs.image_digest }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
 
@@ -124,7 +124,7 @@ jobs:
       changelog: ${{ steps.changelog.outputs.changelog }}
       changelog_file: ${{ steps.changelog.outputs.changelog_file }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
 
@@ -159,13 +159,13 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
         with:
           ref: main
           fetch-depth: 0
 
       - name: Download changelog artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.1
         with:
           name: changelog-v2
 
@@ -355,7 +355,7 @@ jobs:
       attestations: write  # Required for provenance attestation
     steps:
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v4.1.1
+        uses: sigstore/cosign-installer@v4.1.2
 
       - name: Login to GHCR
         uses: docker/login-action@v4
@@ -461,7 +461,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v4.1.1
+        uses: sigstore/cosign-installer@v4.1.2
 
       - name: Get image digest
         id: digest
@@ -510,15 +510,15 @@ jobs:
     outputs:
       release_url: ${{ steps.release.outputs.url }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
 
       - name: Download changelog artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.1
         with:
           name: changelog-v2
 
       - name: Download SBOM artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.1
         with:
           name: sbom-v${{ needs.validate-tag.outputs.version }}
 
@@ -646,7 +646,7 @@ jobs:
       contents: read
       issues: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
 
       - name: Notify success
         if: needs.create-release.result == 'success'

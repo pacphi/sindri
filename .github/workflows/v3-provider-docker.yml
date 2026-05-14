@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -81,10 +81,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
 
       - name: Download CLI
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.1
         with:
           name: ${{ inputs.artifact-prefix }}sindri-cli
           path: /tmp/sindri
@@ -223,7 +223,7 @@ jobs:
 
     steps:
       - name: Download All Results
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.1
         with:
           path: results
           pattern: ${{ inputs.artifact-prefix }}docker-result-*

@@ -101,7 +101,7 @@ jobs:
       tag: ${{ steps.derive.outputs.tag }}
       dry_run: ${{ steps.derive.outputs.dry_run }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           ref: v4
           fetch-depth: 0
@@ -146,7 +146,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [resolve-tag]
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           ref: v4
       - uses: dtolnay/rust-toolchain@stable
@@ -194,12 +194,12 @@ jobs:
       matrix:
         include:
           - { os: ubuntu-latest,    runner: linux,       sample-component: "mise:nodejs" }
-          - { os: ubuntu-24.04-arm, runner: linux-arm,   sample-component: "mise:nodejs" }
+          - { os: ubuntu-26.04-arm, runner: linux-arm,   sample-component: "mise:nodejs" }
           - { os: macos-14,         runner: macos,       sample-component: "brew:gh" }
           - { os: windows-latest,   runner: windows,     sample-component: "winget:GitHub.cli" }
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           ref: v4
       - uses: dtolnay/rust-toolchain@stable
@@ -273,12 +273,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: [resolve-tag]
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           ref: v4
 
       - name: Set up Python for ScanCode
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
           python-version: "3.12"
 
@@ -416,7 +416,7 @@ jobs:
     outputs:
       index-path: ${{ steps.gen.outputs.index-path }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           ref: v4
       - uses: dtolnay/rust-toolchain@stable
@@ -514,11 +514,11 @@ jobs:
       reference: ${{ steps.push.outputs.reference }}
       artifact-path: ${{ steps.push.outputs.artifact-path }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           ref: v4
       - name: Download generated index
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
         with:
           name: registry-core-index
           path: v4/registry-core/
@@ -565,7 +565,7 @@ jobs:
       signed-reference: ${{ steps.sign.outputs.signed-reference }}
     steps:
       - name: Install cosign
-        uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159  # v3.9.2
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
         with:
           cosign-release: ${{ env.COSIGN_VERSION }}
       - name: Login to ghcr.io (cosign uploads sig as OCI ref)
@@ -621,7 +621,7 @@ jobs:
       attestations: write   # store provenance in GitHub attestation store
       contents: read
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           ref: v4
           sparse-checkout: |
@@ -631,7 +631,7 @@ jobs:
       # Download the same index.yaml that was pushed, so attest-build-provenance
       # can compute its digest and cross-reference with the OCI manifest digest.
       - name: Download generated index (for attestation subject)
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
         with:
           name: registry-core-index
           path: attestation-subject/
@@ -678,13 +678,13 @@ jobs:
       packages: read   # read ghcr.io for oci:// reference lookup
     steps:
       - name: Download attestation bundle
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
         with:
           name: slsa-provenance-bundle
           path: attestation-bundle/
 
       - name: Download index.yaml subject
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
         with:
           name: registry-core-index
           path: attestation-subject/

@@ -273,11 +273,11 @@ Local Docker development runs containers on your machine, with your IDE connecti
 
 Per-version reference docs live on each version branch — pick the version you're running:
 
-| Topic | v2 (Bash + Docker) | v3 (Rust CLI) |
-| --- | --- | --- |
-| Architecture | [v2 ARCHITECTURE](https://github.com/pacphi/sindri/blob/v2/v2/docs/ARCHITECTURE.md) | [v3 ARCHITECTURE](https://github.com/pacphi/sindri/blob/v3/v3/docs/ARCHITECTURE.md) |
-| Deployment | [v2 DEPLOYMENT](https://github.com/pacphi/sindri/blob/v2/v2/docs/DEPLOYMENT.md) | [v3 DEPLOYMENT](https://github.com/pacphi/sindri/blob/v3/v3/docs/DEPLOYMENT.md) |
-| Configuration | [v2 CONFIGURATION](https://github.com/pacphi/sindri/blob/v2/v2/docs/CONFIGURATION.md) | [v3 CONFIGURATION](https://github.com/pacphi/sindri/blob/v3/v3/docs/CONFIGURATION.md) |
+| Topic           | v2 (Bash + Docker)                                                                        | v3 (Rust CLI)                                                                             |
+| --------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Architecture    | [v2 ARCHITECTURE](https://github.com/pacphi/sindri/blob/v2/v2/docs/ARCHITECTURE.md)       | [v3 ARCHITECTURE](https://github.com/pacphi/sindri/blob/v3/v3/docs/ARCHITECTURE.md)       |
+| Deployment      | [v2 DEPLOYMENT](https://github.com/pacphi/sindri/blob/v2/v2/docs/DEPLOYMENT.md)           | [v3 DEPLOYMENT](https://github.com/pacphi/sindri/blob/v3/v3/docs/DEPLOYMENT.md)           |
+| Configuration   | [v2 CONFIGURATION](https://github.com/pacphi/sindri/blob/v2/v2/docs/CONFIGURATION.md)     | [v3 CONFIGURATION](https://github.com/pacphi/sindri/blob/v3/v3/docs/CONFIGURATION.md)     |
 | Troubleshooting | [v2 TROUBLESHOOTING](https://github.com/pacphi/sindri/blob/v2/v2/docs/TROUBLESHOOTING.md) | [v3 TROUBLESHOOTING](https://github.com/pacphi/sindri/blob/v3/v3/docs/TROUBLESHOOTING.md) |
 
 For v4 (pre-release, redesigned), see the [v4 ADRs](https://github.com/pacphi/sindri/tree/v4/v4/docs/ADRs).
