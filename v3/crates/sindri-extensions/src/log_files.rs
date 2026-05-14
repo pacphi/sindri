@@ -256,17 +256,19 @@ mod tests {
         // Create an "old" log file with a past timestamp in the filename
         let ext_dir = temp_dir.path().join("python");
         std::fs::create_dir_all(&ext_dir).unwrap();
-        let old_name = "20240101T000000Z.log";
-        std::fs::write(ext_dir.join(old_name), "old log content").unwrap();
+        let old_ts = Utc::now() - chrono::Duration::days(120);
+        let old_name = format!("{}.log", old_ts.format("%Y%m%dT%H%M%SZ"));
+        std::fs::write(ext_dir.join(&old_name), "old log content").unwrap();
 
-        // Create a "recent" log file
-        let recent_name = "20260213T120000Z.log";
-        std::fs::write(ext_dir.join(recent_name), "recent log content").unwrap();
+        // Create a "recent" log file (within the 90-day window)
+        let recent_ts = Utc::now() - chrono::Duration::days(1);
+        let recent_name = format!("{}.log", recent_ts.format("%Y%m%dT%H%M%SZ"));
+        std::fs::write(ext_dir.join(&recent_name), "recent log content").unwrap();
 
         let removed = writer.cleanup_old_logs(90).unwrap();
         assert_eq!(removed, 1);
-        assert!(!ext_dir.join(old_name).exists());
-        assert!(ext_dir.join(recent_name).exists());
+        assert!(!ext_dir.join(&old_name).exists());
+        assert!(ext_dir.join(&recent_name).exists());
     }
 
     #[test]
