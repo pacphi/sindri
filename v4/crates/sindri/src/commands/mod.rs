@@ -28,3 +28,10 @@ pub mod self_upgrade;
 pub mod show;
 pub mod target;
 pub mod upgrade;
+
+/// Test-only mutex serialising every test in the `sindri` binary's test
+/// binary that mutates the process environment. `std::env::set_var` is not
+/// thread-safe; any test calling `env::set_var` or `env::remove_var` must
+/// hold this lock first.
+#[cfg(test)]
+pub(crate) static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());

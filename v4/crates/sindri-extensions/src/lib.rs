@@ -20,6 +20,13 @@ pub mod project_init;
 pub mod redeemer;
 pub mod validate;
 
+/// Test-only mutex serialising every test in the `sindri-extensions` test
+/// binary that mutates the process environment. `std::env::set_var` is not
+/// thread-safe; any test calling `env::set_var` or `env::remove_var` must
+/// hold this lock first.
+#[cfg(test)]
+pub(crate) static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 pub use collision::{CollisionContext, CollisionPlan, CollisionResolver};
 pub use configure::{ConfigureContext, ConfigureExecutor};
 pub use error::ExtensionError;

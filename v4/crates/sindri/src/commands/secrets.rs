@@ -360,9 +360,11 @@ mod tests {
 
     #[test]
     fn validate_env_value_present() {
+        let _g = crate::commands::ENV_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         let dir = TempDir::new().unwrap();
         let key = "SINDRI_TEST_SECRET_PRESENT";
-        // Ensure unique key to avoid cross-test interference.
         std::env::set_var(key, "shhh");
         let manifest = write_manifest(
             &dir,
@@ -375,6 +377,9 @@ mod tests {
 
     #[test]
     fn validate_env_value_missing_errors() {
+        let _g = crate::commands::ENV_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         let dir = TempDir::new().unwrap();
         let key = "SINDRI_TEST_SECRET_DEFINITELY_NOT_SET_X9";
         std::env::remove_var(key);
@@ -404,6 +409,9 @@ mod tests {
 
     #[test]
     fn list_never_prints_values() {
+        let _g = crate::commands::ENV_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         let dir = TempDir::new().unwrap();
         let secret_value = "DO_NOT_LEAK_ABCDEF";
         std::env::set_var("SINDRI_LIST_TEST", secret_value);
