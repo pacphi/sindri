@@ -26,14 +26,22 @@ env:
 jobs:
   build-test:
     name: Build & Test (${{ matrix.os }})
+    # experimental: true marks slots whose runner may not yet be provisioned
+    # by GitHub Infrastructure. Such jobs run when the runner is available
+    # but do not block the overall check when it is not.
+    continue-on-error: ${{ matrix.experimental == true }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - { os: ubuntu-latest,    target: x86_64-unknown-linux-gnu,  tier: 1 }
-          - { os: ubuntu-26.04-arm, target: aarch64-unknown-linux-gnu, tier: 1 }
+          - { os: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu, tier: 1 }
           - { os: macos-14,         target: aarch64-apple-darwin,      tier: 1 }
           - { os: windows-latest,   target: x86_64-pc-windows-msvc,    tier: 1 }
+          # ubuntu-26.04-arm: placeholder for when GitHub adds this hosted runner.
+          # experimental=true means CI passes even if the runner is unavailable.
+          # Remove experimental once ubuntu-26.04-arm is generally available.
+          - { os: ubuntu-26.04-arm, target: aarch64-unknown-linux-gnu, tier: 1, experimental: true }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6.0.2

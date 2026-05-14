@@ -1,0 +1,145 @@
+name: "monitor: ubuntu-26.04-arm runner availability"
+
+# Probes weekly for the ubuntu-26.04-arm GitHub-hosted runner.
+# When the runner is provisioned, this workflow automatically opens a PR
+# that removes the `experimental: true` placeholders from ci-v4.yml and
+# registry-core-publish.yml.
+#
+# To stop monitoring after the PR is merged, delete or disable this workflow.
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # 09:00 UTC every Monday
+  workflow_dispatch:     # allow manual trigger at any time
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1: probe.
+  # Tries to acquire an ubuntu-26.04-arm runner. Succeeds if GitHub has
+  # provisioned the runner; times out (and is skipped downstream) if not.
+  # ---------------------------------------------------------------------------
+  probe:
+    name: Probe ubuntu-26.04-arm runner
+    runs-on: ubuntu-26.04-arm
+    timeout-minutes: 5
+    continue-on-error: true
+    outputs:
+      available: ${{ steps.mark.outputs.available }}
+    steps:
+      - id: mark
+        run: |
+          echo "Runner provisioned — ubuntu-26.04-arm is available."
+          echo "available=true" >> "$GITHUB_OUTPUT"
+
+  # ---------------------------------------------------------------------------
+  # Job 2: enable.
+  # Runs only when the probe job succeeds (runner was actually provisioned).
+  # Removes experimental markers from both workflow files and opens a PR.
+  # ---------------------------------------------------------------------------
+  enable:
+    name: Remove experimental markers and open PR
+    needs: probe
+    if: needs.probe.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Check if experimental markers still present
+        id: check
+        run: |
+          if grep -q 'experimental: true' .github/workflows/ci-v4.yml; then
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+            echo "Experimental markers already removed — nothing to do."
+          fi
+
+      - name: Remove experimental markers from both workflows
+        if: steps.check.outputs.needed == 'true'
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+
+          def enable_runner(path):
+              with open(path) as f:
+                  lines = f.readlines()
+
+              out = []
+              i = 0
+              while i < len(lines):
+                  line = lines[i]
+
+                  # Skip 3-line placeholder comment block before ubuntu-26.04-arm entry
+                  if '# ubuntu-26.04-arm: placeholder' in line:
+                      i += 3
+                      continue
+
+                  # Remove ", experimental: true" from the matrix entry
+                  if 'ubuntu-26.04-arm' in line and 'experimental: true' in line:
+                      line = line.replace(', experimental: true', '')
+                      out.append(line)
+                      i += 1
+                      continue
+
+                  # Skip 3-line comment block before continue-on-error
+                  if '# experimental: true marks slots' in line:
+                      i += 3
+                      continue
+
+                  # Remove the continue-on-error line
+                  if 'continue-on-error: ${{ matrix.experimental == true }}' in line:
+                      i += 1
+                      continue
+
+                  out.append(line)
+                  i += 1
+
+              with open(path, 'w') as f:
+                  f.writelines(out)
+              print(f"Updated {path}")
+
+          for wf in [
+              '.github/workflows/ci-v4.yml',
+              '.github/workflows/registry-core-publish.yml',
+          ]:
+              enable_runner(wf)
+          PYEOF
+
+      - name: Create PR
+        if: steps.check.outputs.needed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch="ci/enable-ubuntu-26-04-arm-$(date -u +%Y%m%d)"
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add .github/workflows/ci-v4.yml .github/workflows/registry-core-publish.yml
+          git commit -m "ci: enable ubuntu-26.04-arm runner (now available on GitHub)"
+          git push origin "$branch"
+          gh pr create \
+            --base main \
+            --head "$branch" \
+            --title "ci: enable ubuntu-26.04-arm runner (now generally available)" \
+            --body "$(cat <<'EOF'
+          ## Summary
+
+          The \`ubuntu-26.04-arm\` GitHub-hosted runner is now available.
+
+          This PR removes the \`experimental: true\` placeholder markers added when the runner was unavailable:
+
+          - \`.github/workflows/ci-v4.yml\` — build-test matrix
+          - \`.github/workflows/registry-core-publish.yml\` — smoke-install matrix
+
+          Both jobs will now run normally on \`ubuntu-26.04-arm\` without \`continue-on-error\` exemptions.
+
+          > Auto-generated by \`.github/workflows/monitor-ubuntu-2604-arm.yml\`
+          EOF
+          )"
