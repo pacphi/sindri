@@ -1,0 +1,137 @@
+name: "v4: publish JSON schemas to GitHub Pages"
+
+# Wave 5C — Publish v4 JSON Schemas to GitHub Pages so that the canonical
+# ADR-013 URLs resolve as https://schemas.sindri.dev/v4/<name>.json once
+# the custom domain DNS is pointed at the Pages site (see DNS note below).
+#
+# Deferred item: D15
+# Audit doc: v4/docs/review/2026-04-27-implementation-audit.md
+#
+# Trigger conditions:
+#   1. Push to `v4` that touches `v4/schemas/**` or `v4/tools/schema-gen/**`.
+#   2. Manual workflow_dispatch (useful for re-publishing after DNS changes).
+#
+# Lives on `main` (repo convention — all workflow files live on main).
+# Checks out the `v4` branch at runtime to access schemas and the schema-gen
+# tool.
+#
+# DNS note (out of scope for this PR):
+#   For https://schemas.sindri.dev/v4/<name>.json to resolve, a CNAME record
+#   for schemas.sindri.dev must be pointed at <org>.github.io.  That DNS
+#   change is tracked separately; this workflow will succeed once it is in
+#   place and the Pages custom-domain is set in the repo settings.
+
+on:
+  push:
+    branches: [v4]
+    paths:
+      - "v4/schemas/**"
+      - "v4/tools/schema-gen/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Prevent concurrent deployments; cancel any in-progress run when a new one
+# starts so that the Pages site always reflects the latest schemas.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  check-and-publish:
+    name: Verify schemas + deploy to Pages
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      # -----------------------------------------------------------------------
+      # 1. Checkout v4 branch (schemas + schema-gen tool live there).
+      # -----------------------------------------------------------------------
+      - name: Checkout v4
+        uses: actions/checkout@v4
+        with:
+          ref: v4
+
+      # -----------------------------------------------------------------------
+      # 2. Install Rust stable (schema-gen is a Rust binary).
+      # -----------------------------------------------------------------------
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      # -----------------------------------------------------------------------
+      # 3. Cache Cargo registry and build artefacts.
+      # -----------------------------------------------------------------------
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            v4/target
+          key: ${{ runner.os }}-cargo-schema-gen-${{ hashFiles('v4/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-schema-gen-
+
+      # -----------------------------------------------------------------------
+      # 4. Run schema-gen --check to confirm committed schemas are current.
+      #    Exits non-zero (and fails the job) if any schema is stale or missing.
+      # -----------------------------------------------------------------------
+      - name: Verify schemas are up to date
+        run: cargo run -p schema-gen -- --check
+        working-directory: v4
+
+      # -----------------------------------------------------------------------
+      # 5. Stage the schemas for GitHub Pages under /v4/.
+      #
+      #    Pages layout:
+      #      _site/
+      #        v4/
+      #          bom.json
+      #          component.json
+      #          policy.json
+      #          registry-index.json
+      #
+      #    With the custom domain set to schemas.sindri.dev this resolves as:
+      #      https://schemas.sindri.dev/v4/bom.json  etc.
+      # -----------------------------------------------------------------------
+      - name: Stage schemas for Pages
+        run: |
+          mkdir -p _site/v4
+          cp v4/schemas/*.json _site/v4/
+          # Emit a minimal index page so the root is not a bare 404.
+          cat > _site/index.html <<'HTML'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head><meta charset="utf-8"><title>Sindri JSON Schemas</title></head>
+          <body>
+          <h1>Sindri v4 JSON Schemas</h1>
+          <ul>
+            <li><a href="v4/bom.json">v4/bom.json</a></li>
+            <li><a href="v4/component.json">v4/component.json</a></li>
+            <li><a href="v4/policy.json">v4/policy.json</a></li>
+            <li><a href="v4/registry-index.json">v4/registry-index.json</a></li>
+          </ul>
+          <p>Base URL: <code>https://schemas.sindri.dev/v4/</code></p>
+          </body>
+          </html>
+          HTML
+
+      # -----------------------------------------------------------------------
+      # 6. Upload the staged directory as a Pages artifact.
+      # -----------------------------------------------------------------------
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      # -----------------------------------------------------------------------
+      # 7. Deploy to GitHub Pages.
+      # -----------------------------------------------------------------------
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
