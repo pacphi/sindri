@@ -73,7 +73,7 @@ tar = "0.4"
 zstd = "0.13"
 # Git source (`GitSource`) — libgit2 bindings, vendored libgit2 for cross-OS
 # determinism (Phase 3.1, ADR-028). Apache-2.0 / MIT dual-licensed.
-git2 = { version = "0.20", default-features = false, features = ["vendored-libgit2"] }
+git2 = { version = "0.21", default-features = false, features = ["vendored-libgit2"] }
 # Embedded OCI registry server for `sindri registry serve` (Phase 3.2,
 # ADR-028). MIT-licensed.
 axum = { version = "0.8", default-features = false, features = ["http1", "tokio", "macros"] }
