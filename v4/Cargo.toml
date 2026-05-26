@@ -42,7 +42,7 @@ reqwest = { version = "0.12", features = ["json", "rustls-tls", "blocking"], def
 semver = "1"
 # OCI client (successor to oci-distribution; ADR-003). Wired into sindri-registry
 # scaffold in Wave 3A.1; live OCI fetch lands in Wave 3A.2.
-oci-client = { version = "0.16", default-features = false, features = ["rustls-tls"] }
+oci-client = { version = "0.17", default-features = false, features = ["rustls-tls"] }
 # OCI image-layout v1.1 spec types — used by `LocalOciSource` to read/walk
 # on-disk layouts (DDD-08, ADR-028 — Phase 2). Pure-data structs, no I/O.
 # Apache-2.0 licensed.
@@ -73,7 +73,7 @@ tar = "0.4"
 zstd = "0.13"
 # Git source (`GitSource`) — libgit2 bindings, vendored libgit2 for cross-OS
 # determinism (Phase 3.1, ADR-028). Apache-2.0 / MIT dual-licensed.
-git2 = { version = "0.20", default-features = false, features = ["vendored-libgit2"] }
+git2 = { version = "0.21", default-features = false, features = ["vendored-libgit2"] }
 # Embedded OCI registry server for `sindri registry serve` (Phase 3.2,
 # ADR-028). MIT-licensed.
 axum = { version = "0.8", default-features = false, features = ["http1", "tokio", "macros"] }
