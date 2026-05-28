@@ -50,7 +50,7 @@ oci-spec = "0.9"
 # cosign / sigstore verification (ADR-014). Trust-key loading lands in Wave 3A.1;
 # signature-manifest verification lands in Wave 3A.2. We intentionally keep the
 # feature surface small to minimise compile time.
-sigstore = { version = "0.13", default-features = false, features = ["cosign", "sigstore-trust-root", "rustls-tls"] }
+sigstore = { version = "0.14", default-features = false, features = ["cosign", "sigstore-trust-root", "rustls-tls"] }
 # ECDSA P-256 verifying key parsing for the `CosignVerifier` trust-key loader.
 p256 = { version = "0.13", default-features = false, features = ["ecdsa", "pem", "pkcs8", "std"] }
 ecdsa = { version = "0.16", default-features = false, features = ["pem", "pkcs8"] }
