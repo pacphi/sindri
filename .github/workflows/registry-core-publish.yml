@@ -151,7 +151,7 @@ jobs:
           ref: v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Cache cargo (sindri build)
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: |
             ~/.cargo/registry
@@ -209,7 +209,7 @@ jobs:
           ref: v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Cache cargo (sindri build)
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: |
             ~/.cargo/registry
@@ -288,7 +288,7 @@ jobs:
           python-version: "3.12"
 
       - name: Cache ScanCode pip install
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-scancode-32.x
@@ -426,7 +426,7 @@ jobs:
           ref: v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Cache cargo (sindri build)
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: |
             ~/.cargo/registry
