@@ -20,7 +20,7 @@ dirs-next = { workspace = true }
 async-trait = { workspace = true }
 reqwest = { workspace = true }
 # ChaCha20-Poly1305 AEAD for encrypted-at-rest file backend (ADR-025)
-chacha20poly1305 = "0.10"
+chacha20poly1305 = "0.11"
 # HKDF + SHA-256 for passphrase-to-key derivation
 hkdf = "0.13"
 sha2 = { workspace = true }
