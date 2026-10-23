@@ -188,7 +188,7 @@ jobs:
       commit_sha: ${{ steps.verify.outputs.commit_sha }}
       all_distros_available: ${{ steps.check-distros.outputs.all_distros_available }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6.1.0
         with:
           fetch-depth: 0
 
@@ -200,7 +200,7 @@ jobs:
           echo "Tag ${{ github.ref_name }} points to commit: $SHA"
 
       - name: Login to GHCR
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f  # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -572,16 +572,16 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6.1.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
         with:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
 
       - name: Download binary artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
           path: artifacts
 
@@ -671,23 +671,43 @@ jobs:
           npm publish --provenance --access public --tag "${tag}"
 
   # Job 9: Update CHANGELOG.md and Cargo.toml
+  # v3.1.x is the v3 maintenance branch: main has no v3 product code and is
+  # protected, so this job works on v3.1.x. v3.1.x is protected too, and the
+  # release PR already carries the CHANGELOG entry and the version, so the job
+  # skips (without committing or pushing) when both are already present.
   update-version-files:
     runs-on: ubuntu-latest
     needs: [validate-tag, generate-changelog]
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6.1.0
         with:
-          ref: main
+          ref: v3.1.x
           fetch-depth: 0
 
+      - name: Check whether the release PR already recorded this version
+        id: guard
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          cargo_version=$(sed -n '/^\[workspace\.package\]/,/^\[/ s/^version = "\(.*\)"$/\1/p' v3/Cargo.toml | head -n 1)
+          echo "Released version: $version; v3/Cargo.toml [workspace.package] version: $cargo_version"
+
+          if grep -qF "## [$version]" v3/CHANGELOG.md && [[ "$cargo_version" == "$version" ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Version files already up to date::v3/CHANGELOG.md has [$version] and v3/Cargo.toml is $cargo_version on v3.1.x; nothing to commit or push"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Download changelog artifact
-        uses: actions/download-artifact@v8
+        if: steps.guard.outputs.skip != 'true'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
           name: changelog-v3
 
       - name: Update v3/CHANGELOG.md
+        if: steps.guard.outputs.skip != 'true'
         run: |
           version="${{ needs.validate-tag.outputs.version }}"
           changelog_header='# Changelog - Sindri v3
@@ -731,6 +751,7 @@ jobs:
 
       - name: Bump v3/Cargo.toml to NEXT version for development
         id: bump-version
+        if: steps.guard.outputs.skip != 'true'
         run: |
           released_version="${{ needs.validate-tag.outputs.version }}"
 
@@ -769,15 +790,18 @@ jobs:
           echo "Updated v3/Cargo.toml to version $next_version for next development cycle"
 
       - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        if: steps.guard.outputs.skip != 'true'
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec  # stable
 
       - name: Regenerate Cargo.lock
+        if: steps.guard.outputs.skip != 'true'
         run: |
           cd v3
           cargo generate-lockfile
           echo "Regenerated v3/Cargo.lock"
 
       - name: Commit version updates
+        if: steps.guard.outputs.skip != 'true'
         run: |
           released_version="${{ needs.validate-tag.outputs.version }}"
           next_version="${{ steps.bump-version.outputs.next_version }}"
@@ -798,7 +822,7 @@ jobs:
           Next development version: v$next_version
 
           [skip ci]"
-          git push origin main
+          git push origin HEAD:v3.1.x
 
   # Job 9: Create GitHub Release
   create-release:
