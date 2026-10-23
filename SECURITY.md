@@ -2,13 +2,34 @@
 
 ## Supported Versions
 
-We actively maintain and provide security updates for the following versions:
+Each major version is a line with its own long-lived branches. Lines are maintained independently:
+a fix is never merged or cherry-picked from one line to another. When an advisory affects several
+lines, each line gets its own fix, made against that line's own dependencies.
 
-| Version | Status                | Support Level                |
-| ------- | --------------------- | ---------------------------- |
-| v3.x    | ✅ Active Development | Full security support        |
-| v2.x    | 🔧 Maintenance Mode   | Critical security fixes only |
-| v1.x    | ❌ End of Life        | No security updates          |
+| Line | Development branch | Maintenance branch | Latest release | Status         | Receives                                                                   |
+| ---- | ------------------ | ------------------ | -------------- | -------------- | -------------------------------------------------------------------------- |
+| v4   | `v4`               | none               | none           | 🚧 Pre-release | Security and dependency fixes on the branch; no releases before 4.0.0      |
+| v3   | `v3`               | `v3.1.x`           | v3.1.3         | ✅ Supported   | Security and in-major dependency fixes, toolchain patches; v3.1.x releases |
+| v2   | `v2`               | `v2.5.x`           | v2.5.1         | 🔧 Maintenance | Security and in-major dependency fixes, toolchain patches; v2.5.x releases |
+| v1   | `v1` (locked)      | none               | v1.13.0        | ❌ End of Life | No updates                                                                 |
+
+### How the branches are used
+
+- **Maintenance branches** (`v3.1.x`, `v2.5.x`) start at the latest release of their line and carry
+  only fixes on top of it. Patch releases (`v3.1.4`, `v2.5.2`, ...) are tagged from them, so a
+  patch release never ships unreleased features.
+- **Development branches** (`v2`, `v3`, `v4`) carry each line's ongoing work, which reaches users
+  in that line's next minor release (or, for v4, its first release).
+- **No crossing streams.** Within a line, dependencies stay within their current major version
+  (for 0.x crates and packages, within their current minor). Toolchains get patch updates only:
+  Rust stays on the line's pinned minor (1.94.x for `v3.1.x`), and base images stay on their
+  release. Moving a line to a new major of anything is a deliberate, separate change.
+- **Dependency updates** come from Renovate, configured once in `renovate.json` on `main`, which
+  targets every supported branch with these rules. Commits are scoped to the branch they land
+  on, for example `deps(v3.1.x): ...` or `deps(v4): ...`.
+- **Vulnerability scanning.** Each supported branch's CI runs a dependency audit, and a
+  scheduled audit on `main` checks every supported branch. GitHub's own Dependabot alerts only
+  cover `main`, which holds no product code.
 
 ## Reporting a Vulnerability
 
