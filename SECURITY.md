@@ -24,12 +24,37 @@ lines, each line gets its own fix, made against that line's own dependencies.
   (for 0.x crates and packages, within their current minor). Toolchains get patch updates only:
   Rust stays on the line's pinned minor (1.94.x for `v3.1.x`), and base images stay on their
   release. Moving a line to a new major of anything is a deliberate, separate change.
+- A transitive 0.x bump that is forced by an in-major security fix is allowed, and must be listed
+  in the PR.
 - **Dependency updates** come from Renovate, configured once in `renovate.json` on `main`, which
   targets every supported branch with these rules. Commits are scoped to the branch they land
   on, for example `deps(v3.1.x): ...` or `deps(v4): ...`.
 - **Vulnerability scanning.** Each supported branch's CI runs a dependency audit, and a
-  scheduled audit on `main` checks every supported branch. GitHub's own Dependabot alerts only
-  cover `main`, which holds no product code.
+  scheduled audit on `main` checks every supported branch (see "Dependency auditing" below).
+  GitHub's own Dependabot alerts only cover `main`, which holds no product code.
+
+### Dependency auditing
+
+Every supported branch (`v2`, `v2.5.x`, `v3`, `v3.1.x`, `v4`) runs the same audit:
+
+- **Job name:** `Dependency Audit`, on every push and pull request for the branch (and on manual
+  dispatch). It is the one required check to configure; the branch's "Required Checks" job fails
+  when it fails.
+- **Rust lines** (`v3`, `v3.1.x`, `v4`): `cargo audit --deny warnings` (cargo-audit 0.22.2) in
+  `v3/` or `v4/`. Exceptions live only in the line's `.cargo/audit.toml`, under
+  `[advisories] ignore`.
+- **npm** (`v2`, `v2.5.x`): `npm audit --audit-level=high` on every committed `package-lock.json`
+  under `v2/`, run by `.github/scripts/v2/npm-audit.sh`. Exceptions live in `v2/npm-audit-ignore`.
+  The script fails when the registry returns no report, and warns about exceptions that no
+  longer match anything.
+- **Exceptions** are only for advisories with no fix inside the current major. Each names the
+  advisory and its link, the dependency path, why it can't be fixed in-major, its reachability,
+  and the condition for removing it.
+- **Where it runs:** for `v2`, `v3` and `v4`, in `main`'s `ci-v2.yml`, `ci-v3.yml` and
+  `ci-v4.yml`; for `v2.5.x` and `v3.1.x`, in the branch's own `ci-v2.yml` or `ci-v3.yml`.
+- **Schedule:** `dependency-audit.yml` on `main` audits every supported branch each Monday at
+  06:00 UTC. Findings open or update one issue per branch, titled `Dependency Audit: <branch>` and
+  labelled `security`, which is closed when the audit is clean.
 
 ## Reporting a Vulnerability
 
