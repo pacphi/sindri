@@ -310,17 +310,19 @@ jobs:
   # Mark Promotion Candidate
   # ============================================
 
+  # Pushes to main and to the v2.5.x maintenance branch produce the v2-ci-passed-<sha>
+  # image that release-v2.yml's verify-ci-image promotes for a v2.* tag on that commit.
   mark-passed:
     name: Mark as Promotion Candidate
-    needs: [build, security-scan, test-docker, test-fly, test-devpod-k8s]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [build, dependency-audit, security-scan, test-docker, test-fly, test-devpod-k8s]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/v2.5.x')
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     steps:
       - name: Login to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
