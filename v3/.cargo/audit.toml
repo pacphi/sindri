@@ -1,0 +1,33 @@
+# cargo-audit configuration for the v3 workspace.
+# Read natively by `cargo audit` (run from `v3/`); CI runs `cargo audit --deny warnings`.
+# This is the ONLY place advisory exceptions live for v3.
+# Every entry: advisory and link, dependency path, why no in-major fix exists, reachability,
+# exit condition.
+
+[advisories]
+ignore = [
+    # RUSTSEC-2026-0374 (https://rustsec.org/advisories/RUSTSEC-2026-0374): basic-toml is unmaintained.
+    # Path: sindri-secrets -> age 0.11.5 -> i18n-embed-fl 0.9.4 / i18n-embed 0.15 -> i18n-config 0.4.8 -> basic-toml 0.1.10
+    # No fix: no patched release; i18n-config 0.4.8 is the latest and still depends on basic-toml, and even
+    #   age 0.12 (a 0.x major) keeps i18n-config ^0.4.
+    # Reachability: proc-macro/build-time parsing of age's own i18n.toml; never parses sindri input.
+    # Exit: remove when i18n-config drops basic-toml (or age stops depending on i18n-config).
+    "RUSTSEC-2026-0374",
+
+    # RUSTSEC-2026-0173 (https://rustsec.org/advisories/RUSTSEC-2026-0173): proc-macro-error2 is unmaintained.
+    # Paths: sindri-secrets -> age 0.11.5 -> i18n-embed-fl 0.9.4 (proc-macro) -> proc-macro-error2 2.0.1
+    #        sindri -> tabled 0.20 -> tabled_derive 0.11.0 (proc-macro) -> proc-macro-error2 2.0.1
+    # No fix: no patched release; the dropping releases are majors (age 0.12 via i18n-embed-fl 0.10,
+    #   tabled 0.22 via tabled_derive 0.12), deferred under the line's no-major policy.
+    # Reachability: compile-time proc-macro only; no runtime code.
+    # Exit: remove once both age >= 0.12 and tabled >= 0.22 are taken.
+    "RUSTSEC-2026-0173",
+
+    # RUSTSEC-2024-0449 (https://rustsec.org/advisories/RUSTSEC-2024-0449): unsafe-libyaml is unmaintained.
+    # Path: sindri-core and other workspace crates -> serde_yaml_ng 0.10.0 -> unsafe-libyaml 0.2.11
+    # No fix: no patched release; serde_yaml_ng 0.10.0 is the latest release.
+    # Reachability: used to parse sindri's YAML config and extension manifests (no known vulnerability,
+    #   only the maintenance status).
+    # Exit: remove when the workspace migrates to a YAML crate that does not depend on unsafe-libyaml.
+    "RUSTSEC-2024-0449",
+]
