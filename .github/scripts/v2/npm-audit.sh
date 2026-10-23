@@ -1,97 +1,123 @@
 #!/usr/bin/env bash
-# Run `npm audit --audit-level=high` against every committed package-lock.json in the v2 line,
-# with per-lockfile exceptions from v2/audit-ignore.
+# Run `npm audit` on every package-lock.json under v2/, failing on advisories at or above
+# AUDIT_LEVEL (default: high), with exceptions from v2/npm-audit-ignore.
 #
-# Fails (exit 1) when:
-#   - any high or critical advisory remains that v2/audit-ignore doesn't list for that lockfile;
-#   - npm audit returns an error body (e.g. registry timeout) instead of a report: fail closed;
-#   - no lockfile is found, or an exception no longer matches anything (stale ignore).
+# The ignore file lists one GHSA id per line; anything after '#' is a comment. Packages that
+# are vulnerable only through an ignored advisory (npm reports them with a string "via") are
+# covered by that ignore.
 #
-# v2/audit-ignore format, one exception per line:
-#   <GHSA-id> <lockfile directory, relative to the repo root>  # advisory, path, reason, exit condition
-#
-# Usage: .github/scripts/v2/npm-audit.sh
+# Fails closed: if npm returns no usable report for a lockfile (registry error, timeout,
+# unparsable output), that lockfile counts as failed.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
-IGNORE_FILE="${REPO_ROOT}/v2/audit-ignore"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+IGNORE_FILE="$REPO_ROOT/v2/npm-audit-ignore"
+AUDIT_LEVEL="${AUDIT_LEVEL:-high}"
 
-command -v npm >/dev/null || { echo "npm not found" >&2; exit 2; }
-command -v jq >/dev/null || { echo "jq not found" >&2; exit 2; }
+case "$AUDIT_LEVEL" in
+  low | moderate | high | critical) ;;
+  *)
+    echo "::error::AUDIT_LEVEL must be low, moderate, high or critical (got '$AUDIT_LEVEL')"
+    exit 2
+    ;;
+esac
 
-# "<GHSA> <dir>" pairs from the ignore file
-ignores=""
-if [[ -f "${IGNORE_FILE}" ]]; then
-  while IFS= read -r line || [[ -n "${line}" ]]; do
+IGNORED_IDS=()
+if [[ -f "$IGNORE_FILE" ]]; then
+  while IFS= read -r line || [[ -n "$line" ]]; do
     line="${line%%#*}"
-    read -r ghsa dir _ <<<"${line}" || true
-    [[ -z "${ghsa:-}" ]] && continue
-    if [[ -z "${dir:-}" ]]; then
-      echo "::error::${IGNORE_FILE}: '${ghsa}' has no lockfile directory" >&2
-      exit 2
-    fi
-    ignores+="${ghsa} ${dir}"$'\n'
-  done <"${IGNORE_FILE}"
+    line="$(echo "$line" | xargs)"
+    [[ -z "$line" ]] && continue
+    IGNORED_IDS+=("$line")
+  done < "$IGNORE_FILE"
 fi
 
-cd "${REPO_ROOT}"
-lockfiles=$(git ls-files -- '*package-lock.json' | grep -v '/node_modules/' || true)
-if [[ -z "${lockfiles}" ]]; then
-  echo "::error::no package-lock.json found; nothing was audited" >&2
+if [[ ${#IGNORED_IDS[@]} -gt 0 ]]; then
+  IGNORE_JSON="$(printf '%s\n' "${IGNORED_IDS[@]}" | jq -R . | jq -cs .)"
+  echo "Ignoring ${#IGNORED_IDS[@]} advisory exception(s) from ${IGNORE_FILE#"$REPO_ROOT"/}:"
+  printf '  - %s\n' "${IGNORED_IDS[@]}"
+else
+  IGNORE_JSON='[]'
+fi
+
+cd "$REPO_ROOT"
+
+LOCKFILES=()
+lock_list="$(git ls-files -- ':(glob)v2/**/package-lock.json')"
+while IFS= read -r lock; do
+  [[ -n "$lock" ]] && LOCKFILES+=("$lock")
+done <<< "$lock_list"
+
+if [[ ${#LOCKFILES[@]} -eq 0 ]]; then
+  echo "::error::No package-lock.json found under v2/"
   exit 1
 fi
 
-status=0
-errored=0
-used=""
-while IFS= read -r lock; do
-  dir=$(dirname "${lock}")
-  echo "== npm audit --audit-level=high: ${dir}"
-  report=$(cd "${dir}" && npm audit --json --package-lock-only 2>/dev/null || true)
+failed=0
+incomplete=0
+seen_ignored='[]'
 
-  if ! jq -e 'type == "object" and (.error | not) and (.metadata.vulnerabilities | type == "object")' \
-    >/dev/null 2>&1 <<<"${report}"; then
-    echo "::error::npm audit returned no report for ${dir} (registry error?); failing closed" >&2
-    jq -c '.error // .' <<<"${report}" 2>/dev/null | head -c 2000 >&2 || printf '%s\n' "${report}" | head -c 2000 >&2
-    echo >&2
-    status=1
-    errored=1
+for lock in "${LOCKFILES[@]}"; do
+  dir="$(dirname "$lock")"
+  echo ""
+  echo "=== npm audit --audit-level=$AUDIT_LEVEL: $lock"
+
+  # npm audit exits non-zero whenever it finds anything, so judge by the JSON report.
+  report="$(cd "$dir" && npm audit --json --package-lock-only 2>/dev/null || true)"
+
+  if ! jq -e 'type == "object" and (has("error") | not) and has("vulnerabilities") and has("metadata")' \
+    > /dev/null 2>&1 <<< "$report"; then
+    echo "::error file=$lock::npm audit returned no usable report (registry error or bad output)"
+    jq -r '.error // empty | "  \(.code // "") \(.summary // "")"' 2> /dev/null <<< "$report" || true
+    failed=1
+    incomplete=1
     continue
   fi
 
-  jq -r '.metadata.vulnerabilities | "   counts: critical=\(.critical) high=\(.high) moderate=\(.moderate) low=\(.low) total=\(.total)"' <<<"${report}"
+  jq -r '.metadata.vulnerabilities | "  totals: critical=\(.critical) high=\(.high) moderate=\(.moderate) low=\(.low)"' <<< "$report"
 
-  # Every advisory object (not "via another package" strings) at high or critical.
-  findings=$(jq -r '
-    [.vulnerabilities[] | .via[] | objects | select(.severity == "high" or .severity == "critical")
-      | {ghsa: ((.url // "" | (capture("(?<id>GHSA-[0-9a-z-]+)") | .id)?) // "npm-advisory-\(.source)"),
-         name, severity, title}]
-    | unique_by(.ghsa) | .[] | "\(.ghsa)\t\(.name)\t\(.severity)\t\(.title)"' <<<"${report}")
+  # Advisory-level view: one row per (package, advisory) at or above the level.
+  rows="$(jq -r --arg level "$AUDIT_LEVEL" --argjson ignore "$IGNORE_JSON" '
+    def rank: {"info": 0, "low": 1, "moderate": 2, "high": 3, "critical": 4}[.] // 0;
+    [ .vulnerabilities[] | .via[] | objects
+      | select((.severity | rank) >= ($level | rank))
+      | (.url | split("/") | last) as $id
+      | { id: $id, name, severity, range, title,
+          ignored: ($ignore | index($id) != null) } ]
+    | unique_by([.name, .id]) | .[]
+    | [ (if .ignored then "IGNORED" else "FAIL" end), .id, .severity, .name, .range, .title ]
+    | @tsv' <<< "$report")"
 
-  while IFS=$'\t' read -r ghsa name severity title; do
-    [[ -z "${ghsa}" ]] && continue
-    if grep -qxF "${ghsa} ${dir}" <<<"${ignores}"; then
-      echo "   ignored  ${ghsa} ${name} (${severity}): ${title}"
-      used+="${ghsa} ${dir}"$'\n'
-    else
-      echo "::error::${dir}: ${ghsa} ${name} (${severity}): ${title}"
-      status=1
-    fi
-  done <<<"${findings}"
-done <<<"${lockfiles}"
-
-# An exception that matched nothing is stale: remove it from v2/audit-ignore.
-# (Skipped when a report was missing, since nothing could match then.)
-while IFS= read -r entry; do
-  [[ -z "${entry}" || "${errored}" -eq 1 ]] && continue
-  if ! grep -qxF "${entry}" <<<"${used}"; then
-    echo "::error::stale exception in v2/audit-ignore (no longer reported): ${entry}" >&2
-    status=1
+  if [[ -z "$rows" ]]; then
+    echo "  ok: no advisories at or above $AUDIT_LEVEL"
+    continue
   fi
-done <<<"${ignores}"
 
-if [[ "${status}" -eq 0 ]]; then
-  echo "npm audit: no unignored high or critical advisories"
+  while IFS=$'\t' read -r status id severity name range title; do
+    echo "  $status $id ($severity) $name $range: $title"
+    if [[ "$status" == "FAIL" ]]; then
+      echo "::error file=$lock::$id ($severity) $name $range: $title"
+      failed=1
+    else
+      seen_ignored="$(jq -c --arg id "$id" '. + [$id] | unique' <<< "$seen_ignored")"
+    fi
+  done <<< "$rows"
+done
+
+# Flag exceptions that no longer match anything, so they get removed (only when every
+# lockfile produced a report; otherwise a missing match proves nothing).
+if [[ ${#IGNORED_IDS[@]} -gt 0 && $incomplete -eq 0 ]]; then
+  for id in "${IGNORED_IDS[@]}"; do
+    if ! jq -e --arg id "$id" 'index($id) != null' > /dev/null <<< "$seen_ignored"; then
+      echo "::warning file=v2/npm-audit-ignore::$id no longer matches any finding; remove it"
+    fi
+  done
 fi
-exit "${status}"
+
+echo ""
+if [[ $failed -ne 0 ]]; then
+  echo "npm audit gate FAILED"
+  exit 1
+fi
+echo "npm audit gate passed (${#LOCKFILES[@]} lockfile(s))"
