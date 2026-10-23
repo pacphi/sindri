@@ -17,12 +17,10 @@ on:
       - '.shellcheckrc'
       - '.yamllint.yml'
       - 'Makefile'
+  # No path filters on pull_request: every PR must report the branch's required
+  # checks (see .github/scripts/setup-branch-protection.sh on main).
   pull_request:
     branches: [v2]
-    paths-ignore:
-      - 'CHANGELOG.md'
-      - 'RELEASE_NOTES*.md'
-      - '**/*.md'
   workflow_dispatch:
 
 # Permissions must be a SUPERSET of every nested permission the called
