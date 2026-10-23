@@ -259,14 +259,14 @@ mod tests {
         let old_name = "20240101T000000Z.log";
         std::fs::write(ext_dir.join(old_name), "old log content").unwrap();
 
-        // Create a "recent" log file
-        let recent_name = "20260213T120000Z.log";
-        std::fs::write(ext_dir.join(recent_name), "recent log content").unwrap();
+        // Create a "recent" log file, dated now so it stays inside the retention window
+        let recent_name = format!("{}.log", Utc::now().format("%Y%m%dT%H%M%SZ"));
+        std::fs::write(ext_dir.join(&recent_name), "recent log content").unwrap();
 
         let removed = writer.cleanup_old_logs(90).unwrap();
         assert_eq!(removed, 1);
         assert!(!ext_dir.join(old_name).exists());
-        assert!(ext_dir.join(recent_name).exists());
+        assert!(ext_dir.join(&recent_name).exists());
     }
 
     #[test]
