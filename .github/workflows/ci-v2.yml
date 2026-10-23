@@ -5,18 +5,20 @@ name: "v2: CI"
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, v2.5.x]
     paths:
       - 'v2/**'
       - '.github/workflows/ci-v2.yml'
       - '.github/actions/shared/**'
+      - '.github/scripts/v2/**'
       - 'package.json'
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, v2.5.x]
     paths:
       - 'v2/**'
       - '.github/workflows/ci-v2.yml'
       - '.github/actions/shared/**'
+      - '.github/scripts/v2/**'
       - 'package.json'
   workflow_dispatch:
     inputs:
@@ -187,6 +189,23 @@ jobs:
           echo "::notice title=Test Providers::$PROVIDERS"
 
   # ============================================
+  # Dependency Audit (npm)
+  # ============================================
+
+  npm-audit:
+    name: npm audit (v2 lockfiles)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      # Audits every package-lock.json under v2/ at --audit-level=high.
+      # Exceptions live in v2/npm-audit-ignore, each with its reason and exit condition.
+      - name: npm audit
+        run: .github/scripts/v2/npm-audit.sh
+
+  # ============================================
   # Security Scanning
   # ============================================
 
@@ -332,6 +351,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - build
+      - npm-audit
       - security-scan
     if: ${{ always() }}
     steps:
@@ -341,12 +361,14 @@ jobs:
           # NOTE: Validation is handled by dedicated workflows:
           # - validate-shell.yml, validate-markdown.yml, validate-yaml.yml
           BUILD="${{ needs.build.result }}"
+          NPM_AUDIT="${{ needs.npm-audit.result }}"
           SECURITY="${{ needs.security-scan.result }}"
 
-          if [[ "$BUILD" != "success" ]]; then
+          if [[ "$BUILD" != "success" ]] || [[ "$NPM_AUDIT" != "success" ]]; then
             echo "❌ Required CI v2 checks failed"
             echo "Results:"
             echo "  build: $BUILD"
+            echo "  npm-audit: $NPM_AUDIT"
             echo "  security-scan: $SECURITY"
             exit 1
           fi
