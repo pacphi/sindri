@@ -570,6 +570,8 @@ jobs:
           name: Sindri v${{ needs.validate-tag.outputs.version }} (Docker)
           body_path: changelog.md
           prerelease: ${{ needs.validate-tag.outputs.is_prerelease }}
+          # v3 owns the repository's Latest release (README links to releases/latest/download).
+          make_latest: false
           files: |
             install-v2.sh
             sbom.spdx.json
