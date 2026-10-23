@@ -53,7 +53,7 @@ jobs:
       changelog: ${{ steps.changelog.outputs.changelog }}
       changelog_file: ${{ steps.changelog.outputs.changelog_file }}
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
 
@@ -108,7 +108,7 @@ jobs:
             platform: windows-x86_64
 
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -121,7 +121,7 @@ jobs:
           cargo install cross --git https://github.com/cross-rs/cross
 
       - name: Cache Cargo dependencies
-        uses: actions/cache@v5.0.5
+        uses: actions/cache@v6.1.0
         with:
           path: |
             ~/.cargo/bin/
@@ -188,7 +188,7 @@ jobs:
       commit_sha: ${{ steps.verify.outputs.commit_sha }}
       all_distros_available: ${{ steps.check-distros.outputs.all_distros_available }}
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
 
@@ -572,7 +572,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -581,7 +581,7 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Download binary artifacts
-        uses: actions/download-artifact@v8.0.1
+        uses: actions/download-artifact@v8.0.2
         with:
           path: artifacts
 
@@ -677,13 +677,13 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
         with:
           ref: main
           fetch-depth: 0
 
       - name: Download changelog artifact
-        uses: actions/download-artifact@v8.0.1
+        uses: actions/download-artifact@v8.0.2
         with:
           name: changelog-v3
 
@@ -809,20 +809,20 @@ jobs:
     outputs:
       release_url: ${{ steps.release.outputs.url }}
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
 
       - name: Download all binary artifacts
-        uses: actions/download-artifact@v8.0.1
+        uses: actions/download-artifact@v8.0.2
         with:
           path: artifacts
 
       - name: Download changelog
-        uses: actions/download-artifact@v8.0.1
+        uses: actions/download-artifact@v8.0.2
         with:
           name: changelog-v3
 
       - name: Download SBOM
-        uses: actions/download-artifact@v8.0.1
+        uses: actions/download-artifact@v8.0.2
         with:
           name: sbom-v${{ needs.validate-tag.outputs.version }}
 
@@ -1034,7 +1034,7 @@ jobs:
       contents: read
       issues: write
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
 
       - name: Notify success
         if: needs.create-release.result == 'success'
