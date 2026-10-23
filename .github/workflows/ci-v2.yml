@@ -1,25 +1,14 @@
 name: "v2: CI"
 
 # v2 Bash/Docker CI Pipeline
-# Triggers on changes to v2 directory and related configurations
+# Runs on every push and pull request to the listed branches, with no path filters, so
+# `Dependency Audit` and `CI v2 Required Checks` always report and can be required checks.
 
 on:
   push:
     branches: [main, develop, v2.5.x]
-    paths:
-      - 'v2/**'
-      - '.github/workflows/ci-v2.yml'
-      - '.github/actions/shared/**'
-      - '.github/scripts/v2/**'
-      - 'package.json'
   pull_request:
     branches: [main, develop, v2.5.x]
-    paths:
-      - 'v2/**'
-      - '.github/workflows/ci-v2.yml'
-      - '.github/actions/shared/**'
-      - '.github/scripts/v2/**'
-      - 'package.json'
   workflow_dispatch:
     inputs:
       providers:
@@ -192,7 +181,7 @@ jobs:
   # Dependency Audit (npm)
   # ============================================
   # Standard job for every supported line (see SECURITY.md on main, "Dependency auditing").
-  # No `if:`: it runs on every push, pull_request and workflow_dispatch run of this workflow.
+  # No `if:` and no path filters: it runs on every push, pull_request and workflow_dispatch.
 
   dependency-audit:
     name: Dependency Audit
