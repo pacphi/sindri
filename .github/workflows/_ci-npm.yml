@@ -27,7 +27,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "${{ inputs.node_version }}" }
       - uses: pnpm/action-setup@v6
-        with: { version: 9 }
+        with: { version: 12 }
       - name: Install dependencies
         working-directory: ${{ inputs.package_dir }}
         run: pnpm install --frozen-lockfile=false
