@@ -23,6 +23,9 @@ Security patch release from the `v2.5.x` maintenance branch. No feature changes 
 - ci(v2.5.x): pin `aquasecurity/trivy-action` by commit SHA (v0.36.0, was `@master`) with Trivy 0.76.0
 - ci(v2.5.x): release v2 from `v2.5.x`: the changelog/VERSION bookkeeping job no longer targets `main`, and pushes to `v2.5.x` produce the `v2-ci-passed-<sha>` image that the release promotes
 - chore(v2.5.x): `v2/cli/VERSION` 2.5.2
+- ci(v2.5.x): v2 releases no longer take GitHub's "Latest" release (`make_latest: false`), so `releases/latest` keeps pointing at the current v3 release
+- ci(v2.5.x): every action in `release-v2.yml` pinned by commit SHA to the newest in-major release at least 3 days old
+- ci(v2.5.x): v2 CI runs on every change to `v2.5.x` (path filters removed), so `Dependency Audit` reports on every pull request
 
 ### Known issues
 
