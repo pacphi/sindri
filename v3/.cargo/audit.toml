@@ -1,0 +1,44 @@
+# cargo-audit configuration for the v3 line (read by `cargo audit` run from v3/).
+#
+# CI's "Dependency Audit" job runs `cargo audit --deny warnings` in v3/, so warnings
+# (unmaintained, unsound, yanked) fail the build unless they are ignored here.
+# This file is the ONLY place advisories are ignored on this line.
+#
+# Each entry documents: advisory and link, dependency path, why it can't be fixed
+# in-major, reachability, and the exit condition. Only "unmaintained" warnings are
+# listed; no vulnerability is ignored.
+
+[advisories]
+ignore = [
+    # RUSTSEC-2026-0374: basic-toml is unmaintained (no vulnerability, no patched release)
+    #   https://rustsec.org/advisories/RUSTSEC-2026-0374
+    # Path: sindri-secrets -> age 0.11.2 -> i18n-embed-fl 0.9.4 / i18n-embed-impl 0.8.4
+    #       (proc-macros) -> i18n-config 0.4.8 -> basic-toml 0.1.10
+    # Cannot fix in-major: i18n-config 0.4.8 is the latest 0.4.x and still depends on basic-toml.
+    # Reachability: compile-time only (read by proc-macros while building age); not in the
+    #   sindri binary's runtime paths.
+    # Exit: remove once an age 0.11.x / i18n-config 0.4.x release drops basic-toml.
+    "RUSTSEC-2026-0374",
+
+    # RUSTSEC-2026-0173: proc-macro-error2 is unmaintained (no vulnerability, no patched release)
+    #   https://rustsec.org/advisories/RUSTSEC-2026-0173
+    # Path: sindri -> tabled 0.20.0 -> tabled_derive 0.11.0 (proc-macro), and
+    #       sindri-secrets -> age 0.11.2 -> i18n-embed-fl 0.9.4 (proc-macro) -> proc-macro-error2 2.0.1
+    # Cannot fix in-major: tabled_derive 0.11.0 and i18n-embed-fl 0.9.4 are the latest in their
+    #   0.x minors.
+    # Reachability: compile-time only (proc-macro error reporting); nothing of it ships in the binary.
+    # Exit: remove once tabled 0.20.x and i18n-embed-fl 0.9.x drop it, or when this line moves
+    #   to tabled 0.21+.
+    "RUSTSEC-2026-0173",
+
+    # RUSTSEC-2024-0449: unsafe-libyaml is unmaintained (no vulnerability, no patched release)
+    #   https://rustsec.org/advisories/RUSTSEC-2024-0449
+    # Path: serde_yaml_ng 0.10.0 -> unsafe-libyaml 0.2.11 (sindri, sindri-core, sindri-clusters, ...)
+    # Cannot fix in-major: every serde_yaml_ng 0.10.x uses unsafe-libyaml; replacing the YAML
+    #   crate is an API change.
+    # Reachability: used at runtime to parse sindri.yaml and extension YAML (local, user-supplied
+    #   files).
+    # Exit: remove when the v3 line replaces serde_yaml_ng, or a serde_yaml_ng 0.10.x drops
+    #   unsafe-libyaml.
+    "RUSTSEC-2024-0449",
+]

@@ -4,31 +4,17 @@ name: "v3: CI"
 # Triggers on changes to v3 directory and related configurations
 
 on:
+  # No path filters: every push and pull request on these branches runs the
+  # workflow, so the "Dependency Audit" required check always reports and a
+  # push to v3.1.x always produces the CI image that release-v3.yml promotes.
   push:
     branches: [main, develop, feature/v3, v3.1.x]
-    paths:
-      - 'v3/**'
-      - '.github/workflows/ci-v3.yml'
-      - '.github/workflows/v3-*.yml'
-      - '.github/actions/v3/**'
-      - '.github/scripts/v3/**'
   pull_request:
     branches: [main, develop, feature/v3, v3.1.x]
-    paths:
-      - 'v3/**'
-      - '.github/workflows/ci-v3.yml'
-      - '.github/workflows/v3-*.yml'
-      - '.github/actions/v3/**'
-      - '.github/scripts/v3/**'
   workflow_dispatch:
     inputs:
       test-extensions:
         description: 'Run extension tests'
-        required: false
-        default: true
-        type: boolean
-      run-audit:
-        description: 'Run security audit'
         required: false
         default: true
         type: boolean
@@ -444,8 +430,9 @@ jobs:
       - name: Scan with Trivy
         id: trivy
         continue-on-error: true
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
         with:
+          version: v0.76.0
           image-ref: ghcr.io/${{ github.repository }}:v3-ci-${{ github.sha }}-ubuntu
           format: sarif
           output: trivy-results.sarif
@@ -510,28 +497,35 @@ jobs:
           echo "- **Status**: Ready for release promotion" >> $GITHUB_STEP_SUMMARY
 
   # ============================================
-  # Security Audit (Cargo)
+  # Dependency Audit (cargo audit)
   # ============================================
+  # Standard dependency audit: `cargo audit --deny warnings` in v3/.
+  # Ignored advisories live only in v3/.cargo/audit.toml, each documented there.
+  # Runs on every push, pull_request and workflow_dispatch (no `if:`), and
+  # CI v3 Required Checks / CI v3 Status fail when it fails.
 
-  security-audit:
-    name: Security Audit
+  dependency-audit:
+    name: Dependency Audit
     runs-on: ubuntu-latest
-    # Runs on push and pull_request; on manual dispatch only when run-audit is true.
-    if: github.event_name != 'workflow_dispatch' || github.event.inputs.run-audit == 'true'
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6.1.0
 
       - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec  # stable
 
       - name: Install cargo-binstall
-        uses: cargo-bins/cargo-binstall@v1.17.7
+        uses: cargo-bins/cargo-binstall@1800853f2578f8c34492ec76154caef8e163fbca  # v1.17.7
 
-      - name: Install cargo-audit
-        run: cargo binstall cargo-audit --no-confirm
+      - name: Install cargo-audit 0.22.2
+        run: |
+          cargo binstall --no-confirm --locked cargo-audit@0.22.2
+          cargo audit --version
 
-      - name: Run cargo audit
-        run: .github/scripts/v3/cargo-audit.sh
+      - name: cargo audit --deny warnings
+        working-directory: v3
+        run: cargo audit --deny warnings
 
   # ============================================
   # Documentation Build
@@ -1191,6 +1185,7 @@ jobs:
       - rust-build
       - build-image
       - security-scan
+      - dependency-audit
     if: ${{ always() }}
     steps:
       - name: Check required jobs
@@ -1203,12 +1198,14 @@ jobs:
           BUILD="${{ needs.rust-build.result }}"
           IMAGE="${{ needs.build-image.result }}"
           SECURITY="${{ needs.security-scan.result }}"
+          AUDIT="${{ needs.dependency-audit.result }}"
 
           if [[ "$FORMAT" != "success" ]] || \
              [[ "$CLIPPY" != "success" ]] || \
              [[ "$TEST" != "success" ]] || \
              [[ "$BUILD" != "success" ]] || \
-             [[ "$IMAGE" != "success" ]]; then
+             [[ "$IMAGE" != "success" ]] || \
+             [[ "$AUDIT" != "success" ]]; then
             echo "❌ Required CI v3 checks failed"
             echo "Results:"
             echo "  rust-format: $FORMAT"
@@ -1217,6 +1214,7 @@ jobs:
             echo "  rust-build: $BUILD"
             echo "  build-image: $IMAGE"
             echo "  security-scan: $SECURITY"
+            echo "  dependency-audit: $AUDIT"
             exit 1
           fi
 
@@ -1233,7 +1231,7 @@ jobs:
     needs:
       - ci-required
       - coverage
-      - security-audit
+      - dependency-audit
       - docs-build
       - test-extensions
       - test-providers
@@ -1249,7 +1247,7 @@ jobs:
       - name: Check overall status
         run: |
           REQUIRED="${{ needs.ci-required.result }}"
-          AUDIT="${{ needs.security-audit.result }}"
+          AUDIT="${{ needs.dependency-audit.result }}"
           DOCS="${{ needs.docs-build.result }}"
           EXTENSIONS="${{ needs.test-extensions.result }}"
           PROVIDERS="${{ needs.test-providers.result }}"
@@ -1264,10 +1262,9 @@ jobs:
             exit 1
           fi
 
-          # The dependency audit is a gate: anything but success fails CI
-          # (skipped is allowed only for a manual dispatch with run-audit=false).
-          if [[ "$AUDIT" != "success" ]] && ! [[ "$AUDIT" == "skipped" && "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "❌ Security audit (cargo audit) did not pass: $AUDIT"
+          # The Dependency Audit is a gate: anything but success fails CI.
+          if [[ "$AUDIT" != "success" ]]; then
+            echo "❌ Dependency Audit (cargo audit --deny warnings) did not pass: $AUDIT"
             exit 1
           fi
 
@@ -1282,7 +1279,7 @@ jobs:
           echo "✅ CI v3 passed"
           echo "Results:"
           echo "  ci-required: $REQUIRED"
-          echo "  security-audit: $AUDIT"
+          echo "  dependency-audit: $AUDIT"
           echo "  docs-build: $DOCS"
           echo "  test-extensions: $EXTENSIONS"
           echo "  test-providers: $PROVIDERS"
@@ -1312,7 +1309,7 @@ jobs:
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Required Checks | ${{ needs.ci-required.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Security Audit | ${{ needs.security-audit.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependency Audit | ${{ needs.dependency-audit.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Documentation Build | ${{ needs.docs-build.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Extension Tests | ${{ needs.test-extensions.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Provider Unit Tests (RunPod/Northflank) | ${{ needs.test-providers.result }} |" >> $GITHUB_STEP_SUMMARY
