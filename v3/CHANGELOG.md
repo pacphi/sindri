@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.1.4] - 2026-10-23
 
-Final patch release of the v3.1 line: security fixes from #385 plus the standard dependency audit. No new features and no breaking changes.
+Patch release from the `v3.1.x` maintenance branch: the security fixes from #385 plus the standard dependency audit. No new features and no breaking changes.
 
 ### Security
 
