@@ -26,7 +26,10 @@ tempfile = "3.24"
 regex = "1.12"
 
 # S3 backend
-aws-sdk-s3 = "1.126"
+# Default features minus `rustls`, which pulls the legacy rustls 0.21 / hyper 0.14 / h2 0.3 chain
+# (RUSTSEC-2026-0098/-0099/-0104/-0382 rustls-webpki 0.101, -0346/-0349 rustls 0.21, -0258 h2 0.3).
+# 1.145+ moves lru to 0.18.2 (RUSTSEC-2026-0253); it needs rustc 1.94.1.
+aws-sdk-s3 = { version = "1.152", default-features = false, features = ["sigv4a", "http-1x", "default-https-client", "rt-tokio"] }
 aws-config = "1.8"
 
 # Encryption

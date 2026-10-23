@@ -1,0 +1,20 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "v3.1.x maintains v3 only. Its tree is a snapshot of the v3.1.3 release, so the other lines folders and workflows are ignored. Merged over main/renovate.json.",
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "**/vendor/**",
+    "**/examples/**",
+    "**/__tests__/**",
+    "**/test/**",
+    "**/tests/**",
+    "**/__fixtures__/**",
+    "**/fixtures/**",
+    "v1/**",
+    "v2/**",
+    "docs/**",
+    ".github/workflows/*v2*",
+    ".github/actions/shared/**"
+  ]
+}
