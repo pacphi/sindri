@@ -1,11 +1,14 @@
 # npm audit exceptions for the v2 line, read by .github/scripts/v2/npm-audit.sh.
-# Format: <GHSA-id> <lockfile directory>  # justification
+# One GHSA id per line; anything after '#' is a comment.
 # Only for advisories with no fix inside the current major. Each entry names the advisory, the
-# dependency path, why it can't be fixed now, reachability, and the exit condition. The script
-# fails on an entry that no longer matches anything, so remove entries once they're fixed.
+# dependency path (with its lockfile directory), why it can't be fixed now, reachability, and the
+# exit condition. The script warns on an entry that no longer matches anything, so remove entries
+# once they're fixed.
 
 # GHSA-83w8-p2f5-377r (high): @fastify/static <=10.1.0 route-guard bypass via non-leading ".." /
 #   "%2E%2E" segments; first patched 10.1.1 (sibling GHSA-8pvw-jcv7-9cmj, medium, fixed in 10.1.2).
+#   https://github.com/advisories/GHSA-83w8-p2f5-377r
+#   Lockfile: v2/docker/lib/extensions/vf-management-api/resources/package-lock.json
 #   Path: @fastify/swagger-ui@3.1.0 > @fastify/static@7.0.4 (swagger-ui 3.x pins ^7.0.0; no 7.x fix).
 #   Why not fixed: needs @fastify/swagger-ui 6.1.2 (3 -> 6) and @fastify/static 10, both majors.
 #   Reachability: swagger-ui uses @fastify/static only to serve its own bundled assets under /docs,
@@ -14,4 +17,4 @@
 #   fastify-4 major and fails registration under fastify 5 (FST_ERR_PLUGIN_VERSION_MISMATCH).
 #   Exit condition: the fastify-5 plugin majors (cors 11, rate-limit 10, swagger 9, swagger-ui
 #   >=6.1.2, websocket 11) are taken in a deliberate v2 change; then delete this entry.
-GHSA-83w8-p2f5-377r v2/docker/lib/extensions/vf-management-api/resources
+GHSA-83w8-p2f5-377r
