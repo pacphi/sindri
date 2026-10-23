@@ -10,8 +10,6 @@ on:
   schedule:
     - cron: "0 6 * * 1" # Mondays 06:00 UTC
   workflow_dispatch:
-  push:
-    branches: [ci/main-dependency-audit]
 
 permissions:
   contents: read
