@@ -888,7 +888,7 @@ v3-audit:
 	@echo "$(BLUE)Running v3 security audit...$(RESET)"
 	@command -v cargo-audit >/dev/null 2>&1 || { \
 		echo "$(BLUE)Installing cargo-audit...$(RESET)"; \
-		cargo install cargo-audit; \
+		cargo install cargo-audit --version 0.22.2 --locked; \
 	}
 	.github/scripts/v3/cargo-audit.sh
 	@echo "$(GREEN)✓ Security audit complete$(RESET)"
