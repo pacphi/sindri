@@ -5,7 +5,7 @@ name: "v3: CI"
 
 on:
   push:
-    branches: [main, develop, feature/v3]
+    branches: [main, develop, feature/v3, v3.1.x]
     paths:
       - 'v3/**'
       - '.github/workflows/ci-v3.yml'
@@ -13,7 +13,7 @@ on:
       - '.github/actions/v3/**'
       - '.github/scripts/v3/**'
   pull_request:
-    branches: [main, develop, feature/v3]
+    branches: [main, develop, feature/v3, v3.1.x]
     paths:
       - 'v3/**'
       - '.github/workflows/ci-v3.yml'
@@ -516,7 +516,8 @@ jobs:
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event.inputs.run-audit == 'true'
+    # Runs on push and pull_request; on manual dispatch only when run-audit is true.
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.run-audit == 'true'
     steps:
       - uses: actions/checkout@v6
 
@@ -1263,9 +1264,11 @@ jobs:
             exit 1
           fi
 
-          # Audit, docs, and extensions are optional/informational
-          if [[ "$AUDIT" == "failure" ]]; then
-            echo "⚠️ Security audit found issues (non-blocking)"
+          # The dependency audit is a gate: anything but success fails CI
+          # (skipped is allowed only for a manual dispatch with run-audit=false).
+          if [[ "$AUDIT" != "success" ]] && ! [[ "$AUDIT" == "skipped" && "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "❌ Security audit (cargo audit) did not pass: $AUDIT"
+            exit 1
           fi
 
           # Cloud provider tests are optional/informational
