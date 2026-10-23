@@ -1,0 +1,4 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "v3 line. Shared policy is in main's renovate.json (merged via useBaseBranchConfig); add v3-only rules here."
+}
