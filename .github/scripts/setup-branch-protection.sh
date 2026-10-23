@@ -10,6 +10,11 @@
 #   ./setup-branch-protection.sh                      # apply all branches
 #   ./setup-branch-protection.sh --branch v3          # apply just v3
 #
+# Model (2026-10-23): every change lands through a PR whose required checks are
+# green, and that binds admins too (enforce_admins). No approving review is
+# required: the repo has a single maintainer, who can't approve their own PRs,
+# and an admin bypass of the review would also bypass the checks.
+#
 # Requires: gh CLI authenticated with admin permission on pacphi/sindri,
 # and `jq`. Compatible with bash 3.2+ (no associative arrays used).
 
@@ -36,7 +41,8 @@ done
 #   - matrix-leaf names include parameterized suffixes that change when the
 #     matrix is edited; in-pipeline `needs:` already aggregates them
 #
-# Captured from real runs as of 2026-04-26.
+# Captured from real runs as of 2026-04-26; updated 2026-10-23 for the standard
+# Dependency Audit job and the v2.5.x / v3.1.x maintenance branches.
 contexts_for() {
   case "$1" in
     main)
@@ -55,6 +61,7 @@ EOF
     v2)
       cat <<'EOF'
 CI / CI v2 Required Checks
+CI / Dependency Audit
 CI / Build v2 Docker Image
 CI / Security Scan
 EOF
@@ -68,7 +75,7 @@ CI / Rust workspace / cargo clippy
 CI / Rust workspace / cargo test
 CI / Rust workspace / cargo build
 CI / Security Scan
-CI / Security Audit
+CI / Dependency Audit
 EOF
       ;;
     v4)
@@ -77,7 +84,25 @@ CI / Build & Test (ubuntu-latest)
 CI / Build & Test (ubuntu-24.04-arm)
 CI / Build & Test (macos-14)
 CI / Build & Test (windows-latest)
-CI / Security audit
+CI / CI v4 Required Checks
+CI / Dependency Audit
+EOF
+      ;;
+    # Maintenance branches run their own copies of the line's CI workflow, so
+    # their checks are reported without the "CI / " prefix of the reusable calls.
+    v2.5.x)
+      cat <<'EOF'
+CI v2 Required Checks
+Dependency Audit
+Build v2 Docker Image
+Security Scan
+EOF
+      ;;
+    v3.1.x)
+      cat <<'EOF'
+CI v3 Required Checks
+Dependency Audit
+Security Scan
 EOF
       ;;
     *)
@@ -101,8 +126,8 @@ apply_branch() {
     --argjson contexts "$ctx_json" \
     '{
       required_status_checks: { strict: false, contexts: $contexts },
-      enforce_admins: false,
-      required_pull_request_reviews: { required_approving_review_count: 1, dismiss_stale_reviews: true },
+      enforce_admins: true,
+      required_pull_request_reviews: { required_approving_review_count: 0, dismiss_stale_reviews: true },
       restrictions: null,
       allow_force_pushes: false,
       allow_deletions: false
@@ -123,7 +148,8 @@ apply_branch() {
 if [[ -n "$ONLY_BRANCH" ]]; then
   apply_branch "$ONLY_BRANCH"
 else
-  for b in main v1 v2 v3 v4; do
+  # v1 is end of life and locked; a PUT here without lock_branch would unlock it.
+  for b in main v2 v3 v4 v2.5.x v3.1.x; do
     apply_branch "$b"
   done
 fi
