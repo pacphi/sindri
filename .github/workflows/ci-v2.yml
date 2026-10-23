@@ -191,17 +191,20 @@ jobs:
   # ============================================
   # Dependency Audit (npm)
   # ============================================
+  # Standard job for every supported line (see SECURITY.md on main, "Dependency auditing").
+  # No `if:`: it runs on every push, pull_request and workflow_dispatch run of this workflow.
 
-  npm-audit:
-    name: npm audit (v2 lockfiles)
+  dependency-audit:
+    name: Dependency Audit
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
-      # Audits every package-lock.json under v2/ at --audit-level=high.
+      # `npm audit --audit-level=high` on every committed package-lock.json under v2/.
       # Exceptions live in v2/npm-audit-ignore, each with its reason and exit condition.
+      # Fails closed on registry errors; warns about stale exceptions.
       - name: npm audit
         run: .github/scripts/v2/npm-audit.sh
 
@@ -228,8 +231,9 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Scan with Trivy
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
+          version: v0.76.0
           image-ref: ghcr.io/${{ github.repository }}:v2-ci-${{ github.sha }}
           format: sarif
           output: trivy-results.sarif
@@ -351,7 +355,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - build
-      - npm-audit
+      - dependency-audit
       - security-scan
     if: ${{ always() }}
     steps:
@@ -361,14 +365,14 @@ jobs:
           # NOTE: Validation is handled by dedicated workflows:
           # - validate-shell.yml, validate-markdown.yml, validate-yaml.yml
           BUILD="${{ needs.build.result }}"
-          NPM_AUDIT="${{ needs.npm-audit.result }}"
+          DEPENDENCY_AUDIT="${{ needs.dependency-audit.result }}"
           SECURITY="${{ needs.security-scan.result }}"
 
-          if [[ "$BUILD" != "success" ]] || [[ "$NPM_AUDIT" != "success" ]]; then
+          if [[ "$BUILD" != "success" ]] || [[ "$DEPENDENCY_AUDIT" != "success" ]]; then
             echo "❌ Required CI v2 checks failed"
             echo "Results:"
             echo "  build: $BUILD"
-            echo "  npm-audit: $NPM_AUDIT"
+            echo "  dependency-audit: $DEPENDENCY_AUDIT"
             echo "  security-scan: $SECURITY"
             exit 1
           fi
