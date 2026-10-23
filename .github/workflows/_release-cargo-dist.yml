@@ -42,7 +42,7 @@ jobs:
           - { os: macos-latest,   target: aarch64-apple-darwin,      platform: macos-aarch64 }
           - { os: windows-latest, target: x86_64-pc-windows-msvc,    platform: windows-x86_64 }
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -54,7 +54,7 @@ jobs:
         run: cargo install cross --git https://github.com/cross-rs/cross
 
       - name: Cache cargo registry + target
-        uses: actions/cache@v5.0.5
+        uses: actions/cache@v6.1.0
         with:
           path: |
             ~/.cargo/bin/
