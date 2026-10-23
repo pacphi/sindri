@@ -48,4 +48,3 @@ jobs:
     name: CI
     uses: pacphi/sindri/.github/workflows/ci-v3.yml@main
     secrets: inherit
-
