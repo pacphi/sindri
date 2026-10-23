@@ -1,5 +1,24 @@
-# RUSTSEC-2026-0049: rustls-webpki CRL Distribution Point matching logic
-# Affects rustls-webpki 0.101.7 via aws-smithy-http-client -> rustls 0.21.12
-# Cannot upgrade: aws-smithy-http-client 1.1.12 (latest) still depends on rustls 0.21.x
-# Remove this entry once AWS SDK drops the rustls 0.21 dependency
-RUSTSEC-2026-0049
+# Advisories ignored by .github/scripts/v3/cargo-audit.sh (cargo audit --deny warnings).
+# Each entry: dependency path, why it can't be fixed on this line, reachability, exit condition.
+# Only "unmaintained" warnings are listed; no vulnerability is ignored.
+
+# RUSTSEC-2026-0374: basic-toml is unmaintained (no vulnerability, no patched release)
+# Path: age 0.11 -> i18n-embed-fl 0.9.4 / i18n-embed-impl 0.8.4 (proc-macros) -> i18n-config 0.4.8 -> basic-toml 0.1.10
+# Cannot fix in-major: i18n-config 0.4.8 is the latest 0.4.x and still depends on basic-toml.
+# Reachability: compile-time only (read by proc-macros while building age); not in the sindri binary's runtime paths.
+# Exit: remove once an age 0.11.x / i18n-config 0.4.x release drops basic-toml.
+RUSTSEC-2026-0374
+
+# RUSTSEC-2026-0173: proc-macro-error2 is unmaintained (no vulnerability, no patched release)
+# Path: tabled 0.20 -> tabled_derive 0.11.0, and age 0.11 -> i18n-embed-fl 0.9.4 (both proc-macros)
+# Cannot fix in-major: tabled_derive 0.11.0 and i18n-embed-fl 0.9.4 are the latest in their 0.x minors.
+# Reachability: compile-time only (proc-macro error reporting); nothing of it ships in the binary.
+# Exit: remove once tabled 0.20.x and i18n-embed-fl 0.9.x drop it, or when this line moves to tabled 0.21+.
+RUSTSEC-2026-0173
+
+# RUSTSEC-2024-0449: unsafe-libyaml is unmaintained (no vulnerability, no patched release)
+# Path: serde_yaml_ng 0.10 -> unsafe-libyaml 0.2.11 (sindri-core, sindri, sindri-clusters, ...)
+# Cannot fix in-major: every serde_yaml_ng 0.10.x uses unsafe-libyaml; replacing the YAML crate is an API change.
+# Reachability: used at runtime to parse sindri.yaml and extension YAML (local, user-supplied files).
+# Exit: remove when the v3 line replaces serde_yaml_ng, or a serde_yaml_ng 0.10.x drops unsafe-libyaml.
+RUSTSEC-2024-0449
