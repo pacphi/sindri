@@ -15,6 +15,7 @@ Security patch release from the `v2.5.x` maintenance branch. No feature changes 
 
 - deps(v2.5.x): refresh the `vf-management-api` extension lockfile within its existing ranges for npm advisories: fastify 5.12.7, find-my-way 9.10.0, fast-uri 3.1.9, ws 8.22.0, minimatch 9.0.9, brace-expansion 2.1.7, ajv 8.20.0, yaml 2.9.1, fast-copy 3.1.0. `npm audit --audit-level=high`: 7 high and 5 moderate down to 1 high (ignored, see below) and 2 moderate (#381)
 - deps(v2.5.x): bump yq 4.52.2 → 4.54.1 and the GitHub CLI 2.86.0 → 2.102.0 in the image. Trivy (CRITICAL/HIGH, fixable): 86 findings down to 10 (#381)
+- deps(v2.5.x): bump the GitHub CLI to 2.102.1, rebuilt with Go 1.27.3 and `x/net` 0.60.0. This clears gh's five remaining Trivy findings, leaving 5
 
 ### :wrench: Maintenance
 
@@ -26,7 +27,7 @@ Security patch release from the `v2.5.x` maintenance branch. No feature changes 
 ### Known issues
 
 - GHSA-83w8-p2f5-377r (`@fastify/static` 7.x via `@fastify/swagger-ui` 3.x in `vf-management-api`) is listed in `v2/npm-audit-ignore`. The fix needs `@fastify/swagger-ui` 6 (a major), and the code isn't reachable as shipped: the extension's fastify-4 plugins stop the server at boot against fastify 5.
-- The 10 remaining Trivy findings are Go 1.27.1 standard library and `x/net` CVEs compiled into the `gh` and `yq` binaries. No yq release carries the fix yet.
+- The 5 remaining Trivy findings (CRITICAL/HIGH, fixable) are all in the `yq` 4.54.1 binary, which is built with Go 1.27.1 and `x/net` 0.59.0: CVE-2026-78667, CVE-2026-78669, CVE-2026-97031 and CVE-2026-111943 in the Go standard library, plus CVE-2026-78669 in `x/net`. 4.54.1 is the newest yq release, so no fixed yq exists yet.
 
 ### Installation
 
