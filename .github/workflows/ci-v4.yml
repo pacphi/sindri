@@ -95,33 +95,59 @@ jobs:
         working-directory: v4
         run: cargo build --target aarch64-pc-windows-msvc --workspace
 
-  audit:
-    name: Security audit
+
+  # ============================================
+  # Dependency Audit (SECURITY.md, "Dependency auditing")
+  # ============================================
+  # Same job name on every supported branch, so one required check covers them all.
+  # Exceptions live only in v4/.cargo/audit.toml, which cargo-audit reads from v4/.
+  dependency-audit:
+    name: Dependency Audit
     runs-on: ubuntu-latest
     permissions:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v7.0.1
-      - name: Install cargo-audit
-        run: cargo install cargo-audit --locked
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # `cargo audit --json` honors v4/.cargo/audit.toml ignores, so SARIF
-      # output below reflects the same advisory set the human-readable
-      # `cargo audit` step would surface. The SARIF upload routes findings
-      # to the GitHub Security tab keyed to refs/heads/v4 (since this
-      # workflow only triggers on the v4 branch), keeping advisories
-      # attributed to the right branch after the April 2026 reorg.
-      - name: Run audit (JSON)
-        id: audit
-        working-directory: v4
-        continue-on-error: true
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@8a2045612414e945291083f820cd50b4d8fc2218 # v1.26.0
+
+      - name: Install cargo-audit 0.22.2
         run: |
-          set -o pipefail
-          cargo audit --json > "$RUNNER_TEMP/audit.json"
+          cargo binstall --no-confirm --locked cargo-audit@0.22.2
+          cargo audit --version
+
+      # The verdict comes from the human-readable run; the JSON run (same flags, no re-fetch)
+      # feeds the SARIF upload. Both files are written under the workspace so hashFiles() sees them.
+      - name: cargo audit --deny warnings
+        working-directory: v4
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(--deny warnings)
+          # transitional: honour a legacy v4/audit-ignore (one advisory ID per line) in addition
+          # to .cargo/audit.toml. Remove once no supported branch carries an audit-ignore file.
+          if [[ -f audit-ignore ]]; then
+            while IFS= read -r line || [[ -n "$line" ]]; do
+              line="${line%%#*}"
+              line="$(xargs <<<"$line")"
+              [[ -z "$line" ]] && continue
+              args+=(--ignore "$line")
+            done <audit-ignore
+            echo "::notice::transitional: also ignoring the IDs listed in v4/audit-ignore"
+          fi
+          echo "cargo audit ${args[*]}"
+          rc=0
+          cargo audit "${args[@]}" || rc=$?
+          cargo audit --no-fetch --json "${args[@]}" >"$GITHUB_WORKSPACE/cargo-audit.json" || true
+          exit "$rc"
 
       - name: Convert audit JSON to SARIF
-        if: always() && hashFiles(format('{0}/audit.json', runner.temp)) != ''
+        if: ${{ !cancelled() && hashFiles('cargo-audit.json') != '' }}
         run: |
           jq '
             def sev_to_level:
@@ -131,7 +157,12 @@ jobs:
                 elif . == "medium"   then "warning"
                 elif . == "low"      then "note"
                 else "warning" end;
-            {
+            # Vulnerabilities plus the warnings --deny warnings turns into failures
+            # (unmaintained, unsound, yanked), so the SARIF matches the job verdict.
+            ( [ .vulnerabilities.list[]? | {kind: "vulnerability", advisory, package} ]
+              + [ (.warnings // {}) | to_entries[] | .value[]? | {kind, advisory, package} ]
+              | map(. + {id: (.advisory.id // "\(.kind)-\(.package.name)")}) ) as $findings
+            | {
               "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
               "version": "2.1.0",
               "runs": [{
@@ -140,19 +171,21 @@ jobs:
                     "name": "cargo-audit",
                     "informationUri": "https://github.com/rustsec/rustsec/tree/main/cargo-audit",
                     "rules": (
-                      [.vulnerabilities.list[]?
-                        | .advisory as $a
+                      [$findings[]
+                        | .id as $id
+                        | .kind as $kind
+                        | (.advisory // {}) as $a
                         | {
-                            "id": $a.id,
-                            "name": $a.id,
-                            "shortDescription": { "text": $a.title },
-                            "fullDescription":  { "text": ($a.description // $a.title) },
-                            "helpUri": ($a.url // "https://rustsec.org/advisories/\($a.id).html"),
+                            "id": $id,
+                            "name": $id,
+                            "shortDescription": { "text": ($a.title // "\($kind): \(.package.name)") },
+                            "fullDescription":  { "text": ($a.description // $a.title // "\($kind): \(.package.name)") },
+                            "helpUri": (if $a.id then "https://rustsec.org/advisories/\($a.id).html" else "https://crates.io/crates/\(.package.name)" end),
                             "defaultConfiguration": {
-                              "level": (($a.severity // "warning") | sev_to_level)
+                              "level": (if $kind == "vulnerability" then (($a.severity // "warning") | sev_to_level) else "warning" end)
                             },
                             "properties": {
-                              "tags": ["security", "rust", "rustsec"],
+                              "tags": ["security", "rust", "rustsec", $kind],
                               "security-severity": (
                                 if   ($a.severity // "" | ascii_downcase) == "critical" then "9.5"
                                 elif ($a.severity // "" | ascii_downcase) == "high"     then "7.5"
@@ -167,12 +200,12 @@ jobs:
                   }
                 },
                 "results": (
-                  [.vulnerabilities.list[]?
+                  [$findings[]
                     | {
-                        "ruleId": .advisory.id,
-                        "level":  ((.advisory.severity // "warning") | sev_to_level),
+                        "ruleId": .id,
+                        "level": (if .kind == "vulnerability" then ((.advisory.severity // "warning") | sev_to_level) else "warning" end),
                         "message": {
-                          "text": "\(.package.name) \(.package.version): \(.advisory.title) (\(.advisory.id))"
+                          "text": "\(.package.name) \(.package.version): \(.advisory.title // .kind) (\(.id))"
                         },
                         "locations": [{
                           "physicalLocation": {
@@ -181,39 +214,56 @@ jobs:
                           }
                         }],
                         "partialFingerprints": {
-                          "advisory/package/version":
-                            "\(.advisory.id)/\(.package.name)/\(.package.version)"
+                          "advisory/package/version": "\(.id)/\(.package.name)/\(.package.version)"
                         }
                       }
                   ]
                 )
               }]
             }
-          ' "$RUNNER_TEMP/audit.json" > "$RUNNER_TEMP/audit.sarif"
-          echo "SARIF results:"
-          jq '.runs[0].results | length' "$RUNNER_TEMP/audit.sarif"
+          ' cargo-audit.json >cargo-audit.sarif
+          echo "SARIF results: $(jq '.runs[0].results | length' cargo-audit.sarif)"
 
       - name: Upload SARIF to GitHub Security
-        if: always() && hashFiles(format('{0}/audit.sarif', runner.temp)) != ''
+        if: ${{ !cancelled() && hashFiles('cargo-audit.sarif') != '' }}
+        # Reporting only: the audit step above carries the verdict.
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: ${{ runner.temp }}/audit.sarif
+          sarif_file: cargo-audit.sarif
           category: cargo-audit-v4
 
       - name: Audit summary
-        if: always()
+        if: ${{ !cancelled() && hashFiles('cargo-audit.json') != '' }}
         run: |
-          if [ -f "$RUNNER_TEMP/audit.json" ]; then
-            COUNT=$(jq '.vulnerabilities.count // 0' "$RUNNER_TEMP/audit.json")
-            echo "## cargo-audit (v4)" >> "$GITHUB_STEP_SUMMARY"
-            echo "- **Vulnerabilities reported (post-ignore):** $COUNT" >> "$GITHUB_STEP_SUMMARY"
-            echo "- **Ignores honored from:** \`v4/.cargo/audit.toml\`" >> "$GITHUB_STEP_SUMMARY"
-          fi
+          {
+            echo "## Dependency Audit (v4)"
+            echo "- **Vulnerabilities (after ignores):** $(jq '.vulnerabilities.count // 0' cargo-audit.json)"
+            echo "- **Denied warnings (after ignores):** $(jq '[(.warnings // {})[]?[]?] | length' cargo-audit.json)"
+            echo "- **Exceptions:** \`v4/.cargo/audit.toml\`"
+          } >>"$GITHUB_STEP_SUMMARY"
 
-      # Re-fail the job if cargo audit found anything, so CI status reflects
-      # the audit result even though the JSON step uses continue-on-error.
-      - name: Enforce audit verdict
-        if: steps.audit.outcome == 'failure'
+  # ============================================
+  # CI Status Check
+  # ============================================
+
+  ci-required:
+    name: CI v4 Required Checks
+    runs-on: ubuntu-latest
+    needs:
+      - build-test
+      - dependency-audit
+    if: ${{ always() }}
+    steps:
+      - name: Check required jobs
+        env:
+          BUILD_TEST: ${{ needs.build-test.result }}
+          DEPENDENCY_AUDIT: ${{ needs.dependency-audit.result }}
         run: |
-          echo "::error::cargo audit reported vulnerabilities (see SARIF / Security tab)"
-          exit 1
+          echo "build-test: $BUILD_TEST"
+          echo "dependency-audit: $DEPENDENCY_AUDIT"
+          if [[ "$BUILD_TEST" != "success" || "$DEPENDENCY_AUDIT" != "success" ]]; then
+            echo "❌ Required CI v4 checks failed"
+            exit 1
+          fi
+          echo "✅ Required CI v4 checks passed"

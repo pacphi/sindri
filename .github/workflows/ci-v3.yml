@@ -17,11 +17,6 @@ on:
         required: false
         default: true
         type: boolean
-      run-audit:
-        description: 'Run security audit'
-        required: false
-        default: true
-        type: boolean
       test-cloud-providers:
         description: 'Run cloud provider integration tests (RunPod/Northflank)'
         required: false
@@ -325,8 +320,9 @@ jobs:
       - name: Scan with Trivy
         id: trivy
         continue-on-error: true
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
+          version: v0.76.0
           image-ref: ghcr.io/${{ github.repository }}:v3-ci-${{ github.sha }}-ubuntu
           format: sarif
           output: trivy-results.sarif
@@ -391,56 +387,50 @@ jobs:
           echo "- **Status**: Ready for release promotion" >> $GITHUB_STEP_SUMMARY
 
   # ============================================
-  # Security Audit (Cargo)
+  # Dependency Audit (SECURITY.md, "Dependency auditing")
   # ============================================
-
-  security-audit:
-    name: Security Audit
+  # Same job name on every supported branch, so one required check covers them all.
+  # Runs on every push, pull request and dispatch. Exceptions live in v3/.cargo/audit.toml,
+  # which cargo-audit reads from v3/.
+  dependency-audit:
+    name: Dependency Audit
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event.inputs.run-audit == 'true'
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
 
       - name: Install cargo-binstall
-        uses: cargo-bins/cargo-binstall@v1.26.0
+        uses: cargo-bins/cargo-binstall@8a2045612414e945291083f820cd50b4d8fc2218 # v1.26.0
 
-      - name: Install cargo-audit
-        run: cargo binstall cargo-audit --no-confirm
+      - name: Install cargo-audit 0.22.2
+        run: |
+          cargo binstall --no-confirm --locked cargo-audit@0.22.2
+          cargo audit --version
 
-      - name: Run cargo audit (inlined; v3 branch checkout doesn't have main's .github/scripts/)
+      # Inlined: the v3 branch checkout doesn't have main's .github/scripts/.
+      - name: cargo audit --deny warnings
+        working-directory: v3
         shell: bash
         run: |
           set -euo pipefail
-          IGNORE_FILE="v3/audit-ignore"
-          if [[ ! -f "$IGNORE_FILE" ]]; then
-            echo "No audit-ignore file found at $IGNORE_FILE"
-            echo "Running cargo audit without exceptions..."
-            cd v3
-            exec cargo audit --deny warnings
+          args=(--deny warnings)
+          # transitional: honour a legacy v3/audit-ignore (one advisory ID per line) in addition
+          # to .cargo/audit.toml. Remove once no supported branch carries an audit-ignore file.
+          if [[ -f audit-ignore ]]; then
+            while IFS= read -r line || [[ -n "$line" ]]; do
+              line="${line%%#*}"
+              line="$(xargs <<<"$line")"
+              [[ -z "$line" ]] && continue
+              args+=(--ignore "$line")
+            done <audit-ignore
+            echo "::notice::transitional: also ignoring the IDs listed in v3/audit-ignore"
           fi
-
-          IGNORE_FLAGS=()
-          ADVISORY_IDS=()
-          while IFS= read -r line; do
-            line="${line%%#*}"
-            line="$(echo "$line" | xargs)"
-            [[ -z "$line" ]] && continue
-            IGNORE_FLAGS+=(--ignore "$line")
-            ADVISORY_IDS+=("$line")
-          done < "$IGNORE_FILE"
-
-          if [[ ${#ADVISORY_IDS[@]} -gt 0 ]]; then
-            echo "Ignoring ${#ADVISORY_IDS[@]} advisory exception(s):"
-            for id in "${ADVISORY_IDS[@]}"; do
-              echo "  - $id"
-            done
-          fi
-
-          cd v3
-          exec cargo audit --deny warnings "${IGNORE_FLAGS[@]}"
+          echo "cargo audit ${args[*]}"
+          cargo audit "${args[@]}"
 
   # ============================================
   # Documentation Build
@@ -1097,6 +1087,7 @@ jobs:
       - rust
       - build-image
       - security-scan
+      - dependency-audit
     if: ${{ always() }}
     steps:
       - name: Check required jobs
@@ -1108,13 +1099,16 @@ jobs:
           RUST="${{ needs.rust.result }}"
           IMAGE="${{ needs.build-image.result }}"
           SECURITY="${{ needs.security-scan.result }}"
+          DEPENDENCY_AUDIT="${{ needs.dependency-audit.result }}"
 
           if [[ "$RUST" != "success" ]] || \
-             [[ "$IMAGE" != "success" ]]; then
+             [[ "$IMAGE" != "success" ]] || \
+             [[ "$DEPENDENCY_AUDIT" != "success" ]]; then
             echo "❌ Required CI v3 checks failed"
             echo "Results:"
             echo "  rust (fmt+clippy+test+build): $RUST"
             echo "  build-image: $IMAGE"
+            echo "  dependency-audit: $DEPENDENCY_AUDIT"
             echo "  security-scan: $SECURITY"
             exit 1
           fi
@@ -1132,7 +1126,7 @@ jobs:
     needs:
       - ci-required
       - coverage
-      - security-audit
+      - dependency-audit
       - docs-build
       - test-extensions
       - test-providers
@@ -1148,7 +1142,7 @@ jobs:
       - name: Check overall status
         run: |
           REQUIRED="${{ needs.ci-required.result }}"
-          AUDIT="${{ needs.security-audit.result }}"
+          AUDIT="${{ needs.dependency-audit.result }}"
           DOCS="${{ needs.docs-build.result }}"
           EXTENSIONS="${{ needs.test-extensions.result }}"
           PROVIDERS="${{ needs.test-providers.result }}"
@@ -1163,10 +1157,14 @@ jobs:
             exit 1
           fi
 
-          # Audit, docs, and extensions are optional/informational
-          if [[ "$AUDIT" == "failure" ]]; then
-            echo "⚠️ Security audit found issues (non-blocking)"
+          # Dependency Audit is blocking (SECURITY.md, "Dependency auditing")
+          if [[ "$AUDIT" != "success" ]]; then
+            echo "❌ CI v3 failed - Dependency Audit did not pass"
+            echo "  dependency-audit: $AUDIT"
+            exit 1
           fi
+
+          # Docs and extensions are optional/informational
 
           # Cloud provider tests are optional/informational
           if [[ "$CLOUD_RUNPOD" == "failure" ]]; then
@@ -1179,7 +1177,7 @@ jobs:
           echo "✅ CI v3 passed"
           echo "Results:"
           echo "  ci-required: $REQUIRED"
-          echo "  security-audit: $AUDIT"
+          echo "  dependency-audit: $AUDIT"
           echo "  docs-build: $DOCS"
           echo "  test-extensions: $EXTENSIONS"
           echo "  test-providers: $PROVIDERS"
@@ -1209,7 +1207,7 @@ jobs:
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Required Checks | ${{ needs.ci-required.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Security Audit | ${{ needs.security-audit.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependency Audit | ${{ needs.dependency-audit.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Documentation Build | ${{ needs.docs-build.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Extension Tests | ${{ needs.test-extensions.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Provider Unit Tests (RunPod/Northflank) | ${{ needs.test-providers.result }} |" >> $GITHUB_STEP_SUMMARY
