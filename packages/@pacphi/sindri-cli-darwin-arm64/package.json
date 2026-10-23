@@ -1,6 +1,6 @@
 {
   "name": "@pacphi/sindri-cli-darwin-arm64",
-  "version": "3.1.0",
+  "version": "3.1.4",
   "description": "Sindri CLI binary — macOS Apple Silicon (arm64)",
   "license": "MIT",
   "repository": {

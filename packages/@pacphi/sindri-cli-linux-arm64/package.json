@@ -1,6 +1,6 @@
 {
   "name": "@pacphi/sindri-cli-linux-arm64",
-  "version": "3.1.0",
+  "version": "3.1.4",
   "description": "Sindri CLI binary — Linux arm64",
   "license": "MIT",
   "repository": {
