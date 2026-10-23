@@ -1,0 +1,17 @@
+# npm audit exceptions for the v2 line, read by .github/scripts/v2/npm-audit.sh.
+# One GHSA id per line; anything after '#' is a comment. Every entry states the advisory,
+# the dependency path, why it can't be fixed within the current majors, reachability, and
+# when to remove it.
+
+# @fastify/static: route guard bypass via path traversal (high, CVE-2026-15074)
+#   https://github.com/advisories/GHSA-83w8-p2f5-377r
+#   Path: v2/docker/lib/extensions/vf-management-api/resources:
+#         @fastify/swagger-ui@3.1.0 > @fastify/static@7.0.4
+#   No fix in-major: the first patched release is @fastify/static 10.1.1 and swagger-ui 3.x
+#   requires ^7, so the fix needs @fastify/swagger-ui 3 -> 6 (a major; deferred).
+#   Reachability: none as shipped. swagger-ui 3, cors 9, rate-limit 9 and websocket 10 are
+#   fastify-4 plugins while the lockfile resolves fastify 5, so server.js stops at boot
+#   ("fastify-plugin: @fastify/cors - expected '4.x' fastify version") before serving a route.
+#   Remove when: the extension's fastify plugins move to their fastify-5 majors
+#   (@fastify/swagger-ui >= 6.1.2 brings @fastify/static >= 10.1.2).
+GHSA-83w8-p2f5-377r
