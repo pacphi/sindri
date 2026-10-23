@@ -1,16 +1,70 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "description": "Managed from pacphi/mise-dotfiles. Replaces Dependabot version updates (2026-10-21).",
-  "extends": [
-    "config:recommended"
+  "description": "Managed from pacphi/workstation-steward. Covers main and every supported sindri line; policy: SECURITY.md, Supported Versions. Maintenance branches add their own ignorePaths (useBaseBranchConfig: merge).",
+  "extends": ["config:recommended"],
+  "baseBranchPatterns": ["main", "v2", "v3", "v4", "v2.5.x", "v3.1.x"],
+  "useBaseBranchConfig": "merge",
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "**/vendor/**",
+    "**/examples/**",
+    "**/__tests__/**",
+    "**/test/**",
+    "**/tests/**",
+    "**/__fixtures__/**",
+    "**/fixtures/**"
   ],
   "minimumReleaseAge": "3 days",
   "internalChecksFilter": "strict",
   "osvVulnerabilityAlerts": true,
   "vulnerabilityAlerts": {
     "enabled": true,
-    "labels": [
-      "security"
-    ]
-  }
+    "labels": ["security"]
+  },
+  "semanticCommits": "enabled",
+  "packageRules": [
+    {
+      "description": "Version lines: one weekly grouped PR per branch, commits scoped to the branch (deps(v3): ...); overrides the monorepo groups",
+      "matchBaseBranches": ["v2", "v3", "v4", "v2.5.x", "v3.1.x"],
+      "matchPackageNames": ["*"],
+      "groupName": "dependencies",
+      "groupSlug": "dependencies",
+      "schedule": ["* 0-5 * * 1"],
+      "semanticCommitType": "deps",
+      "semanticCommitScope": "{{baseBranch}}"
+    },
+    {
+      "description": "No crossing streams: no major updates on a version line",
+      "matchBaseBranches": ["v2", "v3", "v4", "v2.5.x", "v3.1.x"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "No crossing streams: for 0.x versions a minor update is breaking",
+      "matchBaseBranches": ["v2", "v3", "v4", "v2.5.x", "v3.1.x"],
+      "matchCurrentVersion": "/^v?0\\./",
+      "matchUpdateTypes": ["minor"],
+      "enabled": false
+    },
+    {
+      "description": "Toolchains: base images and language runtimes get patch updates only on a version line",
+      "matchBaseBranches": ["v2", "v3", "v4", "v2.5.x", "v3.1.x"],
+      "matchDatasources": ["docker"],
+      "matchUpdateTypes": ["minor"],
+      "enabled": false
+    },
+    {
+      "description": "Toolchains: language runtimes pinned in mise.toml, workflows and version files",
+      "matchBaseBranches": ["v2", "v3", "v4", "v2.5.x", "v3.1.x"],
+      "matchDepNames": ["go", "golang", "python", "node", "nodejs", "ruby", "rust", "java", "bun", "deno"],
+      "matchUpdateTypes": ["minor"],
+      "enabled": false
+    },
+    {
+      "description": "sindri-cli platform packages are versioned by the release process, not Renovate",
+      "matchPackageNames": ["@pacphi/sindri-cli*"],
+      "enabled": false
+    }
+  ]
 }
