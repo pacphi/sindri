@@ -153,23 +153,27 @@ jobs:
           path: changelog.md
 
   # Job 3: Update CHANGELOG.md in repository
+  # v2 releases are tagged from the v2.5.x maintenance branch (main holds no product code
+  # and is protected). The release PR already bumps v2/cli/VERSION and adds the
+  # v2/CHANGELOG.md entry, so this job normally finds the entry and pushes nothing.
   update-changelog:
     runs-on: ubuntu-latest
     needs: [validate-tag, generate-changelog]
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
-          ref: main
+          ref: v2.5.x
           fetch-depth: 0
 
       - name: Download changelog artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: changelog-v2
 
       - name: Update v2/CHANGELOG.md
+        id: changelog
         run: |
           version="${{ needs.validate-tag.outputs.version }}"
           changelog_header='# Changelog - Sindri v2
@@ -190,6 +194,7 @@ jobs:
           # Check if this version already exists
           if grep -q "## \[$version\]" v2/CHANGELOG.md; then
             echo "Version $version already exists in v2/CHANGELOG.md, skipping update"
+            echo "exists=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -212,6 +217,7 @@ jobs:
           mv v2/CHANGELOG.md.new v2/CHANGELOG.md
 
       - name: Update v2/cli/VERSION file
+        if: steps.changelog.outputs.exists != 'true'
         run: |
           version="${{ needs.validate-tag.outputs.version }}"
           echo "$version" > v2/cli/VERSION
@@ -224,6 +230,7 @@ jobs:
           }
 
       - name: Commit release updates
+        if: steps.changelog.outputs.exists != 'true'
         run: |
           version="${{ needs.validate-tag.outputs.version }}"
 
@@ -240,7 +247,7 @@ jobs:
           git commit -m "chore(release): update v2 CHANGELOG and VERSION for v$version
 
           [skip ci]"
-          git push origin main
+          git push origin HEAD:v2.5.x
 
   # Job 4: Promote CI image to release (no rebuild!)
   promote-image:
