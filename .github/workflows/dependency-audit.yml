@@ -1,0 +1,199 @@
+name: "Dependency Audit (scheduled)"
+
+# Weekly dependency audit of every supported branch (SECURITY.md, "Dependency auditing").
+# Each leg checks out one branch and runs that line's audit exactly as the branch's CI
+# `Dependency Audit` job does. Findings open or update ONE issue per branch, titled
+# "Dependency Audit: <branch>" and labelled `security`; a clean run closes it.
+# A tool or registry failure fails the leg without touching the issue.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: dependency-audit
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: never
+
+jobs:
+  audit:
+    name: Dependency Audit (${{ matrix.branch }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { branch: v2,     kind: npm,  dir: v2 }
+          - { branch: v2.5.x, kind: npm,  dir: v2 }
+          - { branch: v3,     kind: rust, dir: v3 }
+          - { branch: v3.1.x, kind: rust, dir: v3 }
+          - { branch: v4,     kind: rust, dir: v4 }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ matrix.branch }}
+          persist-credentials: false
+
+      - if: matrix.kind == 'npm'
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: "24"
+
+      - if: matrix.kind == 'rust'
+        name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+
+      - if: matrix.kind == 'rust'
+        name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@8a2045612414e945291083f820cd50b4d8fc2218 # v1.26.0
+
+      - if: matrix.kind == 'rust'
+        name: Install cargo-audit 0.22.2
+        run: |
+          cargo binstall --no-confirm --locked cargo-audit@0.22.2
+          cargo audit --version
+
+      # Same commands as the branch CI's `Dependency Audit` job (ci-v2.yml / ci-v3.yml /
+      # ci-v4.yml on main for v2, v3, v4; the branch's own ci-v2.yml / ci-v3.yml for
+      # v2.5.x and v3.1.x). Output is captured for the issue; the verdict is applied last.
+      - name: Run audit
+        id: audit
+        shell: bash
+        env:
+          KIND: ${{ matrix.kind }}
+          LINE_DIR: ${{ matrix.dir }}
+        run: |
+          # Actions runs bash with -e; turn it off so a failing audit still records its result.
+          set +e -uo pipefail
+          log="$RUNNER_TEMP/audit.log"
+          if [[ "$KIND" == "npm" ]]; then
+            {
+              SCRIPT=.github/scripts/v2/npm-audit.sh
+              # transitional: legacy v2/audit-ignore ("<GHSA-id> <lockfile-dir>"), as in ci-v2.yml.
+              # An old script reads it itself; for the standard script, normalize it to bare IDs.
+              if [[ -f v2/npm-audit-ignore ]]; then
+                echo "Exceptions: v2/npm-audit-ignore"
+              elif [[ -f v2/audit-ignore ]]; then
+                if grep -q 'v2/npm-audit-ignore' "$SCRIPT"; then
+                  awk '{ sub(/#.*/, "") } NF { print $1 }' v2/audit-ignore >v2/npm-audit-ignore
+                  echo "Exceptions (transitional): v2/audit-ignore, normalized to v2/npm-audit-ignore"
+                else
+                  echo "Exceptions (transitional): v2/audit-ignore, read by the branch's script"
+                fi
+              fi
+              "$SCRIPT"
+            } 2>&1 | tee "$log"
+            rc=${PIPESTATUS[0]}
+            cmd="npm audit --audit-level=high (.github/scripts/v2/npm-audit.sh)"
+          else
+            (
+              set -euo pipefail
+              cd "$LINE_DIR"
+              args=(--deny warnings)
+              # transitional: honour a legacy <line>/audit-ignore in addition to .cargo/audit.toml.
+              if [[ -f audit-ignore ]]; then
+                while IFS= read -r line || [[ -n "$line" ]]; do
+                  line="${line%%#*}"
+                  line="$(xargs <<<"$line")"
+                  [[ -z "$line" ]] && continue
+                  args+=(--ignore "$line")
+                done <audit-ignore
+                echo "Exceptions (transitional): ${LINE_DIR}/audit-ignore, plus ${LINE_DIR}/.cargo/audit.toml"
+              else
+                echo "Exceptions: ${LINE_DIR}/.cargo/audit.toml"
+              fi
+              echo "cargo audit ${args[*]}"
+              cargo audit "${args[@]}"
+            ) 2>&1 | tee "$log"
+            rc=${PIPESTATUS[0]}
+            cmd="cargo audit --deny warnings (in ${LINE_DIR}/)"
+          fi
+
+          # Findings vs. a tool/registry failure: only findings touch the issue.
+          if [[ "$rc" -eq 0 ]]; then
+            result=clean
+          elif [[ "$KIND" == "npm" ]] && grep -qE 'no usable report|returned no report|npm not found|jq not found' "$log"; then
+            result=error
+          elif [[ "$KIND" == "rust" ]] && ! grep -qE '(vulnerabilit(y|ies)|denied warnings?) found' "$log"; then
+            result=error
+          else
+            result=findings
+          fi
+          echo "exit code $rc -> $result"
+          {
+            echo "result=$result"
+            echo "cmd=$cmd"
+            echo "sha=$(git rev-parse HEAD)"
+          } >>"$GITHUB_OUTPUT"
+
+      - name: Create, update or close the branch issue
+        if: ${{ !cancelled() && (steps.audit.outputs.result == 'clean' || steps.audit.outputs.result == 'findings') }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ matrix.branch }}
+          RESULT: ${{ steps.audit.outputs.result }}
+          CMD: ${{ steps.audit.outputs.cmd }}
+          SHA: ${{ steps.audit.outputs.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          title="Dependency Audit: ${BRANCH}"
+          number=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 500 --json number,title |
+            jq -r --arg t "$title" 'map(select(.title == $t)) | sort_by(.number) | first | .number // empty')
+
+          if [[ "$RESULT" == "clean" ]]; then
+            if [[ -n "$number" ]]; then
+              gh issue close "$number" --repo "$GITHUB_REPOSITORY" \
+                --comment "The audit of \`${BRANCH}\` is clean as of ${SHA} ([run](${RUN_URL})). Closing."
+              echo "Closed #$number"
+            else
+              echo "Clean; no open issue to close"
+            fi
+            exit 0
+          fi
+
+          body="$RUNNER_TEMP/issue.md"
+          {
+            echo "The scheduled dependency audit found advisories on \`${BRANCH}\`."
+            echo
+            echo "- **Commit:** ${SHA}"
+            echo "- **Command:** \`${CMD}\`"
+            echo "- **Run:** ${RUN_URL}"
+            echo
+            echo "Fix within the line's policy (SECURITY.md), or add a documented exception. This issue"
+            echo "is updated by each run of \`dependency-audit.yml\` and closed when the audit is clean."
+            echo
+            echo "## Findings"
+            echo
+            echo '````text'
+            # Keep the body under GitHub's 65,536-character limit.
+            sed -e 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/audit.log" | head -c 60000
+            echo
+            echo '````'
+          } >"$body"
+
+          if [[ -n "$number" ]]; then
+            gh issue edit "$number" --repo "$GITHUB_REPOSITORY" --body-file "$body"
+            echo "Updated #$number"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --label security --body-file "$body"
+          fi
+
+      - name: Verdict
+        if: ${{ !cancelled() }}
+        env:
+          RESULT: ${{ steps.audit.outputs.result }}
+        run: |
+          case "$RESULT" in
+            clean) echo "Dependency Audit clean" ;;
+            findings) echo "::error::Dependency Audit found advisories (see the branch issue)"; exit 1 ;;
+            *) echo "::error::Dependency Audit could not run to completion (tool or registry error)"; exit 1 ;;
+          esac

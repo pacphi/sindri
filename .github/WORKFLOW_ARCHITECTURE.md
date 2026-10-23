@@ -225,7 +225,7 @@ FOR EACH provider in [docker, fly, devpod-aws, devpod-do, ...]:
 - **rust-clippy**: `cargo clippy` linting
 - **rust-test**: `cargo test` unit tests
 - **rust-build**: Release build
-- **security-audit**: `cargo audit`
+- **dependency-audit** (`Dependency Audit`): `cargo audit --deny warnings`, blocking
 - **docs-build**: `cargo doc`
 - **test-extensions**: Extension validation
 - **ci-required/ci-status**: Status gates

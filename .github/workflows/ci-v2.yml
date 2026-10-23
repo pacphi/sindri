@@ -182,6 +182,52 @@ jobs:
           echo "::notice title=Test Providers::$PROVIDERS"
 
   # ============================================
+  # Dependency Audit (SECURITY.md, "Dependency auditing")
+  # ============================================
+  # Same job name on every supported branch, so one required check covers them all.
+  # Runs the checked-out branch's own .github/scripts/v2/npm-audit.sh, which runs
+  # `npm audit --audit-level=high` on every committed package-lock.json under v2/.
+  dependency-audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: "24"
+
+      - name: npm audit --audit-level=high (every package-lock.json)
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCRIPT=.github/scripts/v2/npm-audit.sh
+          if [[ ! -x "$SCRIPT" ]]; then
+            echo "::error::$SCRIPT is missing or not executable on this branch"
+            exit 1
+          fi
+          # Exceptions: v2/npm-audit-ignore (one GHSA id per line).
+          # transitional: fall back to the legacy v2/audit-ignore ("<GHSA-id> <lockfile-dir>" per
+          # line). A branch's old script reads that file itself; for the standard script, which
+          # reads v2/npm-audit-ignore and matches whole lines, normalize it to bare IDs for this
+          # run. Remove once no supported branch carries v2/audit-ignore.
+          if [[ -f v2/npm-audit-ignore ]]; then
+            echo "Exceptions: v2/npm-audit-ignore"
+          elif [[ -f v2/audit-ignore ]]; then
+            if grep -q 'v2/npm-audit-ignore' "$SCRIPT"; then
+              awk '{ sub(/#.*/, "") } NF { print $1 }' v2/audit-ignore >v2/npm-audit-ignore
+              echo "::notice::transitional: normalized legacy v2/audit-ignore into v2/npm-audit-ignore for this run"
+            else
+              echo "::notice::transitional: this branch's script reads legacy v2/audit-ignore itself"
+            fi
+          else
+            echo "Exceptions: none"
+          fi
+          "$SCRIPT"
+
+  # ============================================
   # Security Scanning
   # ============================================
 
@@ -204,8 +250,9 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Scan with Trivy
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
+          version: v0.76.0
           image-ref: ghcr.io/${{ github.repository }}:v2-ci-${{ github.sha }}
           format: sarif
           output: trivy-results.sarif
@@ -327,6 +374,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - build
+      - dependency-audit
       - security-scan
     if: ${{ always() }}
     steps:
@@ -336,12 +384,14 @@ jobs:
           # NOTE: Validation is handled by dedicated workflows:
           # - validate-shell.yml, validate-markdown.yml, validate-yaml.yml
           BUILD="${{ needs.build.result }}"
+          DEPENDENCY_AUDIT="${{ needs.dependency-audit.result }}"
           SECURITY="${{ needs.security-scan.result }}"
 
-          if [[ "$BUILD" != "success" ]]; then
+          if [[ "$BUILD" != "success" ]] || [[ "$DEPENDENCY_AUDIT" != "success" ]]; then
             echo "❌ Required CI v2 checks failed"
             echo "Results:"
             echo "  build: $BUILD"
+            echo "  dependency-audit: $DEPENDENCY_AUDIT"
             echo "  security-scan: $SECURITY"
             exit 1
           fi
