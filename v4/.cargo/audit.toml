@@ -1,8 +1,15 @@
 # cargo-audit configuration for the v4 workspace.
 #
-# Ignored advisories listed below are intentionally suppressed.  Each must
-# include a "reason" explaining why the vulnerable code path is unreachable
-# in this workspace.
+# This is the ONLY place advisory ignores live for v4.  CI's
+# `Dependency Audit` job runs `cargo audit --deny warnings` in `v4/`, which
+# reads this file; there are no `--ignore` flags elsewhere.
+#
+# Every ignored ID must carry a comment block with:
+#   - the advisory and its link;
+#   - the dependency path;
+#   - why it can't be fixed in-major (or, if it can, why it is deferred);
+#   - reachability in this workspace;
+#   - the exit condition for removing the ignore.
 
 [advisories]
 ignore = [
@@ -19,4 +26,40 @@ ignore = [
     # the `rsa` crate releases a constant-time fix or `sigstore` lets the
     # rsa dependency be dropped.
     "RUSTSEC-2023-0071",
+
+    # RUSTSEC-2024-0449 — `unsafe-libyaml` is unmaintained (informational
+    # "unmaintained" warning; no vulnerability, no CVE, no patched release).
+    # https://rustsec.org/advisories/RUSTSEC-2024-0449
+    # Path: unsafe-libyaml 0.2.11 <- serde_yaml 0.9.34+deprecated <- the
+    # workspace `serde_yaml = "0.9"` dependency (v4/Cargo.toml), used by
+    # sindri, sindri-core, sindri-backends, sindri-discovery, sindri-policy,
+    # sindri-registry, sindri-resolver and sindri-targets.
+    # Why not fixable in-major: serde_yaml 0.9.34+deprecated is the final
+    # release and will never drop unsafe-libyaml; the only fix is swapping
+    # the YAML crate (e.g. serde_yaml_ng / yaml_serde) and porting every
+    # call site, which is a planned change, not a dependency patch.
+    # Reachability: reachable.  It is the YAML parser behind sindri's config,
+    # manifest and registry loading.  The advisory reports lack of
+    # maintenance only; there is no known exploitable defect.
+    # Exit condition: remove once v4 migrates off serde_yaml to a maintained
+    # YAML crate and unsafe-libyaml leaves Cargo.lock.
+    "RUSTSEC-2024-0449",
+
+    # RUSTSEC-2026-0173 — `proc-macro-error2` is unmaintained (informational
+    # "unmaintained" warning; no vulnerability, no CVE).
+    # https://rustsec.org/advisories/RUSTSEC-2026-0173
+    # Path: proc-macro-error2 2.0.1 <- getset 0.1.6 (proc-macro) <-
+    # oci-spec 0.8.4 / 0.9.0 <- oci-client 0.15.0 (via sigstore 0.13.0) /
+    # oci-client 0.17.0 <- sindri-registry.
+    # Fixable in-minor, deferred: getset 0.1.7 (released 2026-06-10) drops
+    # proc-macro-error2, and oci-spec requires `getset ^0.1.3`, so
+    # `cargo update -p getset --precise 0.1.7` removes this advisory with a
+    # lockfile-only patch bump.  It is deferred because this change is
+    # scoped to the audit configuration; the bump belongs in a `deps(v4)`
+    # change.
+    # Reachability: build-time only.  It is a dependency of the `getset`
+    # proc-macro and is not linked into any sindri binary.
+    # Exit condition: remove once Cargo.lock has getset >= 0.1.7 (or no
+    # longer contains proc-macro-error2).
+    "RUSTSEC-2026-0173",
 ]
