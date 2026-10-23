@@ -72,17 +72,25 @@ jobs:
           KIND: ${{ matrix.kind }}
           LINE_DIR: ${{ matrix.dir }}
         run: |
-          set -uo pipefail
+          # Actions runs bash with -e; turn it off so a failing audit still records its result.
+          set +e -uo pipefail
           log="$RUNNER_TEMP/audit.log"
           if [[ "$KIND" == "npm" ]]; then
             {
-              # transitional: a branch's script reads the legacy v2/audit-ignore until renamed.
+              SCRIPT=.github/scripts/v2/npm-audit.sh
+              # transitional: legacy v2/audit-ignore ("<GHSA-id> <lockfile-dir>"), as in ci-v2.yml.
+              # An old script reads it itself; for the standard script, normalize it to bare IDs.
               if [[ -f v2/npm-audit-ignore ]]; then
                 echo "Exceptions: v2/npm-audit-ignore"
               elif [[ -f v2/audit-ignore ]]; then
-                echo "Exceptions (transitional): v2/audit-ignore"
+                if grep -q 'v2/npm-audit-ignore' "$SCRIPT"; then
+                  awk '{ sub(/#.*/, "") } NF { print $1 }' v2/audit-ignore >v2/npm-audit-ignore
+                  echo "Exceptions (transitional): v2/audit-ignore, normalized to v2/npm-audit-ignore"
+                else
+                  echo "Exceptions (transitional): v2/audit-ignore, read by the branch's script"
+                fi
               fi
-              .github/scripts/v2/npm-audit.sh
+              "$SCRIPT"
             } 2>&1 | tee "$log"
             rc=${PIPESTATUS[0]}
             cmd="npm audit --audit-level=high (.github/scripts/v2/npm-audit.sh)"

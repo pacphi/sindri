@@ -208,13 +208,20 @@ jobs:
             echo "::error::$SCRIPT is missing or not executable on this branch"
             exit 1
           fi
-          # Exceptions: v2/npm-audit-ignore.
-          # transitional: fall back to the legacy v2/audit-ignore, which a branch's script reads
-          # until that branch renames it. Remove once no supported branch carries v2/audit-ignore.
+          # Exceptions: v2/npm-audit-ignore (one GHSA id per line).
+          # transitional: fall back to the legacy v2/audit-ignore ("<GHSA-id> <lockfile-dir>" per
+          # line). A branch's old script reads that file itself; for the standard script, which
+          # reads v2/npm-audit-ignore and matches whole lines, normalize it to bare IDs for this
+          # run. Remove once no supported branch carries v2/audit-ignore.
           if [[ -f v2/npm-audit-ignore ]]; then
             echo "Exceptions: v2/npm-audit-ignore"
           elif [[ -f v2/audit-ignore ]]; then
-            echo "::notice::transitional: exceptions read from legacy v2/audit-ignore"
+            if grep -q 'v2/npm-audit-ignore' "$SCRIPT"; then
+              awk '{ sub(/#.*/, "") } NF { print $1 }' v2/audit-ignore >v2/npm-audit-ignore
+              echo "::notice::transitional: normalized legacy v2/audit-ignore into v2/npm-audit-ignore for this run"
+            else
+              echo "::notice::transitional: this branch's script reads legacy v2/audit-ignore itself"
+            fi
           else
             echo "Exceptions: none"
           fi
