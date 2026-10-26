@@ -285,7 +285,7 @@ jobs:
       - name: Set up Python for ScanCode
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
-          python-version: "3.12"
+          python-version: "3.15"
 
       - name: Cache ScanCode pip install
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
