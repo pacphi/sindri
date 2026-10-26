@@ -238,6 +238,17 @@ memory/
 # Agentic QE
 .aqe/
 .agentic-qe/
+# Private learned stores and one machine's launchers: never commit them. AGENTS.md and CLAUDE.md stay tracked.
+# AgentDB and RuVector stores
+agentdb.rvf*
+*.rvf
+*.rvf.lock
+*.rvf.manifest.json
+# Launchers onboarding points at this machine's installs (D6, D11): per machine, never shared
+.mcp.json.*
+.codex/
+# Leftover tool locks
+.beads.gate.lock
 
 # DevContainer
 .devcontainer/
