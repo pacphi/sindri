@@ -5,5 +5,5 @@
 [tools]
 # npm-based tools - pinned versions for stability
 "npm:@openai/codex" = "0.122.0"
-"npm:@google/gemini-cli" = "0.38.2"
+"npm:@google/gemini-cli" = "0.39.1"
 "npm:@vibe-kit/grok-cli" = "0.0.34"
